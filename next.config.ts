@@ -1,7 +1,16 @@
+
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: [
+    '@mui/material',
+    '@emotion/react',
+    '@emotion/styled',
+    'react-icons',
+    'react-parallax-tilt',
+  ],
 };
+
+
 
 export default nextConfig;
