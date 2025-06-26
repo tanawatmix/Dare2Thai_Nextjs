@@ -15,6 +15,7 @@ const Profile = () => {
   const { darkMode } = useContext(ThemeContext);
 
   const [hasMounted, setHasMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState({ username: "", email: "", avatar: "" });
   const [preview, setPreview] = useState(defaultAvatar);
 
@@ -42,10 +43,20 @@ const Profile = () => {
       console.error("❌ Error loading user from localStorage:", error);
       setPreview(defaultAvatar);
       localStorage.removeItem("user");
+    } finally {
+      setLoading(false);
     }
   }, [hasMounted]);
 
-  if (!hasMounted) return null; // ✅ ป้องกัน SSR hydration mismatch
+  if (!hasMounted) return null; // ป้องกัน SSR hydration mismatch
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
+      </div>
+    );
+  }
 
   const handleChange = (e) => {
     setUser({ ...user, [e.target.name]: e.target.value });
@@ -57,7 +68,7 @@ const Profile = () => {
       const reader = new FileReader();
 
       reader.onload = () => {
-        const img = new window.Image(); // <== ใช้ window.Image แทน Image
+        const img = new window.Image();
         img.onload = () => {
           const size = 176;
           const minSide = Math.min(img.width, img.height);
@@ -85,133 +96,184 @@ const Profile = () => {
 
   const handleSave = () => {
     localStorage.setItem("user", JSON.stringify(user));
-    alert("✅ ข้อมูลได้รับการบันทึกแล้ว");
-    router.push("/");
+    const alertBox = document.createElement("div");
+    alertBox.textContent = "✅ ข้อมูลได้รับการบันทึกแล้ว";
+    alertBox.style.position = "fixed";
+    alertBox.style.top = "30px";
+    alertBox.style.left = "50%";
+    alertBox.style.transform = "translateX(-50%)";
+    alertBox.style.background = "linear-gradient(90deg,#60a5fa,#f472b6)";
+    alertBox.style.color = "#fff";
+    alertBox.style.padding = "16px 32px";
+    alertBox.style.borderRadius = "16px";
+    alertBox.style.fontSize = "1.1rem";
+    alertBox.style.boxShadow = "0 4px 24px rgba(0,0,0,0.12)";
+    alertBox.style.zIndex = "9999";
+    document.body.appendChild(alertBox);
+    setTimeout(() => {
+      alertBox.remove();
+    }, 1000);
   };
 
-  return (
+return (
     <div
-      className={`min-h-screen flex flex-col bg-gradient-to-br ${
-        darkMode
-          ? "from-gray-900 via-gray-800 to-black text-white"
-          : "from-blue-100 via-pink-100 to-white text-black"
-      }`}
-    >
-      <Navbar />
-
-      <main className="flex flex-1 mt-12 items-center justify-center px-4 py-8">
-        <motion.div
-          className={`w-full max-w-2xl p-8 rounded-3xl shadow-2xl border-2 transition ${
+        className={`min-h-screen flex flex-col transition-colors duration-500 ${
             darkMode
-              ? "bg-black/80 border-pink-400"
-              : "bg-white/80 border-blue-400"
-          }`}
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="text-4xl font-extrabold text-center mb-8 bg-gradient-to-r from-blue-400 to-pink-400 text-transparent bg-clip-text drop-shadow">
-            แก้ไขข้อมูลส่วนตัว
-          </h1>
+                ? "bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white"
+                : "bg-gradient-to-br from-blue-100 via-pink-100 to-white text-black"
+        }`}
+    >
+        <Navbar />
 
-          <div className="flex flex-col items-center mb-8">
+        <main className="flex flex-1 mt-14 items-center justify-center py-8">
             <motion.div
-              whileHover={{ scale: 1.08, rotate: 2 }}
-              transition={{ type: "spring", stiffness: 180 }}
-              className="relative"
+                className={`w-full max-w-2xl p-4 rounded-3xl shadow-2xl border-2 transition-colors duration-500 ${
+                    darkMode
+                        ? "bg-black/80 border-pink-400"
+                        : "bg-white/80 border-blue-400"
+                }`}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
             >
-              <Image
-                src={preview || defaultAvatar}
-                alt={user.username || "avatar"}
-                width={176}
-                height={176}
-                priority
-                className="rounded-full object-cover border-4 border-blue-400 dark:border-pink-400 shadow-xl"
-              />
-              <label
-                htmlFor="avatar"
-                className="absolute bottom-2 right-2 bg-gradient-to-r from-blue-400 to-pink-400 text-white px-3 py-1.5 rounded-full cursor-pointer font-semibold shadow hover:from-pink-400 hover:to-orange-400 transition text-sm"
-              >
-                เปลี่ยนรูป
-              </label>
-              <input
-                id="avatar"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageChange}
-              />
+                <h1
+                    className={`text-4xl font-extrabold text-center mb-8 bg-gradient-to-r ${
+                        darkMode
+                            ? "from-pink-400 to-blue-400"
+                            : "from-blue-400 to-pink-400"
+                    } text-transparent bg-clip-text drop-shadow`}
+                >
+                    แก้ไขข้อมูลส่วนตัว
+                </h1>
+
+                <div className="flex flex-col items-center mb-8">
+                    <motion.div
+                        whileHover={{ scale: 1.08, rotate: 2 }}
+                        transition={{ type: "spring", stiffness: 180 }}
+                        className="relative"
+                    >
+                        <motion.div
+                            key={preview}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.4 }}
+                            className="relative"
+                        >
+                            <Image
+                                src={preview || defaultAvatar}
+                                alt={user.username || "avatar"}
+                                width={176}
+                                height={176}
+                                priority
+                                className={`rounded-full object-cover border-4 shadow-xl transition-colors duration-500 ${
+                                    darkMode ? "border-pink-400" : "border-blue-400"
+                                }`}
+                            />
+                        </motion.div>
+
+                        <label
+                            htmlFor="avatar"
+                            className={`absolute bottom-2 right-2 bg-gradient-to-r ${
+                                darkMode
+                                    ? "from-pink-400 to-blue-400"
+                                    : "from-blue-400 to-pink-400"
+                            } text-white px-3 py-1.5 rounded-full cursor-pointer font-semibold shadow hover:from-pink-400 hover:to-orange-400 transition text-sm`}
+                        >
+                            เปลี่ยนรูป
+                        </label>
+                        <input
+                            id="avatar"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageChange}
+                        />
+                    </motion.div>
+                </div>
+
+                <div className="space-y-6">
+                    <InputField
+                        label="ชื่อผู้ใช้"
+                        name="username"
+                        value={user.username}
+                        onChange={handleChange}
+                        icon={
+                            <svg
+                                className={`w-5 h-5 ${
+                                    darkMode ? "text-pink-400" : "text-blue-400"
+                                }`}
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M5.121 17.804A9 9 0 1112 21a9 9 0 01-6.879-3.196z"
+                                />
+                            </svg>
+                        }
+                    />
+                    <InputField
+                        label="อีเมล"
+                        name="email"
+                        value={user.email}
+                        onChange={handleChange}
+                        icon={
+                            <svg
+                                className={`w-5 h-5 ${
+                                    darkMode ? "text-pink-400" : "text-blue-400"
+                                }`}
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M16 12H8m8 0a4 4 0 11-8 0 4 4 0 018 0zm0 0v1a4 4 0 01-8 0v-1"
+                                />
+                            </svg>
+                        }
+                    />
+                </div>
+
+                <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleSave}
+                    className={`mt-8 w-full bg-gradient-to-r font-bold py-3 rounded-xl shadow-lg transition text-lg ${
+                        darkMode
+                            ? "from-pink-400 to-blue-400 hover:from-blue-400 hover:to-pink-400"
+                            : "from-blue-400 to-pink-400 hover:from-pink-400 hover:to-orange-400"
+                    } text-white`}
+                >
+                    บันทึกการเปลี่ยนแปลง
+                </motion.button>
+                <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => router.back()}
+                    className={`mt-4 w-full font-semibold py-3 rounded-xl transition ${
+                        darkMode
+                            ? "bg-gray-700 text-white hover:bg-gray-600"
+                            : "bg-gray-200 text-black hover:bg-gray-300"
+                    }`}
+                >
+                    ย้อนกลับ
+                </motion.button>
             </motion.div>
-          </div>
-
-          <div className="space-y-6">
-            <InputField
-              label="ชื่อผู้ใช้"
-              name="username"
-              value={user.username}
-              onChange={handleChange}
-              icon={
-                <svg
-                  className="w-5 h-5 text-blue-400 dark:text-pink-400"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5.121 17.804A9 9 0 1112 21a9 9 0 01-6.879-3.196z"
-                  />
-                </svg>
-              }
-            />
-            <InputField
-              label="อีเมล"
-              name="email"
-              value={user.email}
-              onChange={handleChange}
-              icon={
-                <svg
-                  className="w-5 h-5 text-blue-400 dark:text-pink-400"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16 12H8m8 0a4 4 0 11-8 0 4 4 0 018 0zm0 0v1a4 4 0 01-8 0v-1"
-                  />
-                </svg>
-              }
-            />
-          </div>
-
-          <button
-            onClick={handleSave}
-            className="mt-8 w-full bg-gradient-to-r from-blue-400 to-pink-400 text-white font-bold py-3 rounded-xl shadow-lg hover:from-pink-400 hover:to-orange-400 transition text-lg"
-          >
-            บันทึกการเปลี่ยนแปลง
-          </button>
-          <button
-            onClick={() => router.back()}
-            className="mt-4 w-full bg-gray-200 dark:bg-gray-700 text-black dark:text-white font-semibold py-3 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-          >
-            ย้อนกลับ
-          </button>
-        </motion.div>
-      </main>
-      <Footer />
+        </main>
+        <Footer />
     </div>
-  );
+);
 };
 
 const InputField = ({ label, name, value, onChange, icon }) => (
   <div>
     <label className="block mb-2 font-semibold text-lg">{label}</label>
-    <div className="flex items-center bg-white/90 dark:bg-gray-900/80 border-2 border-blue-200 dark:border-pink-400 rounded-xl shadow px-3 py-2">
+    <div className="flex items-center bg-white text-black border-2 border-blue-200 dark:border-pink-400 rounded-xl shadow px-3 py-2">
       {icon && <span className="mr-2">{icon}</span>}
       <input
         name={name}

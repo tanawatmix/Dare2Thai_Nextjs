@@ -223,10 +223,10 @@ const Navbar = () => {
 
       {/* Mobile toggle */}
       <div
-        className={`md:hidden ${darkMode ? "text-white" : "text-secondary"}`}
+        className={`md:hidden absolute top-4 right-6 ${darkMode ? "text-white" : "text-secondary"}`}
       >
         <button onClick={toggleMenu}>
-          {isOpen ? <FiX size={28} /> : <FiMenu size={28} />}
+          {isOpen ? <FiX size={30} /> : <FiMenu size={28} />}
         </button>
       </div>
 
@@ -272,6 +272,55 @@ const Navbar = () => {
               <option value="th">ภาษาไทย</option>
               <option value="en">ENGLISH</option>
             </select>
+            <div className="relative flex w-fit items-center rounded-full border border-gray-300 dark:border-gray-600">
+            <button
+              className={`${TOGGLE_CLASSES} ${
+                selected === "light"
+                  ? darkMode
+                    ? "text-slate-300"
+                    : "text-slate-800"
+                  : "text-white"
+              } px-2 py-1`}
+              onClick={() => {
+                setSelected("light");
+                if (darkMode) toggleDarkMode();
+              }}
+            >
+              <FiSun className="mr-1" />
+              <span className="hidden md:inline">Light</span>
+            </button>
+            <button
+              className={`${TOGGLE_CLASSES} ${
+                selected === "dark"
+                  ? "text-white"
+                  : darkMode
+                  ? "text-slate-300"
+                  : "text-slate-800"
+              } px-2 py-1`}
+              onClick={() => {
+                setSelected("dark");
+                if (!darkMode) toggleDarkMode();
+              }}
+            >
+              <FiMoon className="mr-1" />
+              <span className="hidden md:inline">Dark</span>
+            </button>
+            <div
+              className={`absolute inset-0 z-0 flex ${
+                selected === "dark" ? "justify-end" : "justify-start"
+              }`}
+            >
+              <motion.span
+                layout
+                transition={{ type: "spring", damping: 15, stiffness: 250 }}
+                className={`h-full w-1/2 rounded-full ${
+                  darkMode
+                    ? "bg-gradient-to-r from-blue-500 to-purple-600"
+                    : "bg-gradient-to-r from-violet-600 to-indigo-600"
+                }`}
+              />
+            </div>
+          </div>
           </div>
         )}
       </AnimatePresence>

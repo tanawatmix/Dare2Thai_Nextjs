@@ -13,7 +13,6 @@ import { useTranslation } from "react-i18next";
 import wp from "../../public/whiteWater.jpg";
 import bp from "../../public/bp.jpg";
 
-
 const PostPage = () => {
   const { t, i18n } = useTranslation();
   const { darkMode } = useContext(ThemeContext);
@@ -68,7 +67,13 @@ const PostPage = () => {
 
   const postsPerPage = 12;
   const placeTypes = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม"];
-  const provinces = ["กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "เชียงใหม่", "อุบลราชธานี"];
+  const provinces = [
+    "กรุงเทพมหานคร",
+    "กระบี่",
+    "กาญจนบุรี",
+    "เชียงใหม่",
+    "อุบลราชธานี",
+  ];
 
   useEffect(() => {
     const filtered = posts.filter((post) => {
@@ -76,7 +81,8 @@ const PostPage = () => {
         searchName.trim() === "" ||
         post.title.toLowerCase().includes(searchName.toLowerCase());
       const matchType = selectedType === "" || post.type === selectedType;
-      const matchProvince = selectedProvince === "" || post.province === selectedProvince;
+      const matchProvince =
+        selectedProvince === "" || post.province === selectedProvince;
       return matchName && matchType && matchProvince;
     });
     setFilteredPosts(filtered);
@@ -105,7 +111,9 @@ const PostPage = () => {
   // ฟังก์ชันลบโพสต์
   const handleDeletePost = (postId) => {
     if (window.confirm(t("confirm_delete") || "ยืนยันการลบโพสต์นี้?")) {
-      setFilteredPosts((prevPosts) => prevPosts.filter((post) => post.id !== postId));
+      setFilteredPosts((prevPosts) =>
+        prevPosts.filter((post) => post.id !== postId)
+      );
     }
   };
 
@@ -125,8 +133,12 @@ const PostPage = () => {
       style={
         hasMounted
           ? {
-              backgroundImage: `radial-gradient(circle 300px at ${mousePosition.x}px ${mousePosition.y}px, ${
-                darkMode ? "rgba(254, 163, 253, 0.5)" : "rgba(185, 246, 255, 0.5)"
+              backgroundImage: `radial-gradient(circle 300px at ${
+                mousePosition.x
+              }px ${mousePosition.y}px, ${
+                darkMode
+                  ? "rgba(254, 163, 253, 0.5)"
+                  : "rgba(185, 246, 255, 0.5)"
               }, transparent 50%), url(${darkMode ? bp.src : wp.src})`,
               backgroundSize: "cover",
               backgroundAttachment: "fixed",
@@ -135,12 +147,10 @@ const PostPage = () => {
           : undefined
       }
     >
-      <div
-        className="relative bg-fixed bg-center bg-cover transition duration-500 flex-1"
-      >
+      <div className="relative bg-fixed bg-center bg-cover transition duration-500 flex-1">
         <Navbar />
         <div className="max-w-7xl mx-auto px-4 py-20">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
+          <div className="flex flex-col mt-5 md:flex-row items-center justify-between gap-4 mb-8">
             <button
               onClick={() => router.push("/create_post")}
               className="flex items-center gap-2 border-2 border-blue-400 dark:border-pink-500 rounded-lg bg-primary text-black dark:bg-black dark:text-white px-6 py-2 font-semibold shadow hover:bg-black hover:text-white dark:hover:bg-primary dark:hover:text-secondary transition-all duration-300"
@@ -159,9 +169,15 @@ const PostPage = () => {
             </button>
           </div>
 
-          <Drawer anchor="right" open={isDrawerOpen} onClose={toggleDrawer(false)}>
+          <Drawer
+            anchor="right"
+            open={isDrawerOpen}
+            onClose={toggleDrawer(false)}
+          >
             <div className="font-sriracha w-[320px] p-6 space-y-6 bg-primary dark:bg-secondary h-full overflow-y-auto">
-              <h2 className="text-2xl font-bold text-secondary dark:text-primary mb-4">{t("search")}</h2>
+              <h2 className="text-2xl font-bold text-secondary dark:text-primary mb-4">
+                {t("search")}
+              </h2>
 
               <div>
                 <label className="block mb-1 text-sm font-medium text-secondary dark:text-primary">
@@ -183,7 +199,9 @@ const PostPage = () => {
               </div>
 
               <div>
-                <label className="block mb-1 text-sm font-medium text-secondary dark:text-primary">{t("Placetag")}</label>
+                <label className="block mb-1 text-sm font-medium text-secondary dark:text-primary">
+                  {t("Placetag")}
+                </label>
                 <select
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-300"
                   value={selectedType}
@@ -199,7 +217,9 @@ const PostPage = () => {
               </div>
 
               <div>
-                <label className="block mb-1 text-sm font-medium text-secondary dark:text-primary">{t("Provincetag")}</label>
+                <label className="block mb-1 text-sm font-medium text-secondary dark:text-primary">
+                  {t("Provincetag")}
+                </label>
                 <select
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-300"
                   value={selectedProvince}
@@ -252,8 +272,9 @@ const PostPage = () => {
                   province={post.province}
                   postId={post.id}
                   description={post.description}
+                  onClick={() => router.push(`/post_detail/${post.id}`)}
                   onEdit={handleEditPost}
-                  onDelete={handleDeletePost} // ฟังก์ชันลบโพสต์
+                  onDelete={handleDeletePost}
                 />
               ))
             )}
@@ -277,7 +298,10 @@ const PostPage = () => {
               </>
             )}
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const startPage = Math.max(1, Math.min(currentPage - 2, totalPages - 4));
+              const startPage = Math.max(
+                1,
+                Math.min(currentPage - 2, totalPages - 4)
+              );
               const pageNumber = i + startPage;
               if (pageNumber > totalPages) return null;
               return (

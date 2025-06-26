@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeContext } from "../ThemeContext";
 import bp from "../../public/bp.jpg";
@@ -62,16 +62,14 @@ const Register = () => {
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
   const t = translations[lang];
 
-  const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
-
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleImageSelect = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
       const imageUrl = URL.createObjectURL(file);
       setAvatarPreview(imageUrl);
@@ -96,175 +94,179 @@ const Register = () => {
 
   return (
     <div
-      className="font-sriracha bg-fixed bg-cover min-h-screen"
-      style={{
-        backgroundImage: `url(${darkMode ? bp : wp})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
+      className={`relative min-h-screen transition duration-500 overflow-x-hidden ${
+        darkMode ? "bp text-white" : "wp text-black"
+      }`}
     >
       <div className="relative min-h-screen flex items-center justify-center px-4">
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-10 max-w-4xl w-full relative backdrop-blur-lg flex flex-col md:flex-row gap-10"
+          transition={{ duration: 0.5 }}
+          className="border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-10 max-w-4xl w-full backdrop-blur-lg flex flex-col md:flex-row gap-10"
         >
-          {/* Left: Avatar & Controls */}
-          <div className="flex-1 flex flex-col justify-center items-center gap-8 border-r-0 md:border-r md:pr-10 border-blue-400">
-            {/* Language & Theme */}
+          {/* Left Avatar */}
+          <div className="flex-1 flex flex-col justify-center items-center gap-6 border-r-0 md:border-r md:pr-10 border-blue-400">
             <div className="absolute top-0 right-0 flex flex-col items-end gap-2 z-10 p-3">
-              <button
-                className="text-xs font-semibold py-1 px-4 rounded-full border border-blue-400 dark:border-pink-400 bg-white/90 dark:bg-gray-900/80 text-blue-600 dark:text-pink-400 hover:bg-blue-100 dark:hover:bg-pink-900 transition"
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                className="text-xs font-semibold py-1 px-4 rounded-full border border-blue-400 dark:border-pink-400 bg-white/90 dark:bg-gray-900/80 text-blue-600 dark:text-pink-400"
                 onClick={() => setLang(lang === "th" ? "en" : "th")}
-                aria-label="Switch language"
               >
                 {lang === "th" ? "EN" : "ไทย"}
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
                 onClick={toggleDarkMode}
-                className="flex items-center gap-2 text-xs font-semibold py-1 px-4 rounded-full border border-blue-400 dark:border-pink-400 bg-white/90 dark:bg-gray-900/80 text-blue-600 dark:text-pink-400 hover:bg-blue-100 dark:hover:bg-pink-900 transition"
+                className="text-xs font-semibold py-1 px-4 rounded-full border border-blue-400 dark:border-pink-400 bg-white/90 dark:bg-gray-900/80 text-blue-600 dark:text-pink-400"
               >
-                {darkMode ? (
-                  <>
-                    <span>Light</span>
-                    <span role="img" aria-label="Light mode">
-                      ☀️
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span>Dark</span>
-                    <span role="img" aria-label="Dark mode">
-                      🌙
-                    </span>
-                  </>
-                )}
-              </button>
+                {darkMode ? "☀️ Light" : "🌙 Dark"}
+              </motion.button>
             </div>
 
-            <button
-              className="bg-gradient-to-r from-blue-400 to-pink-400 text-white font-bold p-3 rounded-full transition duration-200 w-24 shadow-lg hover:scale-110"
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              className="bg-gradient-to-r from-blue-400 to-pink-400 text-white font-bold p-3 rounded-full w-24"
               onClick={() => (window.location.href = "/")}
             >
               {t.home}
-            </button>
+            </motion.button>
 
-            <h3 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400 mb-8 text-center drop-shadow-lg">
+            <motion.h3
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400 mb-6"
+            >
               {t.title}
-            </h3>
+            </motion.h3>
 
-            <div className="flex items-center justify-center mb-2">
-              <motion.img
-                src={avatarPreview || proDefault.src} // ใส่ path รูป default
-                alt="Avatar Preview"
-                className="w-44 h-44 rounded-3xl border-4 border-blue-400 dark:border-pink-400 object-cover shadow-xl"
-                whileHover={{ scale: 1.07, rotate: 2 }}
-                transition={{ type: "spring", stiffness: 200 }}
-              />
-            </div>
+            <motion.img
+              src={avatarPreview || proDefault.src}
+              alt="Avatar Preview"
+              className="w-44 h-44 rounded-3xl border-4 border-blue-400 dark:border-pink-400 object-cover shadow-xl"
+              whileHover={{ rotate: 2, scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 200 }}
+            />
 
-            <div className="mb-2">
-              <label
-                htmlFor="avatar-upload"
-                className="bg-gradient-to-r from-blue-400 to-pink-400 text-white px-4 py-2 rounded-lg cursor-pointer hover:from-pink-400 hover:to-orange-400 transition font-semibold shadow"
-              >
-                {t.selectAvatar}
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                id="avatar-upload"
-                className="hidden"
-                onChange={handleImageSelect}
-              />
-            </div>
-
-            <h3 className="text-xs font-bold text-gray-700 dark:text-gray-200">
-              {t.Optional}
-            </h3>
+            <label
+              htmlFor="avatar-upload"
+              className="bg-gradient-to-r from-blue-400 to-pink-400 text-white px-4 py-2 rounded-lg cursor-pointer font-semibold shadow hover:from-pink-400 hover:to-orange-400"
+            >
+              {t.selectAvatar}
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              id="avatar-upload"
+              className="hidden"
+              onChange={handleImageSelect}
+            />
+            <p className="text-xs text-gray-300">{t.Optional}</p>
           </div>
 
-          {/* Right: Register Form */}
-          <div className="flex-1 mt-5 relative flex flex-col justify-center">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleRegister();
-              }}
-              className="space-y-6"
-            >
-              <InputField
-                id="email"
-                label={t.email}
-                placeholder={t.enMail}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <InputField
-                id="UserName"
-                label={t.username}
-                placeholder={t.enUserN}
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
-              <InputField
-                id="password"
-                label={t.password}
-                placeholder={t.enPass}
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <InputField
-                id="ConfirmPassword"
-                label={t.conpassword}
-                placeholder={t.enConPass}
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                className="bg-gradient-to-r from-blue-400 to-pink-400 text-white font-bold p-3 rounded-lg hover:from-pink-400 hover:to-orange-400 w-full shadow-lg transition duration-300 text-lg"
-                type="submit"
+          {/* Right Form */}
+          <motion.div
+            className="flex-1 space-y-6 mt-5"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: {},
+              visible: {
+                transition: {
+                  staggerChildren: 0.1,
+                },
+              },
+            }}
+          >
+            {[
+              {
+                id: "email",
+                label: t.email,
+                placeholder: t.enMail,
+                type: "email",
+                value: email,
+                setValue: setEmail,
+              },
+              {
+                id: "username",
+                label: t.username,
+                placeholder: t.enUserN,
+                type: "text",
+                value: username,
+                setValue: setUsername,
+              },
+              {
+                id: "password",
+                label: t.password,
+                placeholder: t.enPass,
+                type: "password",
+                value: password,
+                setValue: setPassword,
+              },
+              {
+                id: "confirmPassword",
+                label: t.conpassword,
+                placeholder: t.enConPass,
+                type: "password",
+                value: confirmPassword,
+                setValue: setConfirmPassword,
+              },
+            ].map(({ id, label, placeholder, type, value, setValue }) => (
+              <motion.div
+                key={id}
+                variants={{
+                  hidden: { opacity: 0, y: 10 },
+                  visible: { opacity: 1, y: 0 },
+                }}
               >
-                {t.login}
-              </motion.button>
-            </form>
-            <p className="mt-6 text-center text-gray-700 dark:text-gray-200 text-base">
+                <label className="block mb-2 text-gray-300">{label}</label>
+                <input
+                  type={type}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder={placeholder}
+                  className="w-full p-3 border-2 border-blue-200 dark:border-pink-400 rounded-xl focus:outline-none dark:bg-white text-black"
+                  required
+                />
+              </motion.div>
+            ))}
+
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              className="bg-gradient-to-r from-blue-400 to-pink-400 text-white font-bold p-3 rounded-lg hover:from-pink-400 hover:to-orange-400 w-full shadow-lg"
+              type="submit"
+              onClick={handleRegister}
+            >
+              {t.login}
+            </motion.button>
+            <p className="text-sm text-center text-gray-300">
               {t.haveAccount}{" "}
               <span
-                className="font-extrabold text-pink-500 cursor-pointer hover:text-orange-400 transition"
+                className="text-pink-400 font-bold cursor-pointer hover:text-orange-300"
                 onClick={() => (window.location.href = "/login")}
               >
                 {t.register}
               </span>
             </p>
-          </div>
+          </motion.div>
         </motion.div>
 
-        {/* Success Notification */}
+        {/* ✅ Success message */}
         <AnimatePresence>
           {showSuccess && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="absolute top-10 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-500 via-pink-400 to-orange-300 border-2 border-dashed border-white text-white font-bold px-10 py-5 rounded-2xl shadow-2xl text-center z-50"
+              initial={{ y: -30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -30, opacity: 0 }}
+              className="absolute top-10 left-1/2 -translate-x-1/2 bg-pink-500 text-white px-10 py-5 rounded-xl shadow-xl"
             >
               {t.success}
               <motion.div
+                className="h-1 bg-white mt-3 rounded"
                 initial={{ width: 0 }}
                 animate={{ width: "100%" }}
-                transition={{ duration: 1, ease: "linear" }}
-                className="h-1 bg-white mt-3 rounded-lg"
+                transition={{ duration: 1 }}
               />
             </motion.div>
           )}
@@ -273,36 +275,5 @@ const Register = () => {
     </div>
   );
 };
-
-// Reusable Input Field Component
-function InputField({
-  id,
-  label,
-  placeholder,
-  type,
-  value,
-  onChange,
-  required,
-}) {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="block mb-2 font-semibold text-gray-700 dark:text-gray-200"
-      >
-        {label}
-      </label>
-      <input
-        type={type}
-        id={id}
-        className="w-full p-3 border-2 border-blue-200 dark:border-pink-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-pink-400 bg-white/90 dark:bg-gray-900/80 transition text-lg shadow"
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        required={required}
-      />
-    </div>
-  );
-}
 
 export default Register;

@@ -167,7 +167,7 @@ const Login = () => {
         </AnimatePresence>
       </div>
     </div>
-  );
+  );    
 };
 
 // Reusable InputField component
