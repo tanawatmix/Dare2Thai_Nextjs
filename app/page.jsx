@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ThemeContext } from "./ThemeContext";
 import Navbar from "./components/navbar";
@@ -10,14 +10,29 @@ import { useTranslation } from "react-i18next";
 import D2T2 from "../public/dare2New.png";
 import bg1 from "../public/whiteWater.jpg";
 import bg2 from "../public/bp.jpg";
-import bg3 from "../public/min.jpg";
-import bg4 from "../public/d.png";
+import bg3 from "../public/f2.jpg";
+import bg4 from "../public/ww.jpg";
+import bg5 from "../public/tmc.jpg";
 
 export default function HomeUI() {
   const { t } = useTranslation();
   const { darkMode } = useContext(ThemeContext);
   const { scrollY } = useScroll();
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  // สร้าง Audio object
+  const clickSound = useRef(null);
+
+  useEffect(() => {
+    clickSound.current = new Audio("/sounds/shoot.wav");
+  }, []);
+
+  const handleClick = () => {
+    if (clickSound.current) {
+      clickSound.current.currentTime = 0;
+      clickSound.current.play();
+    }
+  };
 
   useEffect(() => {
     const handleMouseMove = (event) => {
@@ -42,7 +57,7 @@ export default function HomeUI() {
 
   return (
     <div
-      className={`min-h-screen flex flex-col ${
+      className={` ${
         darkMode
           ? "bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white"
           : "bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50 text-black"
@@ -67,17 +82,19 @@ export default function HomeUI() {
       />
 
       <Navbar />
-      <div style={{
+      <div
+        style={{
           top: 0,
           left: 0,
-          width: "100vw",
+          width: "99vw",
           height: "100vh",
           backgroundImage: `url(${darkMode ? bg2.src : bg1.src})`,
           backgroundSize: "cover",
           backgroundAttachment: "fixed",
           backgroundPosition: "center",
           zIndex: 0,
-        }} >
+        }}
+      >
         {/* HERO */}
         <div className="min-h-screen flex flex-col py-24 items-center justify-center px-4 relative transition duration-700">
           <motion.img
@@ -122,7 +139,10 @@ export default function HomeUI() {
             <div className="mx-auto h-20 flex items-center justify-center">
               <motion.button
                 className="group flex items-center justify-center gap-2 border-2 border-pink-500 dark:border-blue-400 bg-gradient-to-r from-pink-400 via-orange-300 to-yellow-200 dark:from-blue-900 dark:via-purple-900 dark:to-gray-900 px-8 py-4 text-xl font-bold rounded-full shadow-lg hover:scale-105 transition-transform text-white duration-200 relative overflow-hidden hover:shadow-pink-400/40"
-                onClick={() => (window.location.href = "/post_pages")}
+                onClick={() => {
+                  handleClick(); // เล่นเสียงก่อน
+                  window.location.href = "/post_pages"; // แล้วเปลี่ยนหน้า
+                }}
                 whileHover={{
                   scale: 1.09,
                   boxShadow: "0 4px 32px rgb(238, 244, 114)",
@@ -160,13 +180,13 @@ export default function HomeUI() {
       {/* SECTION 1: วัฒนธรรมไทย */}
       <motion.section
         style={{ ...sectionStyle(bg4), opacity: fadeSection1 }}
-        className="min-h-screen flex items-center justify-center text-center px-4"
+        className="min-h-screen w-full flex items-center justify-center text-center px-4"
       >
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
-          className="max-w-4xl bg-gradient-to-br from-pink-100/90 via-white/90 to-yellow-100/90 dark:from-gray-900/95 dark:via-pink-900/90 dark:to-gray-800/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border-2 border-pink-300 dark:border-pink-700 text-black dark:text-white"
+          className="max-w-4xl bg-gradient-to-br from-pink-100/90 via-white/90 to-yellow-100/90 dark:from-orange-400/95 dark:via-green-400/90 dark:to-orange-400/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border-2 border-pink-300 dark:border-pink-700 text-black dark:text-white"
           aria-label="วัฒนธรรมไทย"
         >
           <h2 className="text-5xl font-extrabold text-pink-500 dark:text-pink-300 mb-8 drop-shadow-lg flex items-center justify-center gap-3">
@@ -199,7 +219,6 @@ export default function HomeUI() {
               {t("travel8")} <span className="text-pink-400">|</span>{" "}
               {t("travel9")}
             </li>
-            
           </ul>
           <div className="flex flex-wrap justify-center gap-4 mt-6">
             <span className="inline-block text-3xl animate-pulse">🛕</span>
@@ -225,14 +244,14 @@ export default function HomeUI() {
 
       {/* SECTION 2: ธรรมชาติสุดมหัศจรรย์ */}
       <motion.section
-        style={{ ...sectionStyle(bg2), opacity: fadeSection2 }}
+        style={{ ...sectionStyle(bg5), opacity: fadeSection2 }}
         className="min-h-screen flex items-center justify-center text-center px-4"
       >
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
-          className="max-w-4xl bg-gradient-to-br from-blue-100/90 via-white/90 to-green-100/90 dark:from-blue-900/95 dark:via-gray-900/90 dark:to-green-900/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border-2 border-blue-300 dark:border-yellow-400 text-black dark:text-white"
+          className="max-w-4xl bg-gradient-to-br from-blue-100/90 via-white/90 to-green-100/90 dark:from-blue-600/95 dark:via-pink-400/90 dark:to-white -900/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border-2 border-blue-300 dark:border-yellow-400 text-black dark:text-white"
           aria-label="ธรรมชาติสุดมหัศจรรย์"
         >
           <h2 className="text-5xl font-extrabold text-blue-500 dark:text-yellow-300 mb-8 drop-shadow-lg flex items-center justify-center gap-3">
@@ -252,17 +271,15 @@ export default function HomeUI() {
               <span className="font-bold text-blue-600 dark:text-yellow-300">
                 •
               </span>{" "}
-              {t("pa4")} <span className="text-blue-400">|</span>{" "}
-              {t("pa5")} <span className="text-blue-400">|</span>{" "}
-              {t("pa6")}
+              {t("pa4")} <span className="text-blue-400">|</span> {t("pa5")}{" "}
+              <span className="text-blue-400">|</span> {t("pa6")}
             </li>
             <li>
               <span className="font-bold text-blue-600 dark:text-yellow-300">
                 •
               </span>{" "}
-              {t("pa7")} <span className="text-blue-400">|</span>{" "}
-              {t("pa8")} <span className="text-blue-400">|</span>{" "}
-              {t("pa9")}
+              {t("pa7")} <span className="text-blue-400">|</span> {t("pa8")}{" "}
+              <span className="text-blue-400">|</span> {t("pa9")}
             </li>
             <li>
               <span className="font-bold text-blue-600 dark:text-yellow-300">
@@ -303,7 +320,7 @@ export default function HomeUI() {
           initial={{ opacity: 0, y: 60 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2 }}
-          className="max-w-4xl bg-gradient-to-br from-yellow-100/90 via-white/90 to-orange-100/90 dark:from-gray-900/95 dark:via-yellow-900/90 dark:to-orange-900/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border border-yellow-400"
+          className="max-w-4xl bg-gradient-to-br from-yellow-100/90 via-white/90 to-orange-100/90 dark:from-red-400/95 dark:via-blue-600/90 dark:to-purple-600/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border border-yellow-400"
           aria-label="ช้อป กิน เที่ยว"
         >
           <h2 className="text-4xl md:text-5xl font-bold text-yellow-500 dark:text-yellow-300 mb-6 drop-shadow-lg flex items-center justify-center gap-3">
@@ -316,17 +333,17 @@ export default function HomeUI() {
               <span className="font-bold text-yellow-600 dark:text-yellow-300">
                 •
               </span>{" "}
-              {t("food1")}{" "}
-              <span className="text-yellow-400">|</span> {t("food2")}{" "}
-              <span className="text-yellow-400">|</span> {t("food3")}
+              {t("food1")} <span className="text-yellow-400">|</span>{" "}
+              {t("food2")} <span className="text-yellow-400">|</span>{" "}
+              {t("food3")}
             </li>
             <li>
               <span className="font-bold text-yellow-600 dark:text-yellow-300">
                 •
               </span>{" "}
-              {t("food4")}{" "}
-              <span className="text-yellow-400">|</span> {t("food5")}{" "}
-              <span className="text-yellow-400">|</span> {t("food6")}
+              {t("food4")} <span className="text-yellow-400">|</span>{" "}
+              {t("food5")} <span className="text-yellow-400">|</span>{" "}
+              {t("food6")}
             </li>
             <li>
               <span className="font-bold text-yellow-600 dark:text-yellow-300">
@@ -343,6 +360,17 @@ export default function HomeUI() {
             <span className="inline-block text-3xl animate-pulse">🛒</span>
             <span className="inline-block text-3xl animate-pulse">🧺</span>
             <span className="inline-block text-3xl animate-pulse">🧁</span>
+          </div>
+          <div className="mt-8 flex flex-wrap justify-center gap-3 text-lg">
+            <span className="px-3 py-1 rounded-full bg-green-200/60 dark:bg-green-900/60 text-green-700 dark:text-green-200 font-semibold shadow">
+              {t("food9")}
+            </span>
+            <span className="px-3 py-1 rounded-full bg-blue-200/60 dark:bg-blue-900/60 text-blue-700 dark:text-blue-200 font-semibold shadow">
+              {t("food10")}
+            </span>
+            <span className="px-3 py-1 rounded-full bg-yellow-200/60 dark:bg-yellow-900/60 text-yellow-700 dark:text-yellow-200 font-semibold shadow">
+              {t("food11")}
+            </span>
           </div>
         </motion.div>
       </motion.section>

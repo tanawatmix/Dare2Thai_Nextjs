@@ -28,7 +28,11 @@ export default function RootLayout({
     <html lang="th" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
         <Head>
-          <link rel="icon" href="./../public/D2T2.png" />
+          <link rel="icon" href="../public/D2T2.png" />
+          <link
+          href="https://fonts.googleapis.com/css2?family=Itim&display=swap"
+          rel="stylesheet"
+        />
         </Head>
         <ThemeProvider>{children}</ThemeProvider>
       </body>

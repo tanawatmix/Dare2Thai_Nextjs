@@ -36,13 +36,13 @@ const Navbar = () => {
 
   // ✅ เมื่อเปลี่ยนภาษา
   useEffect(() => {
-    const handleLangChange = (lng) => {
-      setLanguage(lng);
-    };
-    i18n.on("languageChanged", handleLangChange);
-    return () => {
-      i18n.off("languageChanged", handleLangChange);
-    };
+    const storedLang = localStorage.getItem("language");
+    if (storedLang) {
+      setLanguage(storedLang);
+      i18n.changeLanguage(storedLang);
+    } else {
+      setLanguage(i18n.language);
+    }
   }, []);
 
   const TOGGLE_CLASSES =
@@ -80,6 +80,9 @@ const Navbar = () => {
     setIsOpen((prev) => !prev);
   }
 
+  // เช็คว่า user นี้เป็น admin ไหม (id === 999)
+  const isAdmin = user?.id === 999;
+
   return (
     <nav
       className={`font-sriracha border-b py-4 px-6 fixed w-full z-50 shadow transition duration-500
@@ -113,6 +116,13 @@ const Navbar = () => {
           <NavButton to="/" className="text-base">
             {t("home")}
           </NavButton>
+
+          {/* ปุ่ม Admin Panel เฉพาะ admin */}
+          {isLoggedIn && isAdmin && (
+            <NavButton to="/admin" className="text-base">
+              {t("admin_panel") || "Admin Panel"}
+            </NavButton>
+          )}
 
           {isLoggedIn ? (
             <>
@@ -158,7 +168,12 @@ const Navbar = () => {
 
           {/* Language selector */}
           <select
-            onChange={(e) => i18n.changeLanguage(e.target.value)}
+            onChange={(e) => {
+              const newLang = e.target.value;
+              i18n.changeLanguage(newLang);
+              localStorage.setItem("language", newLang);
+              setLanguage(newLang);
+            }}
             value={language}
             className={`border rounded px-2 py-1 text-sm transition duration-300 ${
               darkMode ? "text-white border-white bg-pink-500" : "text-black"
@@ -223,7 +238,9 @@ const Navbar = () => {
 
       {/* Mobile toggle */}
       <div
-        className={`md:hidden absolute top-4 right-6 ${darkMode ? "text-white" : "text-secondary"}`}
+        className={`md:hidden absolute top-4 right-6 ${
+          darkMode ? "text-white" : "text-secondary"
+        }`}
       >
         <button onClick={toggleMenu}>
           {isOpen ? <FiX size={30} /> : <FiMenu size={28} />}
@@ -241,6 +258,13 @@ const Navbar = () => {
             <NavButton to="/post_pages">{t("place")}</NavButton>
             <NavButton to="/home">{t("home")}</NavButton>
 
+            {/* ปุ่ม Admin Panel mobile */}
+            {isLoggedIn && isAdmin && (
+              <NavButton to="/admin">
+                {t("admin_panel") || "Admin Panel"}
+              </NavButton>
+            )}
+
             {!isLoggedIn ? (
               <>
                 <NavButton to="/register">{t("register")}</NavButton>
@@ -254,8 +278,26 @@ const Navbar = () => {
                 >
                   {t("logout")}
                 </button>
-                <NavButton to="/profile">
-                  <FiUser className="mr-1" />
+                <NavButton
+                  to="/profile"
+                  className="flex items-center justify-center gap-2 text-base"
+                >
+                  {/* รูปโปรไฟล์ */}
+                  {user?.avatar ? (
+                    <Image
+                      src={user.avatar}
+                      alt="avatar"
+                      width={36}
+                      height={36}
+                      className="rounded-full object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    // ถ้าไม่มีรูป ให้แสดงไอคอนแทน
+                    <FiUser className="text-lg" />
+                  )}
+
+                  {/* ชื่อผู้ใช้ */}
                   {t("hello_user", { name: user?.username })}
                 </NavButton>
               </>
@@ -273,54 +315,54 @@ const Navbar = () => {
               <option value="en">ENGLISH</option>
             </select>
             <div className="relative flex w-fit items-center rounded-full border border-gray-300 dark:border-gray-600">
-            <button
-              className={`${TOGGLE_CLASSES} ${
-                selected === "light"
-                  ? darkMode
+              <button
+                className={`${TOGGLE_CLASSES} ${
+                  selected === "light"
+                    ? darkMode
+                      ? "text-slate-300"
+                      : "text-slate-800"
+                    : "text-white"
+                } px-2 py-1`}
+                onClick={() => {
+                  setSelected("light");
+                  if (darkMode) toggleDarkMode();
+                }}
+              >
+                <FiSun className="mr-1" />
+                <span className="hidden md:inline">Light</span>
+              </button>
+              <button
+                className={`${TOGGLE_CLASSES} ${
+                  selected === "dark"
+                    ? "text-white"
+                    : darkMode
                     ? "text-slate-300"
                     : "text-slate-800"
-                  : "text-white"
-              } px-2 py-1`}
-              onClick={() => {
-                setSelected("light");
-                if (darkMode) toggleDarkMode();
-              }}
-            >
-              <FiSun className="mr-1" />
-              <span className="hidden md:inline">Light</span>
-            </button>
-            <button
-              className={`${TOGGLE_CLASSES} ${
-                selected === "dark"
-                  ? "text-white"
-                  : darkMode
-                  ? "text-slate-300"
-                  : "text-slate-800"
-              } px-2 py-1`}
-              onClick={() => {
-                setSelected("dark");
-                if (!darkMode) toggleDarkMode();
-              }}
-            >
-              <FiMoon className="mr-1" />
-              <span className="hidden md:inline">Dark</span>
-            </button>
-            <div
-              className={`absolute inset-0 z-0 flex ${
-                selected === "dark" ? "justify-end" : "justify-start"
-              }`}
-            >
-              <motion.span
-                layout
-                transition={{ type: "spring", damping: 15, stiffness: 250 }}
-                className={`h-full w-1/2 rounded-full ${
-                  darkMode
-                    ? "bg-gradient-to-r from-blue-500 to-purple-600"
-                    : "bg-gradient-to-r from-violet-600 to-indigo-600"
+                } px-2 py-1`}
+                onClick={() => {
+                  setSelected("dark");
+                  if (!darkMode) toggleDarkMode();
+                }}
+              >
+                <FiMoon className="mr-1" />
+                <span className="hidden md:inline">Dark</span>
+              </button>
+              <div
+                className={`absolute inset-0 z-0 flex ${
+                  selected === "dark" ? "justify-end" : "justify-start"
                 }`}
-              />
+              >
+                <motion.span
+                  layout
+                  transition={{ type: "spring", damping: 15, stiffness: 250 }}
+                  className={`h-full w-1/2 rounded-full ${
+                    darkMode
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600"
+                      : "bg-gradient-to-r from-violet-600 to-indigo-600"
+                  }`}
+                />
+              </div>
             </div>
-          </div>
           </div>
         )}
       </AnimatePresence>

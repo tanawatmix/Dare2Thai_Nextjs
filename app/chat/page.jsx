@@ -23,24 +23,27 @@ const ChatUI = () => {
   const chatContainerRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // เลื่อนแค่กล่องแชทเมื่อข้อความเปลี่ยน
   useEffect(() => {
     const container = chatContainerRef.current;
     if (container) {
-      const isScrolledUp =
-        container.scrollHeight - container.scrollTop >
-        container.clientHeight + 50;
-
-      if (isScrolledUp && messages.length > 0) {
-        setShowScrollButton(true);
-      } else {
-        container.scrollTo({
-          top: container.scrollHeight,
-          behavior: "smooth",
-        });
-        setShowScrollButton(false);
-      }
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth",
+      });
     }
   }, [messages]);
+
+  // ตรวจสอบว่าจะแสดงปุ่ม scroll หรือไม่
+  const handleScroll = () => {
+    const container = chatContainerRef.current;
+    if (container) {
+      const isAtBottom =
+        container.scrollHeight - container.scrollTop <=
+        container.clientHeight + 10;
+      setShowScrollButton(!isAtBottom);
+    }
+  };
 
   const scrollToBottom = () => {
     const container = chatContainerRef.current;
@@ -53,19 +56,14 @@ const ChatUI = () => {
     setShowScrollButton(false);
   };
 
-  const handleScroll = () => {
-    const container = chatContainerRef.current;
-    if (container) {
-      const isAtBottom =
-        container.scrollHeight - container.scrollTop <=
-        container.clientHeight + 5;
-      setShowScrollButton(!isAtBottom);
-    }
-  };
-
   const handleSend = () => {
     if (input.trim()) {
-      setMessages((prev) => [...prev, { type: "text", content: input }]);
+      const newMessage = {
+        type: "text",
+        content: input,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, newMessage]);
       setInput("");
     }
   };
@@ -76,7 +74,12 @@ const ChatUI = () => {
       const mediaUrl = URL.createObjectURL(file);
       const isVideo = file.type.startsWith("video/");
       const type = isVideo ? "video" : "image";
-      setMessages((prev) => [...prev, { type, content: mediaUrl }]);
+      const newMessage = {
+        type,
+        content: mediaUrl,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, newMessage]);
     }
   };
 
@@ -114,27 +117,36 @@ const ChatUI = () => {
                   transition={{ duration: 0.3 }}
                   className="mb-2 text-right"
                 >
-                  {msg.type === "text" ? (
-                    <div className="inline-block bg-pink-300 text-white px-3 py-1 rounded-lg">
-                      {msg.content}
-                    </div>
-                  ) : msg.type === "image" ? (
-                    <div className="inline-block bg-pink-100 p-1 rounded-lg">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={msg.content}
-                        alt="ส่งรูป"
-                        className="max-w-xs max-h-48 rounded"
-                      />
-                    </div>
-                  ) : (
-                    <div className="inline-block bg-pink-100 p-1 rounded-lg">
-                      <video
-                        src={msg.content}
-                        controls
-                        className="max-w-xs max-h-48 rounded"
-                      />
-                    </div>
+                  <div>
+                    {msg.type === "text" ? (
+                      <div className="inline-block bg-pink-300 text-white px-3 py-1 rounded-lg">
+                        {msg.content}
+                      </div>
+                    ) : msg.type === "image" ? (
+                      <div className="inline-block bg-pink-100 p-1 rounded-lg">
+                        <img
+                          src={msg.content}
+                          alt="ส่งรูป"
+                          className="max-w-xs max-h-48 rounded"
+                        />
+                      </div>
+                    ) : (
+                      <div className="inline-block bg-pink-100 p-1 rounded-lg">
+                        <video
+                          src={msg.content}
+                          controls
+                          className="max-w-xs max-h-48 rounded"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  {msg.timestamp && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(msg.timestamp).toLocaleTimeString("th-TH", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
                   )}
                 </motion.div>
               ))
@@ -175,9 +187,7 @@ const ChatUI = () => {
             onChange={(e) => setInput(e.target.value)}
             className="flex-grow p-2 border bg-white border-blue-400 dark:border-pink-400 rounded"
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSend();
-              }
+              if (e.key === "Enter") handleSend();
             }}
           />
 
@@ -197,7 +207,6 @@ const ChatUI = () => {
             className="bg-blue-400 dark:bg-pink-400 px-4 py-2 rounded hover:bg-pink-500 dark:hover:bg-blue-400"
             type="button"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/pic.png" alt="เลือกรูป" width={24} height={24} />
           </motion.button>
 

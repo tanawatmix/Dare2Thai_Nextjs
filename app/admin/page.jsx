@@ -1,196 +1,373 @@
 "use client";
 
-import React, { useState, useContext } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useContext } from "react";
 import { ThemeContext } from "../ThemeContext";
-import bp from "../../public/bp.jpg";
-import wp from "../../public/whiteWater.jpg";
+import { motion, AnimatePresence } from "framer-motion";
+import mockPosts from "../mock/mockPost";
 
-const translations = {
-  th: {
-    title: "เข้าสู่ระบบ",
-    email: "อีเมล",
-    password: "รหัสผ่าน",
-    login: "เข้าสู่ระบบ",
-    noAccount: "ยังไม่มีบัญชี?",
-    register: "ลงทะเบียน",
-    home: "หน้าแรก",
-    success: "✅ เข้าสู่ระบบสำเร็จ!",
-    fillAll: "กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน",
-    enMail: "กรอกอีเมล",
-    enPass: "กรอกรหัสผ่าน",
-    en: "English",
-    th: "ไทย",
-  },
-  en: {
-    title: "Login",
-    email: "Email",
-    password: "Password",
-    login: "Login",
-    noAccount: "Don't have an account?",
-    register: "Register",
-    home: "Home",
-    success: "✅ Login successful!",
-    fillAll: "Please enter both email and password",
-    enMail: "Enter your email",
-    enPass: "Enter your password",
-    en: "English",
-    th: "ไทย",
-  },
+// Mock Users
+const mockUsers = [
+  { id: 1, username: "user1", email: "user1@mail.com" },
+  { id: 2, username: "user2", email: "user2@mail.com" },
+  { id: 3, username: "user3", email: "user3@mail.com" },
+];
+
+// Animation variants
+const fadeInUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i = 1) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.05, duration: 0.4 },
+  }),
+  exit: { opacity: 0, y: -30, transition: { duration: 0.3 } },
 };
 
-const Login = () => {
-  const [lang, setLang] = useState("th");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
+const tableFade = {
+  hidden: { opacity: 0, scale: 0.98 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.4 } },
+  exit: { opacity: 0, scale: 0.98, transition: { duration: 0.3 } },
+};
 
+export default function AdminPage() {
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
-  const t = translations[lang];
 
-  const handleLogin = () => {
-    if (!email || !password) {
-      alert(t.fillAll);
+  const [users, setUsers] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [editUserData, setEditUserData] = useState({ username: "", email: "" });
+  const [notification, setNotification] = useState(null);
+
+  useEffect(() => {
+    setUsers(mockUsers);
+    setPosts(mockPosts);
+  }, []);
+
+  const handleEditClick = (user) => {
+    setEditingUserId(user.id);
+    setEditUserData({ username: user.username, email: user.email });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingUserId(null);
+    setEditUserData({ username: "", email: "" });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editUserData.username.trim() || !editUserData.email.trim()) {
+      alert("กรุณากรอกข้อมูลให้ครบ");
       return;
     }
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === editingUserId
+          ? { ...u, username: editUserData.username, email: editUserData.email }
+          : u
+      )
+    );
+    setEditingUserId(null);
+    showNotification("แก้ไขข้อมูลผู้ใช้สำเร็จ");
+  };
 
-    
-    if (email === "sss@gmail.com" && password === "123456") {
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("user", JSON.stringify({ username: "ฮี้ย้า" }));
-      setShowSuccess(true);
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1500);
-    } else {
-      alert("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+  const handleDeleteUser = (userId) => {
+    if (confirm("ต้องการลบผู้ใช้นี้ใช่หรือไม่?")) {
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      setPosts((prev) => prev.filter((p) => p.userId !== userId));
+      showNotification("ลบผู้ใช้และโพสต์สำเร็จ");
     }
   };
 
+  const handleDeletePost = (postId) => {
+    if (confirm("ต้องการลบโพสต์นี้ใช่หรือไม่?")) {
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      showNotification("ลบโพสต์สำเร็จ");
+    }
+  };
+
+  const showNotification = (msg) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 3000);
+  };
+
   return (
-    <div
-      className="font-sriracha bg-fixed bg-cover min-h-screen"
-      style={{
-        backgroundImage: `url(${darkMode ? bp : wp})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className={`min-h-screen p-6  ${darkMode ? "bg-black" : "bg-white "}`}
     >
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="bg-white/80 dark:bg-black/70 backdrop-blur-lg rounded-3xl shadow-xl p-10 w-full max-w-lg border-2 border-blue-400 dark:border-pink-400 relative"
+      <div className="flex items-center  mb-6">
+        <motion.h1
+          initial={{ opacity: 0, y: -40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7 }}
+          className="text-2xl font-bold"
         >
-          {/* Language & Theme */}
-          <div className="absolute top-0 right-0 flex gap-2 p-4 z-10">
-            <button
-              className="text-xs font-semibold py-1 px-4 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 hover:bg-blue-100 dark:hover:bg-pink-900 transition"
-              onClick={() => setLang(lang === "th" ? "en" : "th")}
-            >
-              {lang === "th" ? "EN" : "ไทย"}
-            </button>
-            <button
-              onClick={toggleDarkMode}
-              className="text-xs font-semibold py-1 px-4 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 hover:bg-blue-100 dark:hover:bg-pink-900 transition"
-            >
-              {darkMode ? "Light ☀️" : "Dark 🌙"}
-            </button>
-          </div>
-
-          <h1 className="text-4xl font-extrabold text-center mb-10 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400">
-            {t.title}
-          </h1>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleLogin();
-            }}
-            className="space-y-6"
-          >
-            <InputField
-              id="email"
-              label={t.email}
-              placeholder={t.enMail}
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <InputField
-              id="password"
-              label={t.password}
-              placeholder={t.enPass}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              className="w-full bg-gradient-to-r from-blue-400 to-pink-400 text-white font-bold py-3 rounded-lg hover:from-pink-400 hover:to-orange-400 transition"
-              type="submit"
-            >
-              {t.login}
-            </motion.button>
-          </form>
-
-          <p className="mt-6 text-center text-gray-700 dark:text-gray-200 text-base">
-            {t.noAccount}{" "}
-            <span
-              className="font-extrabold text-pink-500 cursor-pointer hover:text-orange-400 transition"
-              onClick={() => (window.location.href = "/register")}
-            >
-              {t.register}
-            </span>
-          </p>
-        </motion.div>
-
-        {/* Success Notification */}
-        <AnimatePresence>
-          {showSuccess && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="absolute top-10 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-500 via-pink-400 to-orange-300 border-2 border-white text-white font-bold px-10 py-5 rounded-2xl shadow-2xl text-center z-50"
-            >
-              {t.success}
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: "100%" }}
-                transition={{ duration: 1 }}
-                className="h-1 bg-white mt-3 rounded-lg"
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+          Admin Page
+        </motion.h1>
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          className="bg-red-500 text-white rounded p-2  m-10"
+          onClick={() => (window.location.href = "/")}
+        >
+          กลับหน้าหลัก
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          className="bg-purple-500 text-white rounded p-2 mr-10"
+          onClick={() => (window.location.href = "/game")}
+        >
+          คลายเครียด
+        </motion.button>
+        
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={toggleDarkMode}
+          className={` p-2 rounded font-bold ${
+            darkMode ? "bg-green-400 text-white" : "bg-blue-400 text-white"
+          }`}
+        >
+          {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
+        </motion.button>
       </div>
-    </div>
-  );    
-};
 
-// Reusable InputField component
-function InputField({ id, label, placeholder, type, value, onChange }) {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="block mb-2 font-semibold text-gray-700 dark:text-gray-200"
-      >
-        {label}
-      </label>
-      <input
-        type={type}
-        id={id}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className="w-full p-3 border-2 border-blue-200 dark:border-pink-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-pink-400 dark:bg-white text-black transition text-lg shadow"
-        required
-      />
-    </div>
+      {/* Notification */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded shadow-lg z-50"
+          >
+            {notification}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Users Table */}
+      <Section title="จัดการผู้ใช้">
+        <DataTable
+          users={users}
+          editingUserId={editingUserId}
+          editUserData={editUserData}
+          handleEditClick={handleEditClick}
+          handleCancelEdit={handleCancelEdit}
+          handleSaveEdit={handleSaveEdit}
+          handleDeleteUser={handleDeleteUser}
+          setEditUserData={setEditUserData}
+        />
+      </Section>
+
+      {/* Posts Table */}
+      <Section title="จัดการโพสต์">
+        <PostTable
+          posts={posts}
+          users={users}
+          handleDeletePost={handleDeletePost}
+        />
+      </Section>
+    </motion.div>
   );
 }
 
-export default Login;
+const Section = ({ title, children }) => (
+  <section className="mb-12">
+    <motion.h2
+      initial={{ opacity: 0, x: -30 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.5 }}
+      className="text-xl font-semibold mb-4"
+    >
+      {title}
+    </motion.h2>
+    {children}
+  </section>
+);
+
+const DataTable = ({
+  users,
+  editingUserId,
+  editUserData,
+  handleEditClick,
+  handleCancelEdit,
+  handleSaveEdit,
+  handleDeleteUser,
+  setEditUserData,
+}) => (
+  <motion.div
+    key="users-table"
+    variants={tableFade}
+    initial="hidden"
+    animate="visible"
+    exit="exit"
+    className="overflow-x-auto bg-white dark:bg-gray-800 rounded shadow p-4"
+  >
+    <table className="w-full table-auto border-collapse border border-gray-300 ">
+      <thead>
+        <tr className="bg-blue-200 dark:bg-pink-400 text-white">
+          <th className="border px-4 py-2">ID</th>
+          <th className="border px-4 py-2">ชื่อผู้ใช้</th>
+          <th className="border px-4 py-2">อีเมล</th>
+          <th className="border px-4 py-2">จัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {users.length === 0 ? (
+          <tr>
+            <td colSpan="4" className="text-center p-4">
+              ไม่มีผู้ใช้
+            </td>
+          </tr>
+        ) : (
+          <AnimatePresence>
+            {users.map((user, i) => (
+              <motion.tr
+                key={user.id}
+                custom={i}
+                variants={fadeInUp}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="odd:bg-gray-50 text-white dark:odd:bg-gray-700"
+                layout
+              >
+                <td className="border px-4 py-2 text-center">{user.id}</td>
+                <td className="border px-4 py-2">
+                  {editingUserId === user.id ? (
+                    <input
+                      type="text"
+                      value={editUserData.username}
+                      onChange={(e) =>
+                        setEditUserData({
+                          ...editUserData,
+                          username: e.target.value,
+                        })
+                      }
+                      className="w-full p-1 rounded border"
+                    />
+                  ) : (
+                    user.username
+                  )}
+                </td>
+                <td className="border px-4 py-2">
+                  {editingUserId === user.id ? (
+                    <input
+                      type="email"
+                      value={editUserData.email}
+                      onChange={(e) =>
+                        setEditUserData({
+                          ...editUserData,
+                          email: e.target.value,
+                        })
+                      }
+                      className="w-full p-1 rounded border"
+                    />
+                  ) : (
+                    user.email
+                  )}
+                </td>
+                <td className="border px-4 py-2 text-center space-x-2">
+                  {editingUserId === user.id ? (
+                    <>
+                      <button
+                        onClick={handleSaveEdit}
+                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded"
+                      >
+                        บันทึก
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 rounded"
+                      >
+                        ยกเลิก
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleEditClick(user)}
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                      >
+                        แก้ไข
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                      >
+                        ลบ
+                      </button>
+                    </>
+                  )}
+                </td>
+              </motion.tr>
+            ))}
+          </AnimatePresence>
+        )}
+      </tbody>
+    </table>
+  </motion.div>
+);
+
+const PostTable = ({ posts, users, handleDeletePost }) => (
+  <motion.div
+    key="posts-table"
+    variants={tableFade}
+    initial="hidden"
+    animate="visible"
+    exit="exit"
+    className="overflow-x-auto bg-white dark:bg-gray-800 rounded shadow p-4"
+  >
+    <table className="w-full table-auto border-collapse border border-gray-300 dark:border-gray-700">
+      <thead>
+        <tr className="bg-blue-200 dark:bg-pink-400 text-black dark:text-white">
+          <th className="border px-4 py-2">ID</th>
+          <th className="border px-4 py-2">ผู้ใช้</th>
+          <th className="border px-4 py-2">หัวข้อโพสต์</th>
+          <th className="border px-4 py-2">จัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {posts.length === 0 ? (
+          <tr>
+            <td colSpan="4" className="text-center p-4">
+              ไม่มีโพสต์
+            </td>
+          </tr>
+        ) : (
+          posts.map((post, i) => {
+            const user = users.find((u) => u.id === post.userId);
+            return (
+              <motion.tr
+                key={post.id}
+                custom={i}
+                variants={fadeInUp}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                className="odd:bg-gray-50 text-white dark:odd:bg-gray-700"
+                layout
+              >
+                <td className="border px-4 py-2 text-center">{post.id}</td>
+                <td className="border px-4 py-2">
+                  {user ? user.username : "ไม่พบผู้ใช้"}
+                </td>
+                <td className="border px-4 py-2">{post.title}</td>
+                <td className="border px-4 py-2 text-center">
+                  <button
+                    onClick={() => handleDeletePost(post.id)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+                  >
+                    ลบ
+                  </button>
+                </td>
+              </motion.tr>
+            );
+          })
+        )}
+      </tbody>
+    </table>
+  </motion.div>
+);

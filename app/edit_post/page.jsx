@@ -99,12 +99,12 @@ const EditPost = () => {
             <Navbar />
             <div className="py-24 min-h-[80vh] flex items-center justify-center">
                 <div className="w-full max-w-xl mx-auto p-8 bg-white/90 dark:bg-secondary/90 rounded-2xl shadow-2xl border border-blue-300 dark:border-pink-400">
-                    <h2 className="text-3xl font-extrabold mb-8 text-center text-secondary dark:text-primary tracking-tight">
+                    <h2 className="text-3xl font-extrabold mb-8 text-center text-black dark:text-primary tracking-tight">
                         {t("editPost") || "แก้ไขโพสต์"}
                     </h2>
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
-                            <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            <label className="block mb-1 text-sm font-semibold text-black">
                                 {t("postTitle") || "ชื่อร้าน / โพสต์"}
                             </label>
                             <input
@@ -112,12 +112,12 @@ const EditPost = () => {
                                 placeholder="ชื่อร้าน / โพสต์"
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                className="w-full border focus:outline-none focus:ring-2 focus:ring-blue-400 text-secondary rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-800 dark:text-white"
+                                className="w-full border focus:outline-none focus:ring-2 focus:ring-blue-400 text-black rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-800 dark:text-white"
                                 required
                             />
                         </div>
                         <div>
-                            <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            <label className="block mb-1 text-sm font-semibold text-black">
                                 {t("desc") || "รายละเอียด"}
                             </label>
                             <textarea
@@ -131,13 +131,13 @@ const EditPost = () => {
                         </div>
                         <div className="flex gap-4">
                             <div className="flex-1">
-                                <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                <label className="block mb-1 text-sm font-semibold text-black">
                                     {t("selectType") || "เลือกประเภท"}
                                 </label>
                                 <select
                                     value={placeType}
                                     onChange={(e) => setPlaceType(e.target.value)}
-                                    className="w-full p-2 border rounded-lg bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-200"
+                                    className="w-full p-2 border rounded-lg bg-blue-50 dark:bg-blue-500 text-white"
                                 >
                                     <option value="">{t("selectType") || "เลือกประเภท"}</option>
                                     {placeTypes.map((type) => (
@@ -148,13 +148,13 @@ const EditPost = () => {
                                 </select>
                             </div>
                             <div className="flex-1">
-                                <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                <label className="block mb-1 text-sm font-semibold text-black">
                                     {t("selectProvince") || "เลือกจังหวัด"}
                                 </label>
                                 <select
                                     value={province}
                                     onChange={(e) => setProvince(e.target.value)}
-                                    className="w-full p-2 border rounded-lg bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-200"
+                                    className="w-full p-2 border rounded-lg bg-green-50 dark:bg-green-500 text-white"
                                 >
                                     <option value="">{t("selectProvince") || "เลือกจังหวัด"}</option>
                                     {provinces.map((prov) => (
@@ -166,13 +166,13 @@ const EditPost = () => {
                             </div>
                         </div>
                         <div>
-                            <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            <label className="block mb-1 text-sm font-semibold text-black">
                                 {t("addPho") || "เพิ่มรูปภาพ"}
                             </label>
                             <button
                                 type="button"
                                 onClick={() => document.getElementById("image-upload")?.click()}
-                                className="w-full flex items-center justify-center gap-2 bg-primary text-xs px-4 py-3 dark:bg-secondary dark:text-primary border border-blue-400 dark:border-pink-400 text-secondary rounded-full hover:bg-blue-200 dark:hover:bg-gray-700 transition"
+                                className="w-full flex items-center justify-center gap-2 text-xs px-4 py-3 hover:text-white border border-blue-400 dark:border-pink-400 text-black rounded-full hover:bg-blue-200 dark:hover:bg-gray-700 transition"
                             >
                                 <BsCardImage className="text-2xl" />
                                 {t("addPho") || "เพิ่มรูปภาพ"}

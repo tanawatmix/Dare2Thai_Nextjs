@@ -41,7 +41,7 @@ const CreatePost = () => {
             return;
         }
         alert("โพสต์เรียบร้อย!");
-        router.push("/Posts");
+        router.push("/post_pages");
     };
 
     // If you don't have ThemeContext, just set darkMode = false;
@@ -56,24 +56,24 @@ const CreatePost = () => {
         >
             <Navbar />
             <div className="py-28 from-white to-gray-100">
-                <div className="max-w-md mx-auto p-5 bg-white dark:bg-secondary rounded-lg shadow-md border border-blue-400 dark:border-pink-400">
-                    <h2 className="text-xl font-semibold mb-4 text-center text-secondary dark:text-primary">
+                <div className="max-w-md mx-auto p-5  bg-white rounded-lg shadow-md border border-blue-400 dark:border-pink-400">
+                    <h2 className="text-xl font-semibold mb-4 text-center text-black ">
                         {t("newPost")}
                     </h2>
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="text-black space-y-4">
                         <input
                             type="text"
                             placeholder="ชื่อร้าน / โพสต์"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full border focus:outline-none text-secondary rounded px-4 py-2"
+                            className="w-full border text-black focus:outline-none text-secondary rounded px-4 py-2"
                             required
                         />
                         <textarea
                             placeholder="รายละเอียด"
                             value={desc}
                             onChange={(e) => setDesc(e.target.value)}
-                            className="w-full border text-secondary rounded px-4 py-2"
+                            className="w-full text-black border text-secondary rounded px-4 py-2"
                             rows={4}
                             required
                         />

@@ -90,7 +90,7 @@ const PostDetailsUI = () => {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="max-w-2xl mx-auto bg-white/90 dark:bg-black/80 border border-blue-400 dark:border-pink-400 p-10 rounded-3xl mt-20 mb-8 shadow-2xl backdrop-blur-lg"
+          className="max-w-2xl mx-auto 80 border border-blue-400 dark:border-pink-400 p-10 rounded-3xl mt-20 mb-8 shadow-2xl backdrop-blur-lg"
         >
           {/* Images */}
           {images && images.length > 0 && (

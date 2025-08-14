@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useContext, useEffect } from "react";
+import { useState, useContext, useEffect, useRef} from "react";
 import { ThemeContext } from "../ThemeContext";
 import { useSearchParams, useRouter } from "next/navigation";
 import mockPosts from "../mock/mockPost";
@@ -22,6 +22,19 @@ const PostPage = () => {
   const [searchName, setSearchName] = useState("");
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  const clickSound = useRef(null);
+
+  useEffect(() => {
+    clickSound.current = new Audio("/sounds/shoot.wav");
+  }, []);
+
+  const handleClick = () => {
+    if (clickSound.current) {
+      clickSound.current.currentTime = 0;
+      clickSound.current.play();
+    } 
+  };
 
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [hasMounted, setHasMounted] = useState(false);
@@ -152,14 +165,20 @@ const PostPage = () => {
         <div className="max-w-7xl mx-auto px-4 py-20">
           <div className="flex flex-col mt-5 md:flex-row items-center justify-between gap-4 mb-8">
             <button
-              onClick={() => router.push("/create_post")}
-              className="flex items-center gap-2 border-2 border-blue-400 dark:border-pink-500 rounded-lg bg-primary text-black dark:bg-black dark:text-white px-6 py-2 font-semibold shadow hover:bg-black hover:text-white dark:hover:bg-primary dark:hover:text-secondary transition-all duration-300"
+              onClick={() => {
+                handleClick();
+                router.push("/create_post");
+              }}
+              className="flex items-center gap-2 border-2 border-blue-400 dark:border-pink-500 rounded-lg bg-primary text-black dark:bg-black dark:text-white px-6 py-2 font-semibold shadow hover:bg-black hover:text-white dark:hover:bg-primary dark:hover:text-secondary transition-all duration-300 hover:scale-105"
             >
               <FaPlus />
               <p suppressHydrationWarning>{t("post")}</p>
             </button>
             <button
-              onClick={toggleDrawer(true)}
+            onClick={() => {
+                handleClick();
+                toggleDrawer(true);
+              }}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black hover:bg-pink-400 dark:hover:bg-pink-400 transition-all duration-300 shadow"
             >
               <FaSearch className="text-xl" />
