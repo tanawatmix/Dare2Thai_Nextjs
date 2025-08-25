@@ -1,15 +1,20 @@
 "use client";
+
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useRef, useEffect, useContext } from "react";
 import { ThemeContext } from "../ThemeContext";
-import React from "react";
 import { useTranslation } from "react-i18next";
 import Image from "next/image";
 import Navbar from "../components/navbar";
 import Footer from "../components/Footer";
 import { motion } from "framer-motion";
 
-const ChatUI = () => {
+import dynamic from "next/dynamic";
+
+// ปิด SSR สำหรับ ChatUI
+const ChatUI = dynamic(() => import("./ChatUI"), { ssr: false });
+
+export default function Chat() {
   const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -232,5 +237,3 @@ const ChatUI = () => {
     </motion.div>
   );
 };
-
-export default ChatUI;
