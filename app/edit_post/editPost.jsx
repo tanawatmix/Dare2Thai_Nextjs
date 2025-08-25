@@ -1,4 +1,4 @@
-"use client";
+
 import { useState, useContext, useEffect } from "react";
 import { ThemeContext } from "../ThemeContext";
 import Navbar from "../components/navbar";
