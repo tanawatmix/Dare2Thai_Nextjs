@@ -1,6 +1,8 @@
-"use client"; // สำคัญมาก
+"use client";
 
-import PostPagesUI from "./postpage"; // หน้า component จริงของคุณ
+import dynamic from "next/dynamic";
+
+const PostPagesUI = dynamic(() => import("./postpage"), { ssr: false });
 
 export default function Page() {
   return <PostPagesUI />;
