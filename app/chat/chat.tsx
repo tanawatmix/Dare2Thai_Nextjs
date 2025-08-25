@@ -9,31 +9,26 @@ import Navbar from "../components/navbar";
 import Footer from "../components/Footer";
 import { motion } from "framer-motion";
 
-import dynamic from "next/dynamic";
-
-// ปิด SSR สำหรับ ChatUI
-const ChatUI = dynamic(() => import("./ChatUI"), { ssr: false });
-
-export default function Chat() {
+const ChatUI = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const title = searchParams.get("title") || "ไม่ทราบชื่อโพสต์";
   const { darkMode } = useContext(ThemeContext);
 
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [showScrollButton, setShowScrollButton] = useState(false);
 
   const chatContainerRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // เลื่อนแค่กล่องแชทเมื่อข้อความเปลี่ยน
   useEffect(() => {
     const container = chatContainerRef.current;
     if (container) {
-      container.scrollTo({
-        top: container.scrollHeight,
+      (container as HTMLDivElement).scrollTo({
+        top: (container as HTMLDivElement).scrollHeight,
         behavior: "smooth",
       });
     }
@@ -44,8 +39,9 @@ export default function Chat() {
     const container = chatContainerRef.current;
     if (container) {
       const isAtBottom =
-        container.scrollHeight - container.scrollTop <=
-        container.clientHeight + 10;
+        (container as HTMLDivElement).scrollHeight -
+          (container as HTMLDivElement).scrollTop <=
+        (container as HTMLDivElement).clientHeight + 10;
       setShowScrollButton(!isAtBottom);
     }
   };
@@ -53,17 +49,23 @@ export default function Chat() {
   const scrollToBottom = () => {
     const container = chatContainerRef.current;
     if (container) {
-      container.scrollTo({
-        top: container.scrollHeight,
+      (container as HTMLDivElement).scrollTo({
+        top: (container as HTMLDivElement).scrollHeight,
         behavior: "smooth",
       });
     }
     setShowScrollButton(false);
   };
 
+  type Message = {
+    type: "text" | "image" | "video";
+    content: string;
+    timestamp: string;
+  };
+
   const handleSend = () => {
     if (input.trim()) {
-      const newMessage = {
+      const newMessage: Message = {
         type: "text",
         content: input,
         timestamp: new Date().toISOString(),
@@ -73,13 +75,13 @@ export default function Chat() {
     }
   };
 
-  const handleMediaSelect = (event) => {
+  const handleMediaSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const mediaUrl = URL.createObjectURL(file);
       const isVideo = file.type.startsWith("video/");
-      const type = isVideo ? "video" : "image";
-      const newMessage = {
+      const type: Message["type"] = isVideo ? "video" : "image";
+      const newMessage: Message = {
         type,
         content: mediaUrl,
         timestamp: new Date().toISOString(),
@@ -237,3 +239,5 @@ export default function Chat() {
     </motion.div>
   );
 };
+
+export default ChatUI;
