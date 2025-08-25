@@ -18,8 +18,9 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 body {
-  font-family: 'Geist', sans-serif;
+  font-family: 'Geist Sans', 'Geist Mono', 'Itim', sans-serif;
 }
+
 code {
   font-family: 'Geist Mono', monospace;
 }

@@ -110,7 +110,7 @@ const CreatePost = () => {
                             onClick={() =>
                                 document.getElementById("image-upload")?.click()
                             }
-                            className="w-full bg-primary text-xs px-10 w-14 justify-items-center dark:bg-secondary dark:text-primary border border-blue-400 dark:border-pink-400 text-secondary py-3 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700 transition"
+                            className="w-full bg-primary text-xs px-10 justify-items-center dark:bg-secondary dark:text-primary border border-blue-400 dark:border-pink-400 text-secondary py-3 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700 transition"
                         >
                             <BsCardImage className="text-2xl" />
                             {t("addPho")}
