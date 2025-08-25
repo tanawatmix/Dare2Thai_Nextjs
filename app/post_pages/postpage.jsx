@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useContext, useEffect, useRef} from "react";
 import { ThemeContext } from "../ThemeContext";
