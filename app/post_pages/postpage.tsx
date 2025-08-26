@@ -1,5 +1,4 @@
-
-import { useState, useContext, useEffect, useRef} from "react";
+import { useState, useContext, useEffect, useRef, ChangeEvent, KeyboardEvent } from "react";
 import { ThemeContext } from "../ThemeContext";
 import { useSearchParams, useRouter } from "next/navigation";
 import mockPosts from "../mock/mockPost";
@@ -12,17 +11,35 @@ import { useTranslation } from "react-i18next";
 import wp from "../../public/whiteWater.jpg";
 import bp from "../../public/bp.jpg";
 
+type Post = {
+  id: number;
+  images: string[];
+  title: string;
+  type: string;
+  province: string;
+  description: string;
+};
+
+const placeTypes = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม"];
+const provinces = [
+  "กรุงเทพมหานคร",
+  "กระบี่",
+  "กาญจนบุรี",
+  "เชียงใหม่",
+  "อุบลราชธานี",
+];
+
 const PostPage = () => {
   const { t, i18n } = useTranslation();
   const { darkMode } = useContext(ThemeContext);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState("");
-  const [selectedProvince, setSelectedProvince] = useState("");
-  const [searchName, setSearchName] = useState("");
+  const [selectedType, setSelectedType] = useState<string>("");
+  const [selectedProvince, setSelectedProvince] = useState<string>("");
+  const [searchName, setSearchName] = useState<string>("");
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const clickSound = useRef(null);
+  const clickSound = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     clickSound.current = new Audio("/sounds/shoot.wav");
@@ -32,13 +49,12 @@ const PostPage = () => {
     if (clickSound.current) {
       clickSound.current.currentTime = 0;
       clickSound.current.play();
-    } 
+    }
   };
 
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [hasMounted, setHasMounted] = useState(false);
 
-  // รอ i18n โหลด resource เสร็จ
   const [ready, setReady] = useState(false);
   useEffect(() => {
     if (i18n.isInitialized) {
@@ -56,7 +72,7 @@ const PostPage = () => {
 
   useEffect(() => {
     setHasMounted(true);
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
     window.addEventListener("mousemove", handleMouseMove);
@@ -66,11 +82,10 @@ const PostPage = () => {
   }, []);
 
   const pageParam = parseInt(searchParams.get("page") || "1", 10);
-  const [currentPage, setCurrentPage] = useState(pageParam);
+  const [currentPage, setCurrentPage] = useState<number>(pageParam);
 
-  // ใช้ mockPosts เป็นข้อมูลเริ่มต้น
-  const [posts] = useState(mockPosts);
-  const [filteredPosts, setFilteredPosts] = useState(posts);
+  const [posts] = useState<Post[]>(mockPosts);
+  const [filteredPosts, setFilteredPosts] = useState<Post[]>(posts);
 
   useEffect(() => {
     const page = parseInt(searchParams.get("page") || "1", 10);
@@ -78,14 +93,6 @@ const PostPage = () => {
   }, [searchParams]);
 
   const postsPerPage = 12;
-  const placeTypes = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม"];
-  const provinces = [
-    "กรุงเทพมหานคร",
-    "กระบี่",
-    "กาญจนบุรี",
-    "เชียงใหม่",
-    "อุบลราชธานี",
-  ];
 
   useEffect(() => {
     const filtered = posts.filter((post) => {
@@ -106,22 +113,21 @@ const PostPage = () => {
   const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
   const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
 
-  const toggleDrawer = (open) => () => setIsDrawerOpen(open);
+  const toggleDrawer = (open: boolean) => () => setIsDrawerOpen(open);
 
   const handleSearch = () => {
     toggleDrawer(false)();
   };
 
-  const handlePageChange = (page) => {
+  const handlePageChange = (page: number) => {
     router.push(`?page=${page}`);
   };
 
-  const handleEditPost = (postId) => {
+  const handleEditPost = (postId: number) => {
     router.push(`/edit-post/${postId}`);
   };
 
-  // ฟังก์ชันลบโพสต์
-  const handleDeletePost = (postId) => {
+  const handleDeletePost = (postId: number) => {
     if (window.confirm(t("confirm_delete") || "ยืนยันการลบโพสต์นี้?")) {
       setFilteredPosts((prevPosts) =>
         prevPosts.filter((post) => post.id !== postId)
@@ -129,7 +135,7 @@ const PostPage = () => {
     }
   };
 
-  const handleLanguageChange = async (lng) => {
+  const handleLanguageChange = async (lng: string) => {
     if (["en", "th"].includes(lng)) {
       await i18n.changeLanguage(lng);
     }
@@ -174,9 +180,9 @@ const PostPage = () => {
               <p suppressHydrationWarning>{t("post")}</p>
             </button>
             <button
-            onClick={() => {
+              onClick={() => {
                 handleClick();
-                toggleDrawer(true);
+                toggleDrawer(true)();
               }}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black hover:bg-pink-400 dark:hover:bg-pink-400 transition-all duration-300 shadow"
             >
@@ -205,8 +211,8 @@ const PostPage = () => {
                   type="text"
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-300"
                   value={searchName}
-                  onChange={(e) => setSearchName(e.target.value)}
-                  onKeyDown={(e) => {
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchName(e.target.value)}
+                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
                       handleSearch();
@@ -223,7 +229,7 @@ const PostPage = () => {
                 <select
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-300"
                   value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedType(e.target.value)}
                 >
                   <option value="">{t("all") || "ทั้งหมด"}</option>
                   {placeTypes.map((type, i) => (
@@ -241,7 +247,7 @@ const PostPage = () => {
                 <select
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-300"
                   value={selectedProvince}
-                  onChange={(e) => setSelectedProvince(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedProvince(e.target.value)}
                 >
                   <option value="">{t("all") || "ทั้งหมด"}</option>
                   {provinces.map((province, i) => (
@@ -290,7 +296,6 @@ const PostPage = () => {
                   province={post.province}
                   postId={post.id}
                   description={post.description}
-                  onClick={() => router.push(`/post_detail/${post.id}`)}
                   onEdit={handleEditPost}
                   onDelete={handleDeletePost}
                 />
