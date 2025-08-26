@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState, MouseEvent, JSX } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ThemeContext } from "./ThemeContext";
 import Navbar from "./components/navbar";
@@ -14,20 +14,23 @@ import bg3 from "../public/f2.jpg";
 import bg4 from "../public/ww.jpg";
 import bg5 from "../public/tmc.jpg";
 
-export default function HomeUI() {
+type MousePosition = { x: number; y: number };
+type SectionStyle = (bg: { src: string }) => React.CSSProperties;
+
+export default function HomeUI(): JSX.Element {
   const { t } = useTranslation();
   const { darkMode } = useContext(ThemeContext);
   const { scrollY } = useScroll();
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
 
   // สร้าง Audio object
-  const clickSound = useRef(null);
+  const clickSound = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     clickSound.current = new Audio("/sounds/shoot.wav");
   }, []);
 
-  const handleClick = () => {
+  const handleClick = (): void => {
     if (clickSound.current) {
       clickSound.current.currentTime = 0;
       clickSound.current.play();
@@ -35,11 +38,11 @@ export default function HomeUI() {
   };
 
   useEffect(() => {
-    const handleMouseMove = (event) => {
+    const handleMouseMove = (event: MouseEvent<Document> | MouseEvent): void => {
       setMousePosition({ x: event.clientX, y: event.clientY });
     };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove as any);
+    return () => window.removeEventListener("mousemove", handleMouseMove as any);
   }, []);
 
   // Fade in/out of sections based on scroll
@@ -48,7 +51,7 @@ export default function HomeUI() {
   const fadeSection2 = useTransform(scrollY, [600, 1100], [0, 1]);
   const fadeSection3 = useTransform(scrollY, [1200, 1800], [0, 1]);
 
-  const sectionStyle = (bg) => ({
+  const sectionStyle: SectionStyle = (bg) => ({
     backgroundImage: `url(${bg.src})`,
     backgroundSize: "cover",
     backgroundAttachment: "fixed",
@@ -140,8 +143,8 @@ export default function HomeUI() {
               <motion.button
                 className="group flex items-center justify-center gap-2 border-2 border-pink-500 dark:border-blue-400 bg-gradient-to-r from-pink-400 via-orange-300 to-yellow-200 dark:from-blue-900 dark:via-purple-900 dark:to-gray-900 px-8 py-4 text-xl font-bold rounded-full shadow-lg hover:scale-105 transition-transform text-white duration-200 relative overflow-hidden hover:shadow-pink-400/40"
                 onClick={() => {
-                  handleClick(); // เล่นเสียงก่อน
-                  window.location.href = "/post_pages"; // แล้วเปลี่ยนหน้า
+                  handleClick();
+                  window.location.href = "/post_pages";
                 }}
                 whileHover={{
                   scale: 1.09,
