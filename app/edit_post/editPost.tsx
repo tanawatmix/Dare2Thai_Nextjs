@@ -1,5 +1,4 @@
-
-import { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, ChangeEvent, FormEvent } from "react";
 import { ThemeContext } from "../ThemeContext";
 import Navbar from "../components/navbar";
 import Footer from "../components/Footer";
@@ -7,6 +6,15 @@ import { BsCardImage } from "react-icons/bs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import mockPosts from "../mock/mockPost";
+
+type Post = {
+    id: number | string;
+    title?: string;
+    desc?: string;
+    placeType?: string;
+    province?: string;
+    images?: string[];
+};
 
 const placeTypes = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม"];
 const provinces = [
@@ -17,19 +25,19 @@ const provinces = [
     "อุบลราชธานี",
 ];
 
-const EditPost = () => {
+const EditPost: React.FC = () => {
     const { t } = useTranslation();
     const router = useRouter();
     const searchParams = useSearchParams();
     const postId = searchParams.get("id");
 
-    const [posts, setPosts] = useState(mockPosts);
-    const [title, setTitle] = useState("");
-    const [desc, setDesc] = useState("");
-    const [images, setImages] = useState([]);
-    const [imagePreviews, setImagePreviews] = useState([]);
-    const [placeType, setPlaceType] = useState("");
-    const [province, setProvince] = useState("");
+    const [posts, setPosts] = useState<Post[]>(mockPosts);
+    const [title, setTitle] = useState<string>("");
+    const [desc, setDesc] = useState<string>("");
+    const [images, setImages] = useState<File[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [placeType, setPlaceType] = useState<string>("");
+    const [province, setProvince] = useState<string>("");
     const { darkMode } = useContext(ThemeContext) || { darkMode: false };
 
     useEffect(() => {
@@ -48,7 +56,7 @@ const EditPost = () => {
         }
     }, [postId, posts, router]);
 
-    const handleImageChange = (e) => {
+    const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files) return;
         const selectedFiles = Array.from(files).slice(0, 5);
@@ -57,12 +65,12 @@ const EditPost = () => {
         setImagePreviews(previews);
     };
 
-    const handleRemoveImage = (idx) => {
+    const handleRemoveImage = (idx: number) => {
         setImagePreviews((prev) => prev.filter((_, i) => i !== idx));
         setImages((prev) => prev.filter((_, i) => i !== idx));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (placeType === "") {
             alert("กรุณาเลือกประเภทสถานที่");
@@ -75,13 +83,13 @@ const EditPost = () => {
         const updatedPosts = posts.map((post) =>
             post.id.toString() === postId
                 ? {
-                        ...post,
-                        title,
-                        desc,
-                        placeType,
-                        province,
-                        images: imagePreviews,
-                    }
+                      ...post,
+                      title,
+                      desc,
+                      placeType,
+                      province,
+                      images: imagePreviews,
+                  }
                 : post
         );
         setPosts(updatedPosts);

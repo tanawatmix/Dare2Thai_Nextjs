@@ -1,4 +1,3 @@
-
 import { useSearchParams, useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import Navbar from "../components/navbar";
@@ -11,15 +10,25 @@ import { useTranslation } from "react-i18next";
 import mockPosts from "../mock/mockPost";
 import { motion } from "framer-motion";
 
-const PostDetailsUI = () => {
+// Define the Post type
+interface Post {
+  id: string | number;
+  title: string;
+  images: string[];
+  type: string;
+  province: string;
+  description: string;
+}
+
+const PostDetailsUI: React.FC = () => {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
   const router = useRouter();
   const { darkMode } = useContext(ThemeContext);
   const postId = searchParams.get("id");
 
-  const [post, setPost] = useState(null);
-  const [showLoading, setShowLoading] = useState(true);
+  const [post, setPost] = useState<Post | null>(null);
+  const [showLoading, setShowLoading] = useState<boolean>(true);
 
   useEffect(() => {
     localStorage.setItem("mockPosts", JSON.stringify(mockPosts));
@@ -32,7 +41,7 @@ const PostDetailsUI = () => {
     }
 
     try {
-      const allPosts = JSON.parse(localStorage.getItem("mockPosts") || "[]");
+      const allPosts: Post[] = JSON.parse(localStorage.getItem("mockPosts") || "[]");
       const foundPost = allPosts.find((p) => String(p.id) === String(postId));
       setPost(foundPost || null);
     } catch (error) {

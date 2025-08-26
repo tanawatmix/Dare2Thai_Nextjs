@@ -1,13 +1,19 @@
 "use client";
 
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, ChangeEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeContext } from "../ThemeContext";
 import bp from "../../public/bp.jpg";
 import wp from "../../public/whiteWater.jpg";
 import proDefault from "../../public/dare2New.png";
 
-const translations = {
+type Lang = "th" | "en";
+
+type Translations = {
+  [key in Lang]: Record<string, string>;
+};
+
+const translations: Translations = {
   th: {
     title: "ลงทะเบียน",
     email: "อีเมล",
@@ -56,19 +62,19 @@ const translations = {
   },
 };
 
-const Register = () => {
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [lang, setLang] = useState("th");
+const Register: React.FC = () => {
+  const [showSuccess, setShowSuccess] = useState<boolean>(false);
+  const [lang, setLang] = useState<Lang>("th");
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
   const t = translations[lang];
 
-  const [avatarPreview, setAvatarPreview] = useState(null);
-  const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [email, setEmail] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
 
-  const handleImageSelect = (e) => {
+  const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const imageUrl = URL.createObjectURL(file);
@@ -224,7 +230,9 @@ const Register = () => {
                 <input
                   type={type}
                   value={value}
-                  onChange={(e) => setValue(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setValue(e.target.value)
+                  }
                   placeholder={placeholder}
                   className="w-full p-3 border-2 border-blue-200 dark:border-pink-400 rounded-xl focus:outline-none dark:bg-white text-black"
                   required

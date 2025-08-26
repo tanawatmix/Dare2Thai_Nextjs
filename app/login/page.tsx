@@ -1,20 +1,44 @@
 "use client";
 
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, ChangeEvent, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeContext } from "../ThemeContext";
 import bp from "../../public/bp.jpg";
 import wp from "../../public/whiteWater.jpg";
 
-const mockUsers = [
+type User = {
+  id: number;
+  username: string;
+  email: string;
+  password: string;
+};
+
+const mockUsers: User[] = [
   { id: 1, username: "user1", email: "user1@mail.com", password: "pass1" },
   { id: 2, username: "user2", email: "user2@mail.com", password: "pass2" },
   { id: 3, username: "user3", email: "user3@mail.com", password: "pass3" },
-  { id: 999, username: "admin", email: "admin@mail.com", password: "admin123" }, // admin user
+  { id: 999, username: "admin", email: "admin@mail.com", password: "admin123" },
 ];
 
+type Translations = {
+  [key: string]: {
+    title: string;
+    email: string;
+    password: string;
+    login: string;
+    noAccount: string;
+    register: string;
+    home: string;
+    success: string;
+    fillAll: string;
+    enMail: string;
+    enPass: string;
+    en: string;
+    th: string;
+  };
+};
 
-const translations = {
+const translations: Translations = {
   th: {
     title: "เข้าสู่ระบบ",
     email: "อีเมล",
@@ -47,40 +71,41 @@ const translations = {
   },
 };
 
-const Login = () => {
-  const [lang, setLang] = useState("th");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
+const Login: React.FC = () => {
+  const [lang, setLang] = useState<"th" | "en">("th");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [showSuccess, setShowSuccess] = useState<boolean>(false);
 
-  // ดึง context darkMode และ toggleDarkMode มาใช้
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
 
   const t = translations[lang];
 
   const handleLogin = () => {
-  if (!email || !password) {
-    alert(t.fillAll);
-    return;
-  }
+    if (!email || !password) {
+      alert(t.fillAll);
+      return;
+    }
 
-  const user = mockUsers.find(
-    (u) => u.email === email && u.password === password
-  );
+    const user = mockUsers.find(
+      (u) => u.email === email && u.password === password
+    );
 
-  if (user) {
-    localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("user", JSON.stringify({ id: user.id, username: user.username }));
+    if (user) {
+      localStorage.setItem("isLoggedIn", "true");
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ id: user.id, username: user.username })
+      );
 
-    setShowSuccess(true);
-    setTimeout(() => {
-      window.location.href = "/";
-    }, 1500);
-  } else {
-    alert("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
-  }
-};
-
+      setShowSuccess(true);
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1500);
+    } else {
+      alert("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+    }
+  };
 
   return (
     <div
@@ -121,7 +146,7 @@ const Login = () => {
           </h1>
 
           <form
-            onSubmit={(e) => {
+            onSubmit={(e: FormEvent<HTMLFormElement>) => {
               e.preventDefault();
               handleLogin();
             }}
@@ -159,7 +184,9 @@ const Login = () => {
               onClick={() => (window.location.href = "/register")}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => e.key === "Enter" && (window.location.href = "/register")}
+              onKeyDown={(e) =>
+                e.key === "Enter" && (window.location.href = "/register")
+              }
             >
               {t.register}
             </span>
@@ -190,7 +217,23 @@ const Login = () => {
   );
 };
 
-function InputField({ id, label, placeholder, type, value, onChange }) {
+type InputFieldProps = {
+  id: string;
+  label: string;
+  placeholder: string;
+  type: string;
+  value: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+};
+
+const InputField: React.FC<InputFieldProps> = ({
+  id,
+  label,
+  placeholder,
+  type,
+  value,
+  onChange,
+}) => {
   return (
     <div>
       <label
@@ -210,6 +253,6 @@ function InputField({ id, label, placeholder, type, value, onChange }) {
       />
     </div>
   );
-}
+};
 
 export default Login;

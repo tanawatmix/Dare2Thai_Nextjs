@@ -1,5 +1,5 @@
 "use client";
-import { useState, useContext } from "react";
+import React, { useState, useContext, ChangeEvent, FormEvent } from "react";
 import { ThemeContext } from "../ThemeContext";
 import Navbar from "../components/navbar";
 import Footer from "../components/Footer";
@@ -7,30 +7,30 @@ import { BsCardImage } from "react-icons/bs";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 
-const placeTypes = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม"];
-const provinces = ["กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "เชียงใหม่", "อุบลราชธานี"];
+const placeTypes: string[] = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม"];
+const provinces: string[] = ["กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "เชียงใหม่", "อุบลราชธานี"];
 
-const CreatePost = () => {
+const CreatePost: React.FC = () => {
     const { t } = useTranslation();
-    const [title, setTitle] = useState("");
-    const [desc, setDesc] = useState("");
-    const [images, setImages] = useState([]);
-    const [imagePreviews, setImagePreviews] = useState([]);
-    const [selectedTags, setSelectedTags] = useState([]);
-    const [placeType, setPlaceType] = useState("");
-    const [province, setProvince] = useState("");
+    const [title, setTitle] = useState<string>("");
+    const [desc, setDesc] = useState<string>("");
+    const [images, setImages] = useState<File[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
+    const [placeType, setPlaceType] = useState<string>("");
+    const [province, setProvince] = useState<string>("");
     const router = useRouter();
 
-    const handleImageChange = (e) => {
+    const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files) return;
-        const selectedFiles = Array.from(files).slice(0, 5);
+        const selectedFiles = Array.from(files).slice(0, 5) as File[];
         setImages(selectedFiles);
         const previews = selectedFiles.map((file) => URL.createObjectURL(file));
         setImagePreviews(previews);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (placeType === "") {
             alert("กรุณาเลือกประเภทสถานที่");
