@@ -1,4 +1,11 @@
-import { useState, useContext, useEffect, useRef, ChangeEvent, KeyboardEvent } from "react";
+import {
+  useState,
+  useContext,
+  useEffect,
+  useRef,
+  ChangeEvent,
+  KeyboardEvent,
+} from "react";
 import { ThemeContext } from "../ThemeContext";
 import { useSearchParams, useRouter } from "next/navigation";
 import mockPosts from "../mock/mockPost";
@@ -28,6 +35,14 @@ const provinces = [
   "เชียงใหม่",
   "อุบลราชธานี",
 ];
+function safeQuerySelector(selector: string): Element | null {
+  try {
+    return document.querySelector(selector);
+  } catch (e) {
+    console.warn("Invalid selector ignored:", selector);
+    return null;
+  }
+}
 
 const PostPage = () => {
   const { t, i18n } = useTranslation();
@@ -40,6 +55,12 @@ const PostPage = () => {
   const router = useRouter();
 
   const clickSound = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    const el = safeQuerySelector('body:has-text("login")');
+    if (el) {
+      console.log("เจอ element");
+    }
+  }, []);
 
   useEffect(() => {
     clickSound.current = new Audio("/sounds/shoot.wav");
@@ -52,7 +73,10 @@ const PostPage = () => {
     }
   };
 
-  const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  });
   const [hasMounted, setHasMounted] = useState(false);
 
   const [ready, setReady] = useState(false);
@@ -211,7 +235,9 @@ const PostPage = () => {
                   type="text"
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-300"
                   value={searchName}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchName(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setSearchName(e.target.value)
+                  }
                   onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
@@ -229,7 +255,9 @@ const PostPage = () => {
                 <select
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-300"
                   value={selectedType}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedType(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                    setSelectedType(e.target.value)
+                  }
                 >
                   <option value="">{t("all") || "ทั้งหมด"}</option>
                   {placeTypes.map((type, i) => (
@@ -247,7 +275,9 @@ const PostPage = () => {
                 <select
                   className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-300"
                   value={selectedProvince}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedProvince(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                    setSelectedProvince(e.target.value)
+                  }
                 >
                   <option value="">{t("all") || "ทั้งหมด"}</option>
                   {provinces.map((province, i) => (
