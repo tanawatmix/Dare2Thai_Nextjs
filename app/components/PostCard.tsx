@@ -4,8 +4,22 @@ import React from "react";
 import Image from "next/image";
 import Tilt from "react-parallax-tilt";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast"; // ลบ Toaster ออก
 
-const PostCard = ({
+interface PostCardProps {
+  images: string[];
+  title: string;
+  type: string;
+  province: string;
+  description: string;
+  postId: number; // เปลี่ยนเป็น number ตาม mock data
+  onEdit?: (postId: number) => void;
+  onDelete: (postId: number) => void;
+  onFav?: (postId: number) => void;
+  isFav?: boolean;
+}
+
+const PostCard: React.FC<PostCardProps> = ({
   images,
   title,
   type,
@@ -14,49 +28,50 @@ const PostCard = ({
   postId,
   onEdit,
   onDelete,
+  onFav,
+  isFav,
 }) => {
   const router = useRouter();
 
   const imageSrc =
     images && images.length > 0 ? images[0] : "/default-placeholder.png";
 
-  // เพิ่มฟังก์ชันเมื่อคลิกที่การ์ด จะพาไปหน้าโพสต์รายละเอียด
   const handleViewDetail = () => {
-    router.push(`/post_detail?id=${postId}`); // สมมติหน้า detail ชื่อ post_detail.jsx
+    router.push(`/post_detail?id=${postId}`);
   };
 
-  const handleEdit = (e) => {
-    e.stopPropagation(); // ป้องกันไม่ให้ trigger handleViewDetail ด้วย
+  const handleEdit = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (onEdit) onEdit(postId);
     router.push(`/edit_post?id=${postId}`);
   };
 
-  const handleDelete = (e) => {
+  const handleDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     onDelete(postId);
   };
 
+  const handleFav = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (onFav) {
+      onFav(postId);
+    }
+  };
+
   return (
-    <Tilt
-      tiltMaxAngleX={10}
-      tiltMaxAngleY={10}
-      scale={1.02}
-      transitionSpeed={400}
-    >
+    <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} scale={1.02} transitionSpeed={400}>
       <div
         onClick={handleViewDetail}
         className="cursor-pointer rounded-xl overflow-hidden border shadow-md bg-white dark:bg-gray-800 transition-all duration-300 hover:shadow-lg"
       >
         <Image
-          src={
-            images && images.length > 0 ? images[0] : "/dare2New.png"
-          }
+          src={imageSrc}
           alt={title}
           width={400}
           height={250}
           className="object-cover w-full h-60"
           priority
         />
-
         <div className="p-4 space-y-2">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">
             {title}
@@ -68,6 +83,17 @@ const PostCard = ({
             <span>{type}</span> • <span>{province}</span>
           </div>
           <div className="flex justify-end gap-2 mt-3">
+            <button
+              onClick={handleFav}
+              className={`px-3 py-1 rounded-md text-sm flex items-center font-semibold transition ${
+                isFav
+                  ? "bg-yellow-400 text-white shadow-md"
+                  : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300"
+              }`}
+              aria-label="Favorite"
+            >
+              {isFav ? "★ Fav" : "☆ Fav"}
+            </button>
             <button
               onClick={handleEdit}
               className="text-blue-600 dark:text-blue-400 hover:underline text-sm"

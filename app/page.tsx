@@ -103,7 +103,7 @@ export default function HomeUI(): JSX.Element {
           <motion.img
             src={D2T2.src}
             alt="Logo"
-            className="w-48 h-48 drop-shadow-2xl rounded-full border-8 border-white/40 dark:border-pink-400/30 shadow-xl mb-6"
+            className="w-25 h-25 mt-5 drop-shadow-2xl rounded-full border-8 border-white/40 dark:border-pink-400/30 shadow-xl mb-6"
             animate={{
               rotate: [-2, 2, -2],
               opacity: [0, 1, 1, 0],
@@ -118,7 +118,7 @@ export default function HomeUI(): JSX.Element {
           />
 
           <motion.h1
-            className="font-sriracha text-5xl px-10 font-extrabold text-center drop-shadow-2xl text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-fuchsia-400 to-orange-300 animate-gradient-anim"
+            className="font-sriracha text-3xl px-10 font-extrabold text-center drop-shadow-2xl text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-fuchsia-400 to-orange-300 animate-gradient-anim"
             initial={{ y: -40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.8, type: "spring" }}
@@ -127,15 +127,15 @@ export default function HomeUI(): JSX.Element {
           </motion.h1>
 
           <motion.div
-            className="font-sriracha max-w-4xl mt-5 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl rounded-2xl shadow-2xl p-4 mb-10 border border-pink-200 dark:border-pink-700"
+            className="font-sriracha max-w-xl mt-5 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl rounded-2xl shadow-2xl p-4 mb-10 border border-pink-200 dark:border-pink-700"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.8 }}
           >
-            <p className="text-2xl font-bold text-center mb-3 text-pink-600 dark:text-pink-300">
+            <p className="text-sm font-bold text-center mb-3 text-pink-600 dark:text-pink-300">
               {t("title")}
             </p>
-            <p className="text-lg text-center mb-6 text-gray-700 dark:text-gray-200">
+            <p className="text-sm text-center mb-6 text-gray-700 dark:text-gray-200">
               {t("title2")}
             </p>
 
@@ -189,15 +189,15 @@ export default function HomeUI(): JSX.Element {
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
-          className="max-w-4xl bg-gradient-to-br from-pink-100/90 via-white/90 to-yellow-100/90 dark:from-orange-400/95 dark:via-green-400/90 dark:to-orange-400/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border-2 border-pink-300 dark:border-pink-700 text-black dark:text-white"
+          className="max-w-3xl bg-gradient-to-br from-pink-100/90 via-white/90 to-yellow-100/90 dark:from-orange-400/95 dark:via-green-400/90 dark:to-orange-400/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border-2 border-pink-300 dark:border-pink-700 text-black dark:text-white"
           aria-label="วัฒนธรรมไทย"
         >
-          <h2 className="text-5xl font-extrabold text-pink-500 dark:text-pink-300 mb-8 drop-shadow-lg flex items-center justify-center gap-3">
+          <h2 className="text-3xl font-extrabold text-pink-500 dark:text-pink-300 mb-8 drop-shadow-lg flex items-center justify-center gap-3">
             <span className="inline-block animate-bounce">🌸</span>
             {t("culture")}
             <span className="inline-block animate-bounce">🌸</span>
           </h2>
-          <ul className="text-2xl font-medium leading-relaxed mb-6 text-left mx-auto max-w-2xl space-y-3">
+          <ul className="text-xl font-medium leading-relaxed mb-6 text-left mx-auto max-w-2xl space-y-3">
             <li>
               <span className="font-bold text-pink-600 dark:text-pink-300">
                 •
@@ -224,12 +224,12 @@ export default function HomeUI(): JSX.Element {
             </li>
           </ul>
           <div className="flex flex-wrap justify-center gap-4 mt-6">
-            <span className="inline-block text-3xl animate-pulse">🛕</span>
-            <span className="inline-block text-3xl animate-pulse">🎎</span>
-            <span className="inline-block text-3xl animate-pulse">🎨</span>
-            <span className="inline-block text-3xl animate-pulse">🎉</span>
-            <span className="inline-block text-3xl animate-pulse">🏮</span>
-            <span className="inline-block text-3xl animate-pulse">🧧</span>
+            <span className="inline-block text-xl animate-pulse">🛕</span>
+            <span className="inline-block text-xl animate-pulse">🎎</span>
+            <span className="inline-block text-xl animate-pulse">🎨</span>
+            <span className="inline-block text-xl animate-pulse">🎉</span>
+            <span className="inline-block text-xl animate-pulse">🏮</span>
+            <span className="inline-block text-xl animate-pulse">🧧</span>
           </div>
           <div className="mt-8 flex flex-wrap justify-center gap-3 text-lg">
             <span className="px-3 py-1 rounded-full bg-pink-200/60 dark:bg-pink-900/60 text-pink-700 dark:text-pink-200 font-semibold shadow">
@@ -254,15 +254,15 @@ export default function HomeUI(): JSX.Element {
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
-          className="max-w-4xl bg-gradient-to-br from-blue-100/90 via-white/90 to-green-100/90 dark:from-blue-600/95 dark:via-pink-400/90 dark:to-white -900/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border-2 border-blue-300 dark:border-yellow-400 text-black dark:text-white"
+          className="max-w2xl bg-gradient-to-br from-blue-100/90 via-white/90 to-green-100/90 dark:from-blue-600/95 dark:via-pink-400/90 dark:to-white -900/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border-2 border-blue-300 dark:border-yellow-400 text-black dark:text-white"
           aria-label="ธรรมชาติสุดมหัศจรรย์"
         >
-          <h2 className="text-5xl font-extrabold text-blue-500 dark:text-yellow-300 mb-8 drop-shadow-lg flex items-center justify-center gap-3">
+          <h2 className="text-2xl font-extrabold text-blue-500 dark:text-yellow-300 mb-8 drop-shadow-lg flex items-center justify-center gap-3">
             <span className="inline-block animate-bounce">🏝️</span>
             {t("pa")}
             <span className="inline-block animate-bounce">🌿</span>
           </h2>
-          <ul className="text-2xl font-medium leading-relaxed mb-6 text-left mx-auto max-w-2xl space-y-3">
+          <ul className="text-xl font-medium leading-relaxed mb-6 text-left mx-auto max-w-2xl space-y-3">
             <li>
               <span className="font-bold text-blue-600 dark:text-yellow-300">
                 •
@@ -293,12 +293,12 @@ export default function HomeUI(): JSX.Element {
           </ul>
 
           <div className="flex flex-wrap justify-center gap-4 mt-6 mb-10">
-            <span className="inline-block text-3xl animate-pulse">🌳</span>
-            <span className="inline-block text-3xl animate-pulse">🏞️</span>
-            <span className="inline-block text-3xl animate-pulse">🌊</span>
-            <span className="inline-block text-3xl animate-pulse">🌾</span>
-            <span className="inline-block text-3xl animate-pulse">🦜</span>
-            <span className="inline-block text-3xl animate-pulse">🦋</span>
+            <span className="inline-block text-xl animate-pulse">🌳</span>
+            <span className="inline-block text-xl animate-pulse">🏞️</span>
+            <span className="inline-block text-xl animate-pulse">🌊</span>
+            <span className="inline-block text-xl animate-pulse">🌾</span>
+            <span className="inline-block text-xl animate-pulse">🦜</span>
+            <span className="inline-block text-xl animate-pulse">🦋</span>
           </div>
           <div className="mt-8 flex flex-wrap justify-center gap-3 text-lg">
             <span className="px-3 py-1 rounded-full bg-green-200/60 dark:bg-green-900/60 text-green-700 dark:text-green-200 font-semibold shadow">
@@ -323,15 +323,15 @@ export default function HomeUI(): JSX.Element {
           initial={{ opacity: 0, y: 60 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2 }}
-          className="max-w-4xl bg-gradient-to-br from-yellow-100/90 via-white/90 to-orange-100/90 dark:from-red-400/95 dark:via-blue-600/90 dark:to-purple-600/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border border-yellow-400"
+          className="max-w-2xl bg-gradient-to-br from-yellow-100/90 via-white/90 to-orange-100/90 dark:from-red-400/95 dark:via-blue-600/90 dark:to-purple-600/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border border-yellow-400"
           aria-label="ช้อป กิน เที่ยว"
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-yellow-500 dark:text-yellow-300 mb-6 drop-shadow-lg flex items-center justify-center gap-3">
+          <h2 className="text-2xl font-bold text-yellow-500 dark:text-yellow-300 mb-6 drop-shadow-lg flex items-center justify-center gap-3">
             <span className="inline-block animate-bounce">🛍️</span>
             {t("food")}
             <span className="inline-block animate-bounce">🍜</span>
           </h2>
-          <ul className="text-2xl text-gray-800 dark:text-white leading-relaxed mb-6 text-left mx-auto max-w-2xl space-y-3">
+          <ul className="text-xl text-gray-800 dark:text-white leading-relaxed mb-6 text-left mx-auto max-w-2xl space-y-3">
             <li>
               <span className="font-bold text-yellow-600 dark:text-yellow-300">
                 •
@@ -357,12 +357,12 @@ export default function HomeUI(): JSX.Element {
             </li>
           </ul>
           <div className="flex flex-wrap justify-center gap-4 mt-6">
-            <span className="inline-block text-3xl animate-pulse">🍲</span>
-            <span className="inline-block text-3xl animate-pulse">🍢</span>
-            <span className="inline-block text-3xl animate-pulse">🥢</span>
-            <span className="inline-block text-3xl animate-pulse">🛒</span>
-            <span className="inline-block text-3xl animate-pulse">🧺</span>
-            <span className="inline-block text-3xl animate-pulse">🧁</span>
+            <span className="inline-block text-xl animate-pulse">🍲</span>
+            <span className="inline-block text-xl animate-pulse">🍢</span>
+            <span className="inline-block text-xl animate-pulse">🥢</span>
+            <span className="inline-block text-xl animate-pulse">🛒</span>
+            <span className="inline-block text-xl animate-pulse">🧺</span>
+            <span className="inline-block text-xl animate-pulse">🧁</span>
           </div>
           <div className="mt-8 flex flex-wrap justify-center gap-3 text-lg">
             <span className="px-3 py-1 rounded-full bg-green-200/60 dark:bg-green-900/60 text-green-700 dark:text-green-200 font-semibold shadow">

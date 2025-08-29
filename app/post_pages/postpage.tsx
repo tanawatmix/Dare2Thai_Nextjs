@@ -1,3 +1,5 @@
+"use client";
+
 import {
   useState,
   useContext,
@@ -11,12 +13,18 @@ import { useSearchParams, useRouter } from "next/navigation";
 import mockPosts from "../mock/mockPost";
 import Navbar from "../components/navbar";
 import Footer from "../components/Footer";
-import PostCard from "../components/PostCard";
+import Tilt from "react-parallax-tilt";
+import Image from "next/image";
 import Drawer from "@mui/material/Drawer";
 import { FaPlus, FaSearch } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import wp from "../../public/whiteWater.jpg";
 import bp from "../../public/bp.jpg";
+import toast, { Toaster } from "react-hot-toast"; // import Toaster
+import Link from "@mui/material/Link";
+
+// Import PostCard ที่แก้ไขแล้ว
+import PostCard from "../components/PostCard";
 
 type Post = {
   id: number;
@@ -25,6 +33,7 @@ type Post = {
   type: string;
   province: string;
   description: string;
+  isFav?: boolean; // เพิ่ม flag สำหรับ fav
 };
 
 const placeTypes = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม"];
@@ -35,14 +44,6 @@ const provinces = [
   "เชียงใหม่",
   "อุบลราชธานี",
 ];
-function safeQuerySelector(selector: string): Element | null {
-  try {
-    return document.querySelector(selector);
-  } catch (e) {
-    console.warn("Invalid selector ignored:", selector);
-    return null;
-  }
-}
 
 const PostPage = () => {
   const { t, i18n } = useTranslation();
@@ -55,13 +56,6 @@ const PostPage = () => {
   const router = useRouter();
 
   const clickSound = useRef<HTMLAudioElement | null>(null);
-  useEffect(() => {
-    const el = safeQuerySelector('body:has-text("login")');
-    if (el) {
-      console.log("เจอ element");
-    }
-  }, []);
-
   useEffect(() => {
     clickSound.current = new Audio("/sounds/shoot.wav");
   }, []);
@@ -94,6 +88,24 @@ const PostPage = () => {
     }
   }, [i18n]);
 
+  // Use localStorage to set the initial isFav status
+  const [posts, setPosts] = useState<Post[]>([]);
+
+  useEffect(() => {
+    const initializePosts = () => {
+      if (typeof window !== "undefined") {
+        const storedFavIds = localStorage.getItem("favoritePostIds");
+        const favIds: number[] = storedFavIds ? JSON.parse(storedFavIds) : [];
+        const initialPosts = mockPosts.map((post) => ({
+          ...post,
+          isFav: favIds.includes(post.id),
+        }));
+        setPosts(initialPosts);
+      }
+    };
+    initializePosts();
+  }, []);
+
   useEffect(() => {
     setHasMounted(true);
     const handleMouseMove = (e: MouseEvent) => {
@@ -108,15 +120,12 @@ const PostPage = () => {
   const pageParam = parseInt(searchParams.get("page") || "1", 10);
   const [currentPage, setCurrentPage] = useState<number>(pageParam);
 
-  const [posts] = useState<Post[]>(mockPosts);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>(posts);
 
   useEffect(() => {
     const page = parseInt(searchParams.get("page") || "1", 10);
     setCurrentPage(page);
   }, [searchParams]);
-
-  const postsPerPage = 12;
 
   useEffect(() => {
     const filtered = posts.filter((post) => {
@@ -132,6 +141,7 @@ const PostPage = () => {
     setCurrentPage(1);
   }, [searchName, selectedType, selectedProvince, posts]);
 
+  const postsPerPage = 12;
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
   const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
@@ -153,9 +163,46 @@ const PostPage = () => {
 
   const handleDeletePost = (postId: number) => {
     if (window.confirm(t("confirm_delete") || "ยืนยันการลบโพสต์นี้?")) {
-      setFilteredPosts((prevPosts) =>
-        prevPosts.filter((post) => post.id !== postId)
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      toast.error("โพสต์ถูกลบแล้ว");
+    }
+  };
+
+  // Toggle Fav
+  const handleFavPost = (postId: number) => {
+    const postToFav = posts.find((p) => p.id === postId);
+
+    if (postToFav) {
+      const newFavStatus = !postToFav.isFav;
+      const toastMessage = newFavStatus
+        ? "เพิ่มในรายการโปรด"
+        : "ลบออกจากรายการโปรด";
+
+      // 1. Update state
+      setPosts((prev) =>
+        prev.map((p) => (p.id === postId ? { ...p, isFav: newFavStatus } : p))
       );
+
+      // 2. Update localStorage
+      if (typeof window !== "undefined") {
+        const storedFavs = localStorage.getItem("favoritePostIds");
+        const favIds: number[] = storedFavs ? JSON.parse(storedFavs) : [];
+
+        if (newFavStatus) {
+          if (!favIds.includes(postId)) {
+            favIds.push(postId);
+          }
+        } else {
+          const index = favIds.indexOf(postId);
+          if (index > -1) {
+            favIds.splice(index, 1);
+          }
+        }
+        localStorage.setItem("favoritePostIds", JSON.stringify(favIds));
+      }
+
+      // 3. Show toast
+      toast.success(`${postToFav.title} ${toastMessage}`);
     }
   };
 
@@ -189,6 +236,7 @@ const PostPage = () => {
           : undefined
       }
     >
+      <Toaster position="top-right" /> {/* Toaster อยู่ที่นี่ที่เดียว */}
       <div className="relative bg-fixed bg-center bg-cover transition duration-500 flex-1">
         <Navbar />
         <div className="max-w-7xl mx-auto px-4 py-20">
@@ -203,6 +251,12 @@ const PostPage = () => {
               <FaPlus />
               <p suppressHydrationWarning>{t("post")}</p>
             </button>
+            <Link
+              href="/Favorites"
+              className="ml-4 text-blue-500 dark:text-pink-400 underline text-sm"
+            >
+              ดูรายการโปรด
+            </Link>
             <button
               onClick={() => {
                 handleClick();
@@ -226,7 +280,6 @@ const PostPage = () => {
               <h2 className="text-2xl font-bold text-secondary dark:text-primary mb-4">
                 {t("search")}
               </h2>
-
               <div>
                 <label className="block mb-1 text-sm font-medium text-secondary dark:text-primary">
                   {t("PlaceName")}
@@ -247,7 +300,6 @@ const PostPage = () => {
                   placeholder="เช่น วัดพระแก้ว"
                 />
               </div>
-
               <div>
                 <label className="block mb-1 text-sm font-medium text-secondary dark:text-primary">
                   {t("Placetag")}
@@ -267,7 +319,6 @@ const PostPage = () => {
                   ))}
                 </select>
               </div>
-
               <div>
                 <label className="block mb-1 text-sm font-medium text-secondary dark:text-primary">
                   {t("Provincetag")}
@@ -287,14 +338,12 @@ const PostPage = () => {
                   ))}
                 </select>
               </div>
-
               <button
                 onClick={handleSearch}
                 className="w-full bg-pink-400 hover:bg-secondary dark:hover:bg-primary hover:dark:text-secondary text-white font-semibold text-xl py-2 rounded shadow transition-all duration-300"
               >
                 {t("search")}
               </button>
-
               <button
                 onClick={() => {
                   setSearchName("");
@@ -320,19 +369,15 @@ const PostPage = () => {
               currentPosts.map((post) => (
                 <PostCard
                   key={post.id}
-                  images={post.images}
-                  title={post.title}
-                  type={post.type}
-                  province={post.province}
+                  {...post}
                   postId={post.id}
-                  description={post.description}
                   onEdit={handleEditPost}
                   onDelete={handleDeletePost}
+                  onFav={handleFavPost}
                 />
               ))
             )}
           </div>
-
           <div className="flex justify-center items-center gap-2 mt-8">
             {currentPage > 1 && (
               <>

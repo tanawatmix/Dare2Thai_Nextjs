@@ -23,6 +23,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/post_pages/postpage.jsx", "app/create_post/page.jsx", "app/i18n.jsapp/page.ะsx.jsxapp/edit_post/editPost.jsx.jsx", "app/components/PostCard.jsx", "app/mock/mockPost.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/post_pages/postpage.jsx", "app/create_post/page.jsx", "app/i18n.jsapp/page.ะsx.jsxapp/edit_post/editPost.jsx.jsx", "app/components/PostCard.tsx", "app/mock/mockPost.js"],
   "exclude": ["node_modules"]
 }

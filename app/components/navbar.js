@@ -85,7 +85,7 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`font-sriracha border-b py-4 px-6 fixed w-full z-50 shadow transition duration-500
+      className={`font-sriracha border-b py-2 px-5 fixed w-full z-50 shadow transition duration-500
         ${darkMode ? "border-white bg-gray-900" : "border-blue-400 bg-white"}
       `}
     >
@@ -95,9 +95,9 @@ const Navbar = () => {
           className="flex items-center cursor-pointer"
           onClick={() => (window.location.href = "/")}
         >
-          <Image src={logo} alt="logo" className="h-10 w-20 object-contain" />
+          <Image src={logo} alt="logo" className="h-10 w-10 object-contain" />
           <span
-            className={`ml-2 text-xl font-extrabold tracking-tight select-none animate-gradient-anim
+            className={`ml-2 text-sm font-extrabold tracking-tight select-none animate-gradient-anim
               ${
                 darkMode
                   ? "bg-gradient-to-r from-blue-500 via-purple-300 to-pink-400 bg-clip-text text-transparent"
@@ -192,7 +192,7 @@ const Navbar = () => {
                     ? "text-slate-300"
                     : "text-slate-800"
                   : "text-white"
-              } px-2 py-1`}
+              } px-1 py-1`}
               onClick={() => {
                 setSelected("light");
                 if (darkMode) toggleDarkMode();
