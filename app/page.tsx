@@ -60,33 +60,33 @@ export default function HomeUI(): JSX.Element {
 
   return (
     <div
-      className={` ${
-        darkMode
-          ? "bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white"
-          : "bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50 text-black"
-      } transition-colors duration-700`}
+     className={` ${
+      darkMode
+        ? "bg-gradient-to-br from-gray-950 via-gray-900 to-gray-800 text-white"
+        : "bg-gradient-to-br from-blue-50 via-pink-50 to-yellow-50 text-black"
+    } transition-colors duration-700`}
     >
       <div
         style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
-          pointerEvents: "none",
-          backgroundImage: `radial-gradient(circle 200px at ${
-            mousePosition.x
-          }px ${mousePosition.y}px, ${
-            darkMode ? "rgba(254, 163, 253, 0.25)" : "rgba(185, 246, 255, 0.35)"
-          }, transparent 60%)`,
-          zIndex: 9999,
-          transition: "background-image 0.1s ease-out",
-        }}
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        pointerEvents: "none",
+        backgroundImage: `radial-gradient(circle 200px at ${
+          mousePosition.x
+        }px ${mousePosition.y}px, ${
+          darkMode ? "rgba(254, 163, 253, 0.25)" : "rgba(185, 246, 255, 0.35)"
+        }, transparent 60%)`,
+        zIndex: 9999,
+        transition: "background-image 0.1s ease-out",
+      }}
       />
 
       <Navbar />
       <div
-        style={{
+         style={{
           top: 0,
           left: 0,
           width: "99vw",
