@@ -1,23 +1,44 @@
+"use client";
+
 import { useSearchParams, useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import Navbar from "../components/navbar";
 import Footer from "../components/Footer";
 import { ThemeContext } from "../ThemeContext";
 import Image from "next/image";
+import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/lib/supabaseClient";
+
+// --- Lightbox Components ---
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
+// Optional: เพิ่มปลั๊กอินสำหรับ Lightbox เพื่อฟีเจอร์เพิ่มเติม เช่น Zoom, Fullscreen, Thumbnails
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
+import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
+import "yet-another-react-lightbox/plugins/thumbnails.css";
+
+// --- Icons ---
+import {
+  FiArrowLeft,
+  FiMessageSquare,
+  FiCompass,
+  FiMapPin,
+  FiCamera,
+} from "react-icons/fi";
+
+// --- Background Images ---
 import wp from "../../public/whiteWater.jpg";
 import bp from "../../public/bp.jpg";
-import { useTranslation } from "react-i18next";
-import mockPosts from "../mock/mockPost";
-import { motion } from "framer-motion";
 
-// Define the Post type
 interface Post {
-  id: string | number;
+  id: string;
   title: string;
-  images: string[];
-  type: string;
-  province: string;
   description: string;
+  image_url: string[];
+  place_type: string;
+  province: string;
 }
 
 const PostDetailsUI: React.FC = () => {
@@ -28,140 +49,256 @@ const PostDetailsUI: React.FC = () => {
   const postId = searchParams.get("id");
 
   const [post, setPost] = useState<Post | null>(null);
-  const [showLoading, setShowLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
+  const [lightboxIndex, setLightboxIndex] = useState(-1); // -1 means closed
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        delayChildren: 0.1,
+        staggerChildren: 0.05,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  };
+
+  // --- ดึงข้อมูลโพสต์จาก Supabase ---
   useEffect(() => {
-    localStorage.setItem("mockPosts", JSON.stringify(mockPosts));
-  }, []);
+    const fetchPost = async () => {
+      if (!postId) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from("posts")
+          .select("*")
+          .eq("id", postId)
+          .single();
+        if (error) throw error;
 
-  useEffect(() => {
-    if (!postId) {
-      setPost(null);
-      return;
-    }
+        const safeParseImages = (imageUrlField: any): string[] => {
+          if (!imageUrlField) return [];
+          if (Array.isArray(imageUrlField)) return imageUrlField;
+          try {
+            const parsed = JSON.parse(imageUrlField);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch (e) {
+            return [];
+          }
+        };
 
-    try {
-      const allPosts: Post[] = JSON.parse(localStorage.getItem("mockPosts") || "[]");
-      const foundPost = allPosts.find((p) => String(p.id) === String(postId));
-      setPost(foundPost || null);
-    } catch (error) {
-      setPost(null);
-    }
+        const parsedPost: Post = {
+          ...data,
+          image_url: safeParseImages(data.image_url),
+        };
+        setPost(parsedPost);
+      } catch (err) {
+        console.error("❌ Error fetching post:", err);
+        setPost(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPost();
   }, [postId]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setShowLoading(false), 1200);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (showLoading) {
+  // --- Loading UI ---
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-lg font-semibold bg-gradient-to-br from-blue-100 text-black to-pink-100">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-400 border-opacity-50 mb-4"></div>
-        <span className="ml-4">{t("loading") || "กำลังโหลด..."}</span>
+      <div
+        className={`min-h-screen flex items-center justify-center ${
+          darkMode
+            ? "bg-gray-900 text-gray-100"
+            : "bg-gradient-to-br from-blue-100 to-pink-100 text-black"
+        }`}
+      >
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-400 border-opacity-50"></div>
+        <span className="ml-4 text-xl font-bold">กำลังโหลด...</span>
       </div>
     );
   }
 
+  // --- No Post Found UI ---
   if (!post) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="min-h-screen flex flex-col items-center justify-center text-lg font-semibold bg-gradient-to-br from-blue-100 to-pink-100 dark:from-gray-900 dark:to-gray-800 p-4"
+        className={`min-h-screen flex flex-col items-center justify-center text-lg font-semibold ${
+          darkMode
+            ? "bg-gray-900 text-gray-100"
+            : "bg-gradient-to-br from-blue-100 to-pink-100 text-black"
+        } p-4`}
       >
-        <p className="mb-6">{t("not_found") || "ไม่พบโพสต์"}</p>
+        <p className="mb-6 text-2xl">ไม่พบโพสต์ที่คุณกำลังมองหา 😞</p>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => router.back()}
-          className="px-6 py-3 border border-blue-400 dark:border-pink-400 rounded-lg font-semibold shadow bg-white dark:bg-black hover:bg-blue-50 dark:hover:bg-gray-900 dark:text-white transition"
+          className="flex items-center gap-2 px-6 py-3 border border-blue-400 dark:border-pink-400 rounded-lg font-semibold shadow-md bg-white dark:bg-black hover:bg-blue-50 dark:hover:bg-gray-900 dark:text-white transition-all duration-300 text-lg"
         >
-          {t("back") || "ย้อนกลับ"}
+          <FiArrowLeft />
+          ย้อนกลับ
         </motion.button>
       </motion.div>
     );
   }
 
-  const { title, images, type, province, description } = post;
-
   return (
     <div className="font-sriracha flex flex-col min-h-screen">
       <Navbar />
+
       <div
-        className="relative bg-fixed bg-center bg-cover transition duration-500 flex-1"
-        style={{
-          backgroundImage: `url(${darkMode ? bp.src : wp.src})`,
-        }}
+        className="relative bg-fixed bg-center bg-cover transition duration-500 flex-1 py-12 md:py-20"
+        style={{ backgroundImage: `url(${darkMode ? bp.src : wp.src})` }}
       >
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="max-w-2xl mx-auto 80 border border-blue-400 dark:border-pink-400 p-10 rounded-3xl mt-20 mb-8 shadow-2xl backdrop-blur-lg"
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+          className="max-w-4xl mx-auto p-6 md:p-10 rounded-3xl shadow-2xl backdrop-blur-lg bg-white/80 dark:bg-gray-800/80 border border-blue-300 dark:border-pink-500"
         >
-          {/* Images */}
-          {images && images.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-              {images.map((image, index) => (
+          {/* Back Button */}
+          <motion.button
+            variants={itemVariants}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => router.back()}
+            className="flex items-center gap-2 px-4 py-2 mb-8 text-blue-700 dark:text-pink-300 font-semibold hover:underline transition-all duration-300"
+          >
+            <FiArrowLeft className="text-xl" />
+            <span className="text-lg">ย้อนกลับ</span>
+          </motion.button>
+
+          {/* Title */}
+          <motion.h1
+            variants={itemVariants}
+            className="text-4xl md:text-5xl font-extrabold mb-4 text-gray-900 dark:text-white text-center leading-tight"
+          >
+            {post.title}
+          </motion.h1>
+
+          {/* Tags */}
+          <motion.div
+            variants={itemVariants}
+            className="flex flex-wrap items-center justify-center gap-3 mb-8"
+          >
+            <span className="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 text-blue-800 text-base font-medium dark:bg-blue-900 dark:text-blue-200 shadow-sm">
+              <FiCompass className="mr-2" /> {post.place_type}
+            </span>
+            <span className="inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-800 text-base font-medium dark:bg-green-900 dark:text-green-200 shadow-sm">
+              <FiMapPin className="mr-2" /> {post.province}
+            </span>
+          </motion.div>
+
+          {/* Image Gallery */}
+          {post.image_url && post.image_url.length > 0 && (
+            <motion.div
+              variants={itemVariants}
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8"
+            >
+              {post.image_url.map((url, index) => (
                 <motion.div
-                  whileHover={{ scale: 1.05 }}
                   key={index}
-                  className="aspect-square flex items-center justify-center bg-white dark:bg-gray-900 rounded-xl overflow-hidden border border-blue-300 dark:border-pink-300 shadow-md transition-transform"
+                  whileHover={{
+                    scale: 1.05,
+                    boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setLightboxIndex(index)}
+                  className="relative aspect-square flex items-center justify-center bg-gray-100 dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-300 dark:border-gray-700 shadow-lg cursor-pointer transition-all duration-300 group"
                 >
                   <Image
-                    src={image}
+                    src={url}
                     alt={`รูป ${index + 1}`}
-                    width={400}
-                    height={400}
-                    className="object-cover w-full h-full"
-                    priority={index === 0}
+                    layout="fill"
+                    objectFit="cover"
+                    className="transition-transform duration-300 group-hover:scale-110"
                   />
+                  <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center opacity-0  transition-opacity duration-300">
+                    <FiCamera className="text-white text-3xl" />
+                  </div>
                 </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
 
-          <h2 className="text-3xl font-extrabold mb-2 text-gray-900 dark:text-white text-center">
-            {title}
-          </h2>
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <span className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium dark:bg-blue-900 dark:text-blue-200 shadow">
-              {type}
-            </span>
-            <span className="inline-block px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium dark:bg-green-900 dark:text-green-200 shadow">
-              {province}
-            </span>
-          </div>
-          <p className="text-gray-800 dark:text-gray-200 mb-8 leading-relaxed whitespace-pre-line text-left">
-            {description}
-          </p>
+          {/* Description */}
+          <motion.p
+            variants={itemVariants}
+            className="text-lg text-gray-800 dark:text-gray-200 mb-10 leading-relaxed whitespace-pre-line text-left"
+          >
+            {post.description}
+          </motion.p>
 
-          <div className="flex flex-col gap-3">
+          {/* Action Buttons */}
+          <motion.div
+            variants={itemVariants}
+            className="flex flex-col sm:flex-row gap-4"
+          >
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() =>
                 router.push(
-                  `/chat?id=${postId}&title=${encodeURIComponent(title)}`
+                  `/chat?id=${post.id}&title=${encodeURIComponent(post.title)}`
                 )
               }
-              className="w-full py-3 border border-blue-400 dark:border-pink-400 rounded-lg bg-blue-100 dark:bg-pink-900 text-blue-900 dark:text-pink-100 font-semibold shadow hover:bg-blue-200 dark:hover:bg-pink-800 transition"
+              className="flex-1 w-full sm:w-auto py-3 px-6 rounded-lg bg-gradient-to-r from-pink-500 to-red-500 text-white font-bold shadow-lg hover:from-pink-600 hover:to-red-600 transition-all duration-300 flex items-center justify-center gap-2 text-lg"
             >
-              {t("join")}
+              <FiMessageSquare />
+              เข้าร่วมพูดคุย
             </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => router.push("/post_pages")}
-              className="w-full py-3 border border-blue-400 dark:border-pink-400 rounded-lg font-semibold shadow bg-white dark:bg-black hover:bg-blue-50 dark:hover:bg-gray-900 dark:text-white transition"
-            >
-              {t("back")}
-            </motion.button>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
+
       <Footer />
+
+      {/* --- Lightbox Component --- */}
+      {post.image_url.length > 0 && ( // ตรวจสอบว่ามีรูปภาพอย่างน้อย 1 รูป
+        <Lightbox
+          open={lightboxIndex >= 0}
+          index={lightboxIndex}
+          close={() => setLightboxIndex(-1)}
+          slides={post.image_url.map((url) => ({ src: url }))}
+          plugins={[Zoom, Fullscreen, Thumbnails]} // เพิ่มปลั๊กอิน
+          styles={{ container: { backgroundColor: "rgba(0, 0, 0, .9)" } }}
+          controller={{ closeOnBackdropClick: true }}
+          carousel={{ finite: true }} // ถ้ามีรูปน้อยกว่า 2 รูป ให้ปิดการวน
+          toolbar={{
+            buttons: [
+              "close", // ใช้ 'close' default แทน
+            ],
+          }}
+          render={{
+            // Custom render function for titles/captions
+            thumbnail: ({ slide, rect }) => (
+              <div
+                key={slide.src}
+                style={{ width: rect.width, height: rect.height }}
+              >
+                <Image
+                  src={slide.src}
+                  alt=""
+                  layout="fill"
+                  objectFit="cover"
+                  priority
+                />
+              </div>
+            ),
+          }}
+        />
+      )}
     </div>
   );
 };

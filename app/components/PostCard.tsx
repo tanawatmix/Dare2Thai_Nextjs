@@ -2,9 +2,11 @@
 
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import Tilt from "react-parallax-tilt";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast"; // ลบ Toaster ออก
+import { motion } from "framer-motion";
+import { FiHeart, FiEdit, FiTrash2, FiMessageSquare } from "react-icons/fi";
 
 interface PostCardProps {
   images: string[];
@@ -12,10 +14,10 @@ interface PostCardProps {
   type: string;
   province: string;
   description: string;
-  postId: number; // เปลี่ยนเป็น number ตาม mock data
+  postId: number;
   onEdit?: (postId: number) => void;
   onDelete: (postId: number) => void;
-  onFav?: (postId: number) => void;
+  onFav: (postId: number) => void;
   isFav?: boolean;
 }
 
@@ -33,6 +35,7 @@ const PostCard: React.FC<PostCardProps> = ({
 }) => {
   const router = useRouter();
 
+  // ✅ FIX: Select the first image from the array, or use a placeholder.
   const imageSrc =
     images && images.length > 0 ? images[0] : "/default-placeholder.png";
 
@@ -40,75 +43,110 @@ const PostCard: React.FC<PostCardProps> = ({
     router.push(`/post_detail?id=${postId}`);
   };
 
-  const handleEdit = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onEdit) onEdit(postId);
     router.push(`/edit_post?id=${postId}`);
   };
 
-  const handleDelete = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
     onDelete(postId);
   };
 
-  const handleFav = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleFav = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onFav) {
-      onFav(postId);
-    }
+    onFav(postId);
   };
 
   return (
-    <Tilt tiltMaxAngleX={10} tiltMaxAngleY={10} scale={1.02} transitionSpeed={400}>
-      <div
+    <Tilt
+      tiltMaxAngleX={8}
+      tiltMaxAngleY={8}
+      scale={1.03}
+      transitionSpeed={500}
+    >
+      <motion.div
+        layout
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        transition={{ duration: 0.3 }}
         onClick={handleViewDetail}
-        className="cursor-pointer rounded-xl overflow-hidden border shadow-md bg-white dark:bg-gray-800 transition-all duration-300 hover:shadow-lg"
+        className="cursor-pointer rounded-xl overflow-hidden border dark:border-gray-700 shadow-md transition-all duration-300 hover:shadow-2xl hover:border-blue-500/50 dark:hover:border-pink-500/50 group"
       >
-        <Image
-          src={imageSrc}
-          alt={title}
-          width={400}
-          height={250}
-          className="object-cover w-full h-60"
-          priority
-        />
-        <div className="p-4 space-y-2">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-            {title}
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
-            {description}
-          </p>
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            <span>{type}</span> • <span>{province}</span>
-          </div>
-          <div className="flex justify-end gap-2 mt-3">
-            <button
-              onClick={handleFav}
-              className={`px-3 py-1 rounded-md text-sm flex items-center font-semibold transition ${
-                isFav
-                  ? "bg-yellow-400 text-white shadow-md"
-                  : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300"
+        {/* --- Image Section --- */}
+        <div className="relative w-full h-48 overflow-hidden">
+          <Image
+            src={imageSrc} // This is now always a valid string
+            alt={title}
+            layout="fill"
+            objectFit="cover"
+            className="transition-transform duration-500 ease-in-out group-hover:scale-110"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={handleFav}
+            className="absolute top-3 right-3 p-2 bg-white/20 backdrop-blur-sm rounded-full cursor-pointer hover:bg-white/30 transition-colors"
+            aria-label="Favorite"
+          >
+            <FiHeart
+              className={`w-5 h-5 transition-all ${
+                isFav ? "text-red-500 fill-current" : "text-white"
               }`}
-              aria-label="Favorite"
+            />
+          </motion.button>
+        </div>
+
+        {/* --- Content Section --- */}
+        <div className="p-4 flex flex-col h-48 justify-between">
+          <div>
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 px-2 py-1 rounded-full">
+                {type}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {province}
+              </p>
+            </div>
+            <h3 className="font-bold text-lg truncate" title={title}>
+              {title}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 h-10 overflow-hidden text-ellipsis">
+              {description}
+            </p>
+          </div>
+
+          {/* --- Action Buttons --- */}
+          <div className="flex justify-between items-center pt-3 border-t border-gray-200 dark:border-gray-700">
+            <Link
+              href={`/chat?id=${postId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-2 text-sm text-blue-500 hover:underline"
             >
-              {isFav ? "★ Fav" : "☆ Fav"}
-            </button>
-            <button
-              onClick={handleEdit}
-              className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-            >
-              แก้ไข
-            </button>
-            <button
-              onClick={handleDelete}
-              className="text-red-500 dark:text-red-400 hover:underline text-sm"
-            >
-              ลบ
-            </button>
+              <FiMessageSquare />
+              <span>เข้าห้องแชท</span>
+            </Link>
+            <div className="flex items-center gap-3">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleEdit}
+                className="text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                <FiEdit />
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={handleDelete}
+                className="text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+              >
+                <FiTrash2 />
+              </motion.button>
+            </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </Tilt>
   );
 };

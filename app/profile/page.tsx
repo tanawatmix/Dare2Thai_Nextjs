@@ -7,101 +7,138 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Navbar from "../components/navbar";
 import Footer from "../components/Footer";
+import { supabase } from "@/lib/supabaseClient"; // **1. Import Supabase Client**
+import { User } from "@supabase/supabase-js";
 
-const defaultAvatar = "/D2T2.png";
+const defaultAvatar = "/D2T2.png"; // รูปโปรไฟล์เริ่มต้น
 
-type User = {
+// Type สำหรับข้อมูล Profile จากตาราง public.profiles
+type ProfileData = {
+  id: string;
+  name: string;
   username: string;
-  email: string;
-  avatar: string;
+  profile_image: string;
+  role: string;
 };
 
 const Profile = () => {
   const router = useRouter();
   const { darkMode } = useContext(ThemeContext);
 
-  const [hasMounted, setHasMounted] = useState(false);
+  // --- State Management ---
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<User>({ username: "", email: "", avatar: "" });
-  const [preview, setPreview] = useState<string>(defaultAvatar);
+  const [saving, setSaving] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>(defaultAvatar);
 
+  // **2. ดึงข้อมูลผู้ใช้และโปรไฟล์เมื่อเข้าสู่หน้า**
   useEffect(() => {
-    setHasMounted(true);
-  }, []);
+    const fetchData = async () => {
+      // ดึงข้อมูล session ของผู้ใช้ที่ล็อกอินอยู่
+      const { data: { user } } = await supabase.auth.getUser();
 
-  useEffect(() => {
-    if (!hasMounted) return;
+      if (user) {
+        setUser(user);
+        
+        // ใช้ user.id ไปดึงข้อมูลจากตาราง profiles
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
 
-    try {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        const parsedUser: User = JSON.parse(storedUser);
-        setUser({
-          username: parsedUser.username || "",
-          email: parsedUser.email || "",
-          avatar: parsedUser.avatar || "",
-        });
-        setPreview(parsedUser.avatar || defaultAvatar);
+        if (profileData) {
+          setProfile(profileData);
+          setAvatarPreview(profileData.profile_image || defaultAvatar);
+        } else {
+          console.error("Error fetching profile:", error);
+        }
       } else {
-        setPreview(defaultAvatar);
+        // ถ้าไม่มีใครล็อกอิน ให้กลับไปหน้า login
+        router.push('/login');
       }
-    } catch (error) {
-      console.error("❌ Error loading user from localStorage:", error);
-      setPreview(defaultAvatar);
-      localStorage.removeItem("user");
-    } finally {
       setLoading(false);
-    }
-  }, [hasMounted]);
+    };
+    fetchData();
+  }, [router]);
 
-  if (!hasMounted) return null; // ป้องกัน SSR hydration mismatch
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
-      </div>
-    );
-  }
-
+  // ฟังก์ชันสำหรับอัปเดต state เมื่อแก้ไขฟอร์ม
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setUser({ ...user, [e.target.name]: e.target.value });
+    if (profile) {
+      setProfile({ ...profile, [e.target.name]: e.target.value });
+    }
   };
 
+  // **3. แก้ไขฟังก์ชันอัปโหลดรูป**
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        const img = new window.Image();
-        img.onload = () => {
-          const size = 176;
-          const minSide = Math.min(img.width, img.height);
-          const sx = (img.width - minSide) / 2;
-          const sy = (img.height - minSide) / 2;
-
-          const canvas = document.createElement("canvas");
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext("2d");
-
-          if (ctx) {
-            ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
-            const croppedDataUrl = canvas.toDataURL("image/png");
-            setPreview(croppedDataUrl);
-            setUser((prev) => ({ ...prev, avatar: croppedDataUrl }));
-          }
-        };
-        img.src = reader.result as string;
-      };
-
-      reader.readAsDataURL(file);
+    if (file) {
+      setAvatarFile(file); // เก็บไฟล์ไว้ใน state
+      setAvatarPreview(URL.createObjectURL(file)); // สร้าง URL ชั่วคราวเพื่อแสดงผล
     }
   };
 
-  const handleSave = () => {
-    localStorage.setItem("user", JSON.stringify(user));
+  // **4. แก้ไขฟังก์ชันบันทึกข้อมูล**
+  const handleSave = async () => {
+    if (!user || !profile) return;
+
+    setSaving(true);
+    let updatedProfileData = {
+      name: profile.name,
+      username: profile.username,
+    };
+    let avatarUrl = profile.profile_image;
+
+    // --- ตรวจสอบว่ามีการเลือกรูปใหม่หรือไม่ ---
+    if (avatarFile) {
+      // 1. ลบรูปเก่า (ถ้ามี) เพื่อประหยัดพื้นที่
+      if (profile.profile_image) {
+        const oldFileName = profile.profile_image.split('/').pop();
+        if (oldFileName) {
+          // สั่งลบไฟล์จาก path ที่ถูกต้อง
+          const oldFilePath = `public/${profile.id}/${oldFileName}`;
+          await supabase.storage.from('avatars').remove([oldFilePath]);
+        }
+      }
+      
+      // 2. อัปโหลดรูปใหม่
+      const newFileName = `${Date.now()}_${avatarFile.name}`;
+      const newFilePath = `public/${user.id}/${newFileName}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(newFilePath, avatarFile);
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        setSaving(false);
+        return;
+      }
+      
+      // 3. ดึง Public URL ของรูปที่อัปโหลด
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(uploadData.path);
+      avatarUrl = urlData.publicUrl;
+    }
+
+    // --- อัปเดตข้อมูลลงตาราง profiles ---
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ 
+        ...updatedProfileData,
+        profile_image: avatarUrl // อัปเดต URL รูปใหม่
+      })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error("Save error:", updateError);
+    } else {
+      showSuccessAlert();
+    }
+    setSaving(false);
+  };
+
+  const showSuccessAlert = () => {
     const alertBox = document.createElement("div");
     alertBox.textContent = "✅ ข้อมูลได้รับการบันทึกแล้ว";
     alertBox.style.position = "fixed";
@@ -121,151 +158,58 @@ const Profile = () => {
     }, 1000);
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={`min-h-screen flex flex-col transition-colors duration-500 ${
-        darkMode
-          ? "bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white"
-          : "bg-gradient-to-br from-blue-100 via-pink-100 to-white text-black"
-      }`}
-    >
+    <div className={`min-h-screen flex flex-col transition-colors duration-500 ${darkMode ? "bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white" : "bg-gradient-to-br from-blue-100 via-pink-100 to-white text-black"}`}>
       <Navbar />
 
-      <main className="flex flex-1 mt-14 items-center justify-center py-8">
+      <main className="flex flex-1 mt-14 items-center justify-center py-8 px-4">
         <motion.div
-          className={`w-full max-w-2xl p-4 rounded-3xl shadow-2xl border-2 transition-colors duration-500 ${
-            darkMode
-              ? "bg-black/80 border-pink-400"
-              : "bg-white/80 border-blue-400"
-          }`}
+          className={`w-full max-w-2xl p-8 rounded-3xl shadow-2xl border-2 transition-colors duration-500 ${darkMode ? "bg-black/80 border-pink-400" : "bg-white/80 border-blue-400"}`}
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1
-            className={`text-4xl font-extrabold text-center mb-8 bg-gradient-to-r ${
-              darkMode
-                ? "from-pink-400 to-blue-400"
-                : "from-blue-400 to-pink-400"
-            } text-transparent bg-clip-text drop-shadow`}
-          >
+          <h1 className={`text-4xl font-extrabold text-center mb-8 bg-gradient-to-r ${darkMode ? "from-pink-400 to-blue-400" : "from-blue-400 to-pink-400"} text-transparent bg-clip-text drop-shadow`}>
             แก้ไขข้อมูลส่วนตัว
           </h1>
 
           <div className="flex flex-col items-center mb-8">
-            <motion.div
-              whileHover={{ scale: 1.1, rotate: 10 }}
-              transition={{ type: "spring", stiffness: 180 }}
-              className="relative"
-            >
-              <motion.div
-                key={preview}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.4 }}
-                className="relative"
-              >
-                <Image
-                  src={preview || defaultAvatar}
-                  alt={user.username || "avatar"}
-                  width={176}
-                  height={176}
-                  priority
-                  className={`rounded-full object-cover border-4 shadow-xl transition-colors duration-500 ${
-                    darkMode ? "border-pink-400" : "border-blue-400"
-                  }`}
-                />
-              </motion.div>
-
-              <label
-                htmlFor="avatar"
-                className={`absolute bottom-2 right-2 bg-gradient-to-r ${
-                  darkMode
-                    ? "from-pink-400 to-blue-400"
-                    : "from-blue-400 to-pink-400"
-                } text-white px-3 py-1.5 rounded-full cursor-pointer font-semibold shadow hover:from-pink-400 hover:to-orange-400 transition text-sm`}
-              >
+            <motion.div whileHover={{ scale: 1.1, rotate: 10 }} transition={{ type: "spring", stiffness: 180 }} className="relative">
+              <Image src={avatarPreview} alt={profile?.username || "avatar"} width={176} height={176} priority className={`rounded-full object-cover border-4 shadow-xl transition-colors duration-500 ${darkMode ? "border-pink-400" : "border-blue-400"}`} />
+              <label htmlFor="avatar" className={`absolute bottom-2 right-2 bg-gradient-to-r ${darkMode ? "from-pink-400 to-blue-400" : "from-blue-400 to-pink-400"} text-white px-3 py-1.5 rounded-full cursor-pointer font-semibold shadow hover:from-pink-400 hover:to-orange-400 transition text-sm`}>
                 เปลี่ยนรูป
               </label>
-              <input
-                id="avatar"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImageChange}
-              />
+              <input id="avatar" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
             </motion.div>
           </div>
 
           <div className="space-y-6">
-            <InputField
-              label="ชื่อผู้ใช้"
-              name="username"
-              value={user.username}
-              onChange={handleChange}
-              icon={
-                <svg
-                  className={`w-5 h-5 ${
-                    darkMode ? "text-pink-400" : "text-blue-400"
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5.121 17.804A9 9 0 1112 21a9 9 0 01-6.879-3.196z"
-                  />
-                </svg>
-              }
-            />
-            <InputField
-              label="อีเมล"
-              name="email"
-              value={user.email}
-              onChange={handleChange}
-              icon={
-                <svg
-                  className={`w-5 h-5 ${
-                    darkMode ? "text-pink-400" : "text-blue-400"
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M16 12H8m8 0a4 4 0 11-8 0 4 4 0 018 0zm0 0v1a4 4 0 01-8 0v-1"
-                  />
-                </svg>
-              }
-            />
+            <InputField label="ชื่อ" name="name" value={profile?.name || ''} onChange={handleChange} />
+            <InputField label="ชื่อผู้ใช้" name="username" value={profile?.username || ''} onChange={handleChange} />
+            <InputField label="อีเมล" name="email" value={user?.email || ''} onChange={() => {}} readOnly={true} />
           </div>
 
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={handleSave}
-            className={`mt-8 w-full bg-gradient-to-r font-bold py-3 rounded-xl shadow-lg transition text-lg ${
-              darkMode
-                ? "from-pink-400 to-blue-400 hover:from-blue-400 hover:to-pink-400"
-                : "from-blue-400 to-pink-400 hover:from-pink-400 hover:to-orange-400"
-            } text-white`}
+            disabled={saving}
+            className={`mt-8 w-full bg-gradient-to-r font-bold py-3 rounded-xl shadow-lg transition text-lg ${darkMode ? "from-pink-400 to-blue-400 hover:from-blue-400 hover:to-pink-400" : "from-blue-400 to-pink-400 hover:from-pink-400 hover:to-orange-400"} text-white disabled:opacity-50`}
           >
-            บันทึกการเปลี่ยนแปลง
+            {saving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
           </motion.button>
+          
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => router.back()}
-            className={`mt-4 w-full font-semibold py-3 rounded-xl transition ${
-              darkMode
-                ? "bg-gray-700 text-white hover:bg-gray-600"
-                : "bg-gray-200 text-black hover:bg-gray-300"
-            }`}
+            className={`mt-4 w-full font-semibold py-3 rounded-xl transition ${darkMode ? "bg-gray-700 text-white hover:bg-gray-600" : "bg-gray-200 text-black hover:bg-gray-300"}`}
           >
             ย้อนกลับ
           </motion.button>
@@ -276,23 +220,24 @@ const Profile = () => {
   );
 };
 
-type InputFieldProps = {
+// Component InputField (ปรับปรุงเล็กน้อย)
+const InputField = ({ label, name, value, onChange, readOnly = false, icon }: {
   label: string;
   name: string;
   value: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  readOnly?: boolean;
   icon?: React.ReactNode;
-};
-
-const InputField = ({ label, name, value, onChange, icon }: InputFieldProps) => (
+}) => (
   <div>
     <label className="block mb-2 font-semibold text-lg">{label}</label>
-    <div className="flex items-center bg-white text-black border-2 border-blue-200 dark:border-pink-400 rounded-xl shadow px-3 py-2">
+    <div className={`flex items-center bg-white text-black border-2 border-blue-200 dark:border-pink-400 rounded-xl shadow px-3 py-2 ${readOnly ? 'bg-gray-200 cursor-not-allowed' : ''}`}>
       {icon && <span className="mr-2">{icon}</span>}
       <input
         name={name}
         value={value}
         onChange={onChange}
+        readOnly={readOnly}
         className="w-full bg-transparent outline-none text-lg"
         autoComplete="off"
       />

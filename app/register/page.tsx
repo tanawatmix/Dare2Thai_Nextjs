@@ -1,24 +1,21 @@
 "use client";
 
-import React, { useState, useContext, ChangeEvent } from "react";
+import React, { useState, useContext, ChangeEvent, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeContext } from "../ThemeContext";
-import bp from "../../public/bp.jpg";
-import wp from "../../public/whiteWater.jpg";
+import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
 import proDefault from "../../public/dare2New.png";
+import { FiMail, FiLock, FiUser, FiSun, FiMoon } from "react-icons/fi"; // Import icons
 
-type Lang = "th" | "en";
-
-type Translations = {
-  [key in Lang]: Record<string, string>;
-};
-
-const translations: Translations = {
-  th: {
+// (Translations object คงเดิม)
+const translations = {
+   th: {
     title: "ลงทะเบียน",
     email: "อีเมล",
     password: "รหัสผ่าน",
     username: "ชื่อผู้ใช้",
+    name: "ชื่อ-นามสกุล",
     conpassword: "ยืนยันรหัสผ่าน",
     login: "ลงทะเบียน",
     haveAccount: "มีบัญชีแล้ว?",
@@ -42,6 +39,7 @@ const translations: Translations = {
     email: "Email",
     password: "Password",
     username: "Username",
+    name: "Full Name",
     conpassword: "Confirm Password",
     login: "Register",
     haveAccount: "Already have an account?",
@@ -62,205 +60,168 @@ const translations: Translations = {
   },
 };
 
+// --- InputField Sub-component ---
+type InputFieldProps = {
+  id: string;
+  label: string;
+  placeholder: string;
+  type: string;
+  value: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  icon: React.ReactNode;
+};
+const InputField: React.FC<InputFieldProps> = ({ id, label, placeholder, type, value, onChange, icon }) => (
+  <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+    <label htmlFor={id} className="block mb-2 text-sm font-medium text-gray-300">
+      {label}
+    </label>
+    <div className="relative">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-pink-400">
+        {icon}
+      </div>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full p-3 pl-10 border-2 border-blue-200 dark:border-pink-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 dark:bg-white text-black transition"
+        required
+      />
+    </div>
+  </motion.div>
+);
+
+
+// --- Main Register Component ---
 const Register: React.FC = () => {
-  const [showSuccess, setShowSuccess] = useState<boolean>(false);
-  const [lang, setLang] = useState<Lang>("th");
+  const router = useRouter();
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
+  const [lang, setLang] = useState<"th" | "en">("th");
   const t = translations[lang];
 
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [email, setEmail] = useState<string>("");
-  const [username, setUsername] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [confirmPassword, setConfirmPassword] = useState<string>("");
 
-  const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setAvatarPreview(imageUrl);
-    }
-  };
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  const handleRegister = () => {
-    if (!email || !username || !password || !confirmPassword) {
-      alert(t.fillAll);
-      return;
+  const handleRegister = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    if (!email || !password || !username || !name || !confirmPassword) {
+      setError(t.fillAll); setLoading(false); return;
     }
     if (password !== confirmPassword) {
-      alert(t.passMismatch);
-      return;
+      setError(t.passMismatch); setLoading(false); return;
     }
-    setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-      window.location.href = "/login";
-    }, 1500);
+
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: {
+          name: name.trim(),
+          username: username.trim(),
+          profile_image: avatarPreview,
+        },
+      },
+    });
+
+    if (signUpError) {
+      setError(signUpError.message);
+    } else {
+      setShowSuccess(true);
+      setTimeout(() => router.push('/login'), 2000);
+    }
+    setLoading(false);
+  };
+
+  const handleImageSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    const { data, error } = await supabase.storage.from("avatars").upload(`public/${Date.now()}_${file.name}`, file);
+    setLoading(false);
+
+    if (error) {
+      setError("เกิดข้อผิดพลาดในการอัปโหลดรูป"); return;
+    }
+
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(data.path);
+    setAvatarPreview(urlData.publicUrl);
   };
 
   return (
-    <div
-      className={`relative min-h-screen transition duration-500 overflow-x-hidden ${
-        darkMode ? "bp text-white" : "wp text-black"
-      }`}
-    >
-      <div className="relative min-h-screen flex items-center justify-center px-4">
+    <div className={`relative min-h-screen transition duration-500 overflow-x-hidden font-sriracha ${darkMode ? "bp text-white" : "wp text-black"}`}>
+      <div className="relative min-h-screen flex items-center justify-center p-4">
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-10 max-w-4xl w-full backdrop-blur-lg flex flex-col md:flex-row gap-10"
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="relative border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-8 max-w-4xl w-full backdrop-blur-lg flex flex-col md:flex-row gap-8"
         >
-          {/* Left Avatar */}
-          <div className="flex-1 flex flex-col justify-center items-center gap-6 border-r-0 md:border-r md:pr-10 border-blue-400">
-            <div className="absolute top-0 right-0 flex flex-col items-end gap-2 z-10 p-3">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                className="text-xs font-semibold py-1 px-4 rounded-full border border-blue-400 dark:border-pink-400 bg-white/90 dark:bg-gray-900/80 text-blue-600 dark:text-pink-400"
-                onClick={() => setLang(lang === "th" ? "en" : "th")}
-              >
-                {lang === "th" ? "EN" : "ไทย"}
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                onClick={toggleDarkMode}
-                className="text-xs font-semibold py-1 px-4 rounded-full border border-blue-400 dark:border-pink-400 bg-white/90 dark:bg-gray-900/80 text-blue-600 dark:text-pink-400"
-              >
-                {darkMode ? "☀️ Light" : "🌙 Dark"}
-              </motion.button>
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              className="bg-gradient-to-r from-blue-400 to-pink-400 text-white font-bold p-3 rounded-full w-24"
-              onClick={() => (window.location.href = "/")}
-            >
-              {t.home}
+          {/* Top-Right Control Buttons */}
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <select onChange={(e) => setLang(e.target.value as "th" | "en")} value={lang} className="text-xs font-semibold py-1 px-2 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 focus:outline-none">
+              <option value="th">🇹🇭 ไทย</option>
+              <option value="en">🇬🇧 EN</option>
+            </select>
+            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={toggleDarkMode} className="text-xl p-1.5 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400">
+              {darkMode ? <FiSun /> : <FiMoon />}
             </motion.button>
+          </div>
 
-            <motion.h3
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400 mb-6"
-            >
+          {/* Left Avatar Section */}
+          <div className="flex-1 flex flex-col justify-center items-center gap-4 text-center border-b-2 md:border-b-0 md:border-r-2 pb-8 md:pb-0 md:pr-8 border-blue-400/50 dark:border-pink-400/50">
+            <motion.h3 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400 mb-4">
               {t.title}
             </motion.h3>
 
-            <motion.img
-              src={avatarPreview || proDefault.src}
-              alt="Avatar Preview"
-              className="w-44 h-44 rounded-3xl border-4 border-blue-400 dark:border-pink-400 object-cover shadow-xl"
-              whileHover={{ rotate: 2, scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 200 }}
-            />
+            <motion.div whileHover={{ scale: 1.05, rotate: 2 }} className="relative">
+              <img src={avatarPreview || proDefault.src} alt="Avatar Preview" className="w-40 h-40 rounded-full border-4 border-blue-400 dark:border-pink-400 object-cover shadow-xl"/>
+            </motion.div>
 
-            <label
-              htmlFor="avatar-upload"
-              className="bg-gradient-to-r from-blue-400 to-pink-400 text-white px-4 py-2 rounded-lg cursor-pointer font-semibold shadow hover:from-pink-400 hover:to-orange-400"
-            >
+            <label htmlFor="avatar-upload" className="bg-gradient-to-r from-blue-400 to-pink-400 text-white px-5 py-2.5 rounded-lg cursor-pointer font-semibold shadow-lg hover:from-pink-400 hover:to-orange-400 transition-transform hover:scale-105">
               {t.selectAvatar}
             </label>
-            <input
-              type="file"
-              accept="image/*"
-              id="avatar-upload"
-              className="hidden"
-              onChange={handleImageSelect}
-            />
-            <p className="text-xs text-gray-300">{t.Optional}</p>
+            <input type="file" accept="image/*" id="avatar-upload" className="hidden" onChange={handleImageSelect} />
+            <p className="text-xs text-gray-400">{t.Optional}</p>
           </div>
 
-          {/* Right Form */}
-          <motion.div
-            className="flex-1 space-y-6 mt-5"
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: {},
-              visible: {
-                transition: {
-                  staggerChildren: 0.1,
-                },
-              },
-            }}
-          >
-            {[
-              {
-                id: "email",
-                label: t.email,
-                placeholder: t.enMail,
-                type: "email",
-                value: email,
-                setValue: setEmail,
-              },
-              {
-                id: "username",
-                label: t.username,
-                placeholder: t.enUserN,
-                type: "text",
-                value: username,
-                setValue: setUsername,
-              },
-              {
-                id: "password",
-                label: t.password,
-                placeholder: t.enPass,
-                type: "password",
-                value: password,
-                setValue: setPassword,
-              },
-              {
-                id: "confirmPassword",
-                label: t.conpassword,
-                placeholder: t.enConPass,
-                type: "password",
-                value: confirmPassword,
-                setValue: setConfirmPassword,
-              },
-            ].map(({ id, label, placeholder, type, value, setValue }) => (
-              <motion.div
-                key={id}
-                variants={{
-                  hidden: { opacity: 0, y: 10 },
-                  visible: { opacity: 1, y: 0 },
-                }}
-              >
-                <label className="block mb-2 text-gray-300">{label}</label>
-                <input
-                  type={type}
-                  value={value}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setValue(e.target.value)
-                  }
-                  placeholder={placeholder}
-                  className="w-full p-3 border-2 border-blue-200 dark:border-pink-400 rounded-xl focus:outline-none dark:bg-white text-black"
-                  required
-                />
-              </motion.div>
-            ))}
+          {/* Right Form Section */}
+          <form onSubmit={handleRegister} className="flex-1">
+            <motion.div className="space-y-4" initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}>
+              <InputField id="name" label={t.name} placeholder={t.name} type="text" value={name} onChange={(e) => setName(e.target.value)} icon={<FiUser />} />
+              <InputField id="username" label={t.username} placeholder={t.enUserN} type="text" value={username} onChange={(e) => setUsername(e.target.value)} icon={<FiUser />} />
+              <InputField id="email" label={t.email} placeholder={t.enMail} type="email" value={email} onChange={(e) => setEmail(e.target.value)} icon={<FiMail />} />
+              <InputField id="password" label={t.password} placeholder={t.enPass} type="password" value={password} onChange={(e) => setPassword(e.target.value)} icon={<FiLock />} />
+              <InputField id="confirmPassword" label={t.conpassword} placeholder={t.enConPass} type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} icon={<FiLock />} />
+              
+              {error && <p className="text-red-400 text-center text-sm pt-2">{error}</p>}
 
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              className="bg-gradient-to-r from-blue-400 to-pink-400 text-white font-bold p-3 rounded-lg hover:from-pink-400 hover:to-orange-400 w-full shadow-lg"
-              type="submit"
-              onClick={handleRegister}
-            >
-              {t.login}
-            </motion.button>
-            <p className="text-sm text-center text-gray-300">
+              <motion.button whileTap={{ scale: 0.98 }} className="w-full bg-gradient-to-r from-blue-500 to-pink-500 text-white font-bold text-lg p-3 mt-4 rounded-lg hover:from-pink-500 hover:to-orange-400 shadow-lg transition-all disabled:opacity-50" type="submit" disabled={loading}>
+                {loading ? "กำลังลงทะเบียน..." : t.login}
+              </motion.button>
+            </motion.div>
+            <p className="mt-6 text-sm text-center text-gray-300">
               {t.haveAccount}{" "}
-              <span
-                className="text-pink-400 font-bold cursor-pointer hover:text-orange-300"
-                onClick={() => (window.location.href = "/login")}
-              >
+              <span className="text-pink-400 font-bold cursor-pointer hover:text-orange-300 transition" onClick={() => router.push('/login')}>
                 {t.register}
               </span>
             </p>
-          </motion.div>
+          </form>
         </motion.div>
 
-        {/* ✅ Success message */}
+        {/* Success message */}
         <AnimatePresence>
           {showSuccess && (
             <motion.div

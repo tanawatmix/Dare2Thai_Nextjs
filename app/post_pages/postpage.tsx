@@ -1,439 +1,250 @@
 "use client";
 
-import {
-  useState,
-  useContext,
-  useEffect,
-  useRef,
-  ChangeEvent,
-  KeyboardEvent,
-} from "react";
+import { useState, useEffect, useContext } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ThemeContext } from "../ThemeContext";
-import { useSearchParams, useRouter } from "next/navigation";
-import mockPosts from "../mock/mockPost";
 import Navbar from "../components/navbar";
 import Footer from "../components/Footer";
-import Tilt from "react-parallax-tilt";
-import Image from "next/image";
-import Drawer from "@mui/material/Drawer";
-import { FaPlus, FaSearch } from "react-icons/fa";
-import { useTranslation } from "react-i18next";
-import wp from "../../public/whiteWater.jpg";
-import bp from "../../public/bp.jpg";
-import toast, { Toaster } from "react-hot-toast"; // import Toaster
-import Link from "@mui/material/Link";
-
-// Import PostCard ที่แก้ไขแล้ว
 import PostCard from "../components/PostCard";
+import { supabase } from "@/lib/supabaseClient";
+import toast, { Toaster } from "react-hot-toast";
+import { FaPlus } from "react-icons/fa";
+import { FiSearch, FiChevronLeft, FiChevronRight, FiChevronsLeft, FiChevronsRight, FiHeart } from "react-icons/fi";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
+// --- Type Definition for a Post ---
 type Post = {
   id: number;
-  images: string[];
+  image_url: string[];
   title: string;
-  type: string;
+  place_type: string;
   province: string;
   description: string;
-  isFav?: boolean; // เพิ่ม flag สำหรับ fav
+  isFav?: boolean;
 };
 
+// --- Constant Data ---
 const placeTypes = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม"];
-const provinces = [
-  "กรุงเทพมหานคร",
-  "กระบี่",
-  "กาญจนบุรี",
-  "เชียงใหม่",
-  "อุบลราชธานี",
-];
+const provinces = ["กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "เชียงใหม่", "อุบลราชธานี"];
 
+// --- Main Page Component ---
 const PostPage = () => {
-  const { t, i18n } = useTranslation();
   const { darkMode } = useContext(ThemeContext);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState<string>("");
-  const [selectedProvince, setSelectedProvince] = useState<string>("");
-  const [searchName, setSearchName] = useState<string>("");
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const clickSound = useRef<HTMLAudioElement | null>(null);
-  useEffect(() => {
-    clickSound.current = new Audio("/sounds/shoot.wav");
-  }, []);
-
-  const handleClick = () => {
-    if (clickSound.current) {
-      clickSound.current.currentTime = 0;
-      clickSound.current.play();
-    }
-  };
-
-  const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({
-    x: 0,
-    y: 0,
-  });
-  const [hasMounted, setHasMounted] = useState(false);
-
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    if (i18n.isInitialized) {
-      setReady(true);
-    } else if (typeof i18n.on === "function") {
-      const onInitialized = () => setReady(true);
-      i18n.on("initialized", onInitialized);
-      return () => {
-        i18n.off && i18n.off("initialized", onInitialized);
-      };
-    } else {
-      setReady(true);
-    }
-  }, [i18n]);
-
-  // Use localStorage to set the initial isFav status
+  // --- State Management ---
   const [posts, setPosts] = useState<Post[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get('page') || '1'));
+  const [searchName, setSearchName] = useState("");
+  const [selectedType, setSelectedType] = useState("");
+  const [selectedProvince, setSelectedProvince] = useState("");
+  const [loading, setLoading] = useState(true);
 
+  const postsPerPage = 12;
+
+  // --- Data Fetching ---
   useEffect(() => {
-    const initializePosts = () => {
-      if (typeof window !== "undefined") {
-        const storedFavIds = localStorage.getItem("favoritePostIds");
-        const favIds: number[] = storedFavIds ? JSON.parse(storedFavIds) : [];
-        const initialPosts = mockPosts.map((post) => ({
-          ...post,
-          isFav: favIds.includes(post.id),
+    const fetchPosts = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("posts")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        toast.error("โหลดโพสต์ล้มเหลว: " + error.message);
+      } else if (data) {
+        const favIds = JSON.parse(localStorage.getItem("favoritePostIds") || "[]");
+
+        // ✅ FIX: สร้างฟังก์ชันแปลงข้อมูลรูปภาพที่ปลอดภัย
+        const safeParseImages = (imageUrlField: any): string[] => {
+            if (!imageUrlField) return []; // ถ้าเป็น null หรือ undefined ให้คืนค่า array ว่าง
+            if (Array.isArray(imageUrlField)) return imageUrlField; // ถ้าเป็น array อยู่แล้ว ให้ใช้เลย
+            try {
+                const parsed = JSON.parse(imageUrlField);
+                return Array.isArray(parsed) ? parsed : []; // ตรวจสอบให้แน่ใจว่าผลลัพธ์เป็น array
+            } catch (e) {
+                console.error("Failed to parse image_url:", imageUrlField, e);
+                return []; // ถ้า parse ไม่สำเร็จ ให้คืนค่า array ว่าง
+            }
+        };
+
+        const postsWithFav: Post[] = data.map((p: any) => ({
+          ...p,
+          image_url: safeParseImages(p.image_url), // ใช้ฟังก์ชันแปลงข้อมูลที่ปลอดภัย
+          isFav: favIds.includes(p.id),
         }));
-        setPosts(initialPosts);
+        setPosts(postsWithFav);
       }
+      setLoading(false);
     };
-    initializePosts();
+    fetchPosts();
   }, []);
 
+  // --- Filtering Logic ---
   useEffect(() => {
-    setHasMounted(true);
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-    };
-  }, []);
-
-  const pageParam = parseInt(searchParams.get("page") || "1", 10);
-  const [currentPage, setCurrentPage] = useState<number>(pageParam);
-
-  const [filteredPosts, setFilteredPosts] = useState<Post[]>(posts);
-
-  useEffect(() => {
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    setCurrentPage(page);
-  }, [searchParams]);
-
-  useEffect(() => {
-    const filtered = posts.filter((post) => {
-      const matchName =
-        searchName.trim() === "" ||
-        post.title.toLowerCase().includes(searchName.toLowerCase());
-      const matchType = selectedType === "" || post.type === selectedType;
-      const matchProvince =
-        selectedProvince === "" || post.province === selectedProvince;
+    const filtered = posts.filter((p) => {
+      const matchName = p.title.toLowerCase().includes(searchName.toLowerCase());
+      const matchType = selectedType === "" || p.place_type === selectedType;
+      const matchProvince = selectedProvince === "" || p.province === selectedProvince;
       return matchName && matchType && matchProvince;
     });
     setFilteredPosts(filtered);
-    setCurrentPage(1);
+    if (currentPage !== 1) {
+        setCurrentPage(1); // Reset to first page on filter change, only if not already on it
+    }
   }, [searchName, selectedType, selectedProvince, posts]);
 
-  const postsPerPage = 12;
+  // --- Pagination Logic ---
+  const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
   const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
-  const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
-
-  const toggleDrawer = (open: boolean) => () => setIsDrawerOpen(open);
-
-  const handleSearch = () => {
-    toggleDrawer(false)();
-  };
 
   const handlePageChange = (page: number) => {
-    router.push(`?page=${page}`);
-  };
-
-  const handleEditPost = (postId: number) => {
-    router.push(`/edit-post/${postId}`);
-  };
-
-  const handleDeletePost = (postId: number) => {
-    if (window.confirm(t("confirm_delete") || "ยืนยันการลบโพสต์นี้?")) {
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
-      toast.error("โพสต์ถูกลบแล้ว");
+    if (page > 0 && page <= totalPages) {
+        setCurrentPage(page);
+        router.push(`/post_pages?page=${page}`, { scroll: false });
     }
   };
 
-  // Toggle Fav
+  // --- Post Interaction Handlers ---
   const handleFavPost = (postId: number) => {
-    const postToFav = posts.find((p) => p.id === postId);
+    const updatedPosts = posts.map((p) => (p.id === postId ? { ...p, isFav: !p.isFav } : p));
+    setPosts(updatedPosts);
 
-    if (postToFav) {
-      const newFavStatus = !postToFav.isFav;
-      const toastMessage = newFavStatus
-        ? "เพิ่มในรายการโปรด"
-        : "ลบออกจากรายการโปรด";
-
-      // 1. Update state
-      setPosts((prev) =>
-        prev.map((p) => (p.id === postId ? { ...p, isFav: newFavStatus } : p))
-      );
-
-      // 2. Update localStorage
-      if (typeof window !== "undefined") {
-        const storedFavs = localStorage.getItem("favoritePostIds");
-        const favIds: number[] = storedFavs ? JSON.parse(storedFavs) : [];
-
-        if (newFavStatus) {
-          if (!favIds.includes(postId)) {
-            favIds.push(postId);
-          }
-        } else {
-          const index = favIds.indexOf(postId);
-          if (index > -1) {
-            favIds.splice(index, 1);
-          }
-        }
-        localStorage.setItem("favoritePostIds", JSON.stringify(favIds));
-      }
-
-      // 3. Show toast
-      toast.success(`${postToFav.title} ${toastMessage}`);
+    const favIds: number[] = JSON.parse(localStorage.getItem("favoritePostIds") || "[]");
+    if (favIds.includes(postId)) {
+      localStorage.setItem("favoritePostIds", JSON.stringify(favIds.filter((id) => id !== postId)));
+    } else {
+      localStorage.setItem("favoritePostIds", JSON.stringify([...favIds, postId]));
     }
   };
 
-  const handleLanguageChange = async (lng: string) => {
-    if (["en", "th"].includes(lng)) {
-      await i18n.changeLanguage(lng);
+  const handleDeletePost = async (postId: number) => {
+    if (!confirm("คุณต้องการลบโพสต์นี้ใช่หรือไม่?")) return;
+
+    const { error } = await supabase.from("posts").delete().eq("id", postId);
+    if (error) {
+      toast.error("ลบโพสต์ไม่สำเร็จ: " + error.message);
+    } else {
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      toast.success("ลบโพสต์เรียบร้อยแล้ว");
     }
   };
-
-  if (!ready) return <div>Loading translations...</div>;
 
   return (
-    <div
-      className={`relative min-h-screen transition duration-500 overflow-x-hidden ${
-        darkMode ? "bg-gray-900 text-white" : "bg-white text-black"
-      }`}
-      style={
-        hasMounted
-          ? {
-              backgroundImage: `radial-gradient(circle 300px at ${
-                mousePosition.x
-              }px ${mousePosition.y}px, ${
-                darkMode
-                  ? "rgba(254, 163, 253, 0.5)"
-                  : "rgba(185, 246, 255, 0.5)"
-              }, transparent 50%), url(${darkMode ? bp.src : wp.src})`,
-              backgroundSize: "cover",
-              backgroundAttachment: "fixed",
-              backgroundPosition: "center",
-            }
-          : undefined
-      }
-    >
-      <Toaster position="top-right" /> {/* Toaster อยู่ที่นี่ที่เดียว */}
-      <div className="relative bg-fixed bg-center bg-cover transition duration-500 flex-1">
-        <Navbar />
-        <div className="max-w-7xl mx-auto px-4 py-20">
-          <div className="flex flex-col mt-5 md:flex-row items-center justify-between gap-4 mb-8">
-            <button
-              onClick={() => {
-                handleClick();
-                router.push("/create_post");
-              }}
-              className="flex items-center gap-2 border-2 border-blue-400 dark:border-pink-500 rounded-lg bg-primary text-black dark:bg-black dark:text-white px-6 py-2 font-semibold shadow hover:bg-black hover:text-white dark:hover:bg-primary dark:hover:text-secondary transition-all duration-300 hover:scale-105"
-            >
-              <FaPlus />
-              <p suppressHydrationWarning>{t("post")}</p>
-            </button>
-            <Link
-              href="/Favorites"
-              className="ml-4 text-blue-500 dark:text-pink-400 underline text-sm"
-            >
-              ดูรายการโปรด
-            </Link>
-            <button
-              onClick={() => {
-                handleClick();
-                toggleDrawer(true)();
-              }}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black text-white dark:bg-white dark:text-black hover:bg-pink-400 dark:hover:bg-pink-400 transition-all duration-300 shadow"
-            >
-              <FaSearch className="text-xl" />
-              <span className="hidden md:inline" suppressHydrationWarning>
-                {t("search")}
-              </span>
-            </button>
-          </div>
-
-          <Drawer
-            anchor="right"
-            open={isDrawerOpen}
-            onClose={toggleDrawer(false)}
+    <div className={`font-sriracha transition-colors duration-300 ${darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
+      <Toaster position="top-right" />
+      <Navbar />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 min-h-screen">
+        
+        {/* --- Control Panel --- */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8"
+        >
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => router.push("/create_post")}
+            className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition-all w-full md:w-auto"
           >
-            <div className="font-sriracha w-[320px] p-6 space-y-6 bg-primary dark:bg-secondary h-full overflow-y-auto">
-              <h2 className="text-2xl font-bold text-secondary dark:text-primary mb-4">
-                {t("search")}
-              </h2>
-              <div>
-                <label className="block mb-1 text-sm font-medium text-secondary dark:text-primary">
-                  {t("PlaceName")}
-                </label>
-                <input
-                  type="text"
-                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-300"
-                  value={searchName}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setSearchName(e.target.value)
-                  }
-                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleSearch();
-                    }
-                  }}
-                  placeholder="เช่น วัดพระแก้ว"
-                />
-              </div>
-              <div>
-                <label className="block mb-1 text-sm font-medium text-secondary dark:text-primary">
-                  {t("Placetag")}
-                </label>
-                <select
-                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-300"
-                  value={selectedType}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                    setSelectedType(e.target.value)
-                  }
-                >
-                  <option value="">{t("all") || "ทั้งหมด"}</option>
-                  {placeTypes.map((type, i) => (
-                    <option key={i} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block mb-1 text-sm font-medium text-secondary dark:text-primary">
-                  {t("Provincetag")}
-                </label>
-                <select
-                  className="w-full p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-pink-300"
-                  value={selectedProvince}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                    setSelectedProvince(e.target.value)
-                  }
-                >
-                  <option value="">{t("all") || "ทั้งหมด"}</option>
-                  {provinces.map((province, i) => (
-                    <option key={i} value={province}>
-                      {province}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <button
-                onClick={handleSearch}
-                className="w-full bg-pink-400 hover:bg-secondary dark:hover:bg-primary hover:dark:text-secondary text-white font-semibold text-xl py-2 rounded shadow transition-all duration-300"
-              >
-                {t("search")}
-              </button>
-              <button
-                onClick={() => {
-                  setSearchName("");
-                  setSelectedType("");
-                  setSelectedProvince("");
-                  setCurrentPage(1);
-                  setFilteredPosts(posts);
-                  toggleDrawer(false)();
-                }}
-                className="text-sm underline text-pink-400 dark:hover:text-primary hover:text-secondary"
-              >
-                {t("clear_filters") || "ล้างตัวกรอง"}
-              </button>
-            </div>
-          </Drawer>
+            <FaPlus />
+            สร้างโพสต์ใหม่
+          </motion.button>
+          <Link href="/Favorites" className="flex items-center gap-2 text-pink-500 font-semibold hover:text-pink-600 transition-colors">
+             <FiHeart/> ดูรายการโปรด
+          </Link>
+        </motion.div>
 
-          <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-            {currentPosts.length === 0 ? (
-              <div className="col-span-full text-center text-gray-500 text-xl">
-                {t("no_posts_found") || "ไม่พบโพสต์ที่ตรงกับตัวกรอง"}
-              </div>
-            ) : (
-              currentPosts.map((post) => (
-                <PostCard
-                  key={post.id}
-                  {...post}
-                  postId={post.id}
-                  onEdit={handleEditPost}
-                  onDelete={handleDeletePost}
-                  onFav={handleFavPost}
+        {/* --- Filter Section --- */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="grid grid-cols-1 text-black md:grid-cols-3 gap-4 mb-10 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"
+        >
+            <div className="relative">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-black"/>
+                <input 
+                    type="text" 
+                    placeholder="ค้นหาชื่อสถานที่..." 
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-              ))
-            )}
-          </div>
-          <div className="flex justify-center items-center gap-2 mt-8">
-            {currentPage > 1 && (
-              <>
-                <button
-                  onClick={() => handlePageChange(1)}
-                  className="px-2 py-1 rounded border border-blue-400 dark:border-pink-400"
-                >
-                  {"<<"}
-                </button>
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  className="px-2 py-1 rounded border border-blue-400 dark:border-pink-400"
-                >
-                  {"<"}
-                </button>
-              </>
-            )}
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const startPage = Math.max(
-                1,
-                Math.min(currentPage - 2, totalPages - 4)
-              );
-              const pageNumber = i + startPage;
-              if (pageNumber > totalPages) return null;
-              return (
-                <button
-                  key={pageNumber}
-                  onClick={() => handlePageChange(pageNumber)}
-                  className={`px-3 py-1 rounded border dark:border-pink-400 border-blue-400 hover:bg-blue-400 dark:hover:bg-pink-400 ${
-                    currentPage === pageNumber
-                      ? "bg-blue-400 dark:bg-pink-400 text-white dark:text-secondary"
-                      : "bg-pink dark:bg-secondary"
-                  }`}
-                >
-                  {pageNumber}
-                </button>
-              );
-            })}
-            {currentPage < totalPages && (
-              <>
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  className="px-2 py-1 rounded border border-blue-400 dark:border-pink-400"
-                >
-                  {">"}
-                </button>
-                <button
-                  onClick={() => handlePageChange(totalPages)}
-                  className="px-2 py-1 rounded border border-blue-400 dark:border-pink-400"
-                >
-                  {">>"}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+            </div>
+            <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">ทุกประเภท</option>
+                {placeTypes.map(type => <option key={type} value={type}>{type}</option>)}
+            </select>
+            <select value={selectedProvince} onChange={(e) => setSelectedProvince(e.target.value)} className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">ทุกจังหวัด</option>
+                {provinces.map(prov => <option key={prov} value={prov}>{prov}</option>)}
+            </select>
+        </motion.div>
+
+        {/* --- Posts Grid --- */}
+        <AnimatePresence>
+            <motion.div 
+              layout
+              className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            >
+              {loading ? (
+                <p className="md:col-span-4 text-center">กำลังโหลดโพสต์...</p>
+              ) : currentPosts.length > 0 ? (
+                currentPosts.map((post) => (
+                    // ✅ FIX: ส่ง Props ให้ PostCard อย่างถูกต้องและชัดเจน
+                    <PostCard
+                        key={post.id}
+                        postId={post.id}
+                        images={post.image_url}
+                        title={post.title}
+                        type={post.place_type}
+                        province={post.province}
+                        description={post.description}
+                        isFav={post.isFav}
+                        onFav={handleFavPost}
+                        onDelete={handleDeletePost}
+                    />
+                ))
+              ) : (
+                <p className="md:col-span-4 text-center text-gray-500">ไม่พบโพสต์ที่ตรงกับเงื่อนไขการค้นหาของคุณ</p>
+              )}
+            </motion.div>
+        </AnimatePresence>
+
+        {/* --- Pagination --- */}
+        {totalPages > 1 && (
+            <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="flex justify-center items-center gap-2 mt-12"
+            >
+                <button onClick={() => handlePageChange(1)} disabled={currentPage === 1} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"><FiChevronsLeft /></button>
+                <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"><FiChevronLeft /></button>
+                
+                {Array.from({ length: totalPages }, (_, i) => (
+                    <button
+                        key={i + 1}
+                        onClick={() => handlePageChange(i + 1)}
+                        className={`w-10 h-10 rounded-md font-semibold transition-colors ${currentPage === i + 1 ? "bg-blue-500 text-white shadow-lg" : "hover:bg-gray-200 dark:hover:bg-gray-700"}`}
+                    >
+                        {i + 1}
+                    </button>
+                ))}
+
+                <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"><FiChevronRight /></button>
+                <button onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"><FiChevronsRight /></button>
+            </motion.div>
+        )}
       </div>
       <Footer />
     </div>

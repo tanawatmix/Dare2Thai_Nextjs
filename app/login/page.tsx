@@ -3,42 +3,16 @@
 import React, { useState, useContext, ChangeEvent, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeContext } from "../ThemeContext";
+import { supabase } from "@/lib/supabaseClient";
+import { useRouter } from "next/navigation";
 import bp from "../../public/bp.jpg";
 import wp from "../../public/whiteWater.jpg";
 
-type User = {
-  id: number;
-  username: string;
-  email: string;
-  password: string;
-};
+// Type สำหรับภาษา
+type Lang = "th" | "en";
 
-const mockUsers: User[] = [
-  { id: 1, username: "user1", email: "user1@mail.com", password: "pass1" },
-  { id: 2, username: "user2", email: "user2@mail.com", password: "pass2" },
-  { id: 3, username: "user3", email: "user3@mail.com", password: "pass3" },
-  { id: 999, username: "admin", email: "admin@mail.com", password: "admin123" },
-];
-
-type Translations = {
-  [key: string]: {
-    title: string;
-    email: string;
-    password: string;
-    login: string;
-    noAccount: string;
-    register: string;
-    home: string;
-    success: string;
-    fillAll: string;
-    enMail: string;
-    enPass: string;
-    en: string;
-    th: string;
-  };
-};
-
-const translations: Translations = {
+// Object สำหรับเก็บคำแปล
+const translations = {
   th: {
     title: "เข้าสู่ระบบ",
     email: "อีเมล",
@@ -48,11 +22,9 @@ const translations: Translations = {
     register: "ลงทะเบียน",
     home: "หน้าแรก",
     success: "✅ เข้าสู่ระบบสำเร็จ!",
-    fillAll: "กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน",
-    enMail: "กรอกอีเมล",
+    fillAll: "กรุณากรอกอีเมลและรหัสผ่าน",
     enPass: "กรอกรหัสผ่าน",
-    en: "English",
-    th: "ไทย",
+    enMail: "กรอกอีเมล",
   },
   en: {
     title: "Login",
@@ -63,194 +35,136 @@ const translations: Translations = {
     register: "Register",
     home: "Home",
     success: "✅ Login successful!",
-    fillAll: "Please enter both email and password",
-    enMail: "Enter your email",
+    fillAll: "Please enter email and password",
     enPass: "Enter your password",
-    en: "English",
-    th: "ไทย",
+    enMail: "Enter your email",
   },
 };
 
 const Login: React.FC = () => {
-  const [lang, setLang] = useState<"th" | "en">("th");
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [showSuccess, setShowSuccess] = useState<boolean>(false);
-
+  const router = useRouter();
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
-
+  const [lang, setLang] = useState<Lang>("th");
   const t = translations[lang];
 
-  const handleLogin = () => {
+  // --- States for form fields ---
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // --- States for UI feedback ---
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handleLogin = async (e: FormEvent) => {
+    e.preventDefault(); // ป้องกันการรีเฟรชหน้า
+    setLoading(true);
+    setError("");
+
     if (!email || !password) {
-      alert(t.fillAll);
+      setError(t.fillAll);
+      setLoading(false);
       return;
     }
 
-    const user = mockUsers.find(
-      (u) => u.email === email && u.password === password
-    );
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
 
-    if (user) {
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem(
-        "user",
-        JSON.stringify({ id: user.id, username: user.username })
-      );
-
+    if (signInError) {
+      setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+    } else if (data.session) {
       setShowSuccess(true);
       setTimeout(() => {
-        window.location.href = "/";
+        router.push("/"); // ไปที่หน้าแรกหลังล็อกอินสำเร็จ
+        router.refresh(); // สั่งให้ refresh เพื่อให้ Navbar อัปเดต
       }, 1500);
-    } else {
-      alert("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
     }
+    setLoading(false);
   };
 
   return (
-    <div
-      className="font-sriracha bg-fixed bg-cover min-h-screen"
-      style={{
-        backgroundImage: `url(${darkMode ? bp.src : wp.src})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      <div className="min-h-screen flex items-center justify-center px-4 relative">
+    <div className={`relative min-h-screen transition duration-500 overflow-x-hidden ${darkMode ? "bp text-white" : "wp text-black"}`}>
+      <div className="relative min-h-screen flex items-center justify-center px-4">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="bg-white/80 dark:bg-black/70 backdrop-blur-lg rounded-3xl shadow-xl p-10 w-full max-w-lg border-2 border-blue-400 dark:border-pink-400 relative"
+          className="border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-10 max-w-lg w-full backdrop-blur-lg"
         >
-          {/* Language & Theme Switch */}
-          <div className="absolute top-0 right-0 flex gap-2 p-4 z-10">
-            <button
-              className="text-xs font-semibold py-1 px-4 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 hover:bg-blue-100 dark:hover:bg-pink-900 transition"
-              onClick={() => setLang(lang === "th" ? "en" : "th")}
-              aria-label="Switch Language"
-            >
-              {lang === "th" ? "EN" : "ไทย"}
-            </button>
-            <button
-              onClick={toggleDarkMode}
-              className="text-xs font-semibold py-1 px-4 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 hover:bg-blue-100 dark:hover:bg-pink-900 transition"
-              aria-label="Toggle Dark Mode"
-            >
-              {darkMode ? "Light ☀️" : "Dark 🌙"}
-            </button>
+          {/* Top Right Buttons */}
+          <div className="absolute top-0 right-0 flex flex-col items-end gap-2 z-10 p-3">
+             <motion.button whileHover={{ scale: 1.05 }} className="..." onClick={() => setLang(lang === "th" ? "en" : "th")}>
+               {lang === "th" ? "EN" : "ไทย"}
+             </motion.button>
+             <motion.button whileHover={{ scale: 1.05 }} className="..." onClick={toggleDarkMode}>
+               {darkMode ? "☀️ Light" : "🌙 Dark"}
+             </motion.button>
           </div>
 
-          <h1 className="text-4xl font-extrabold text-center mb-10 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400">
-            {t.title}
-          </h1>
-
-          <form
-            onSubmit={(e: FormEvent<HTMLFormElement>) => {
-              e.preventDefault();
-              handleLogin();
-            }}
-            className="space-y-6"
+          <motion.h3
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400 mb-8"
           >
-            <InputField
-              id="email"
-              label={t.email}
-              placeholder={t.enMail}
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <InputField
-              id="password"
-              label={t.password}
-              placeholder={t.enPass}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            {t.title}
+          </motion.h3>
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            {[
+              { id: "email", label: t.email, placeholder: t.enMail, type: "email", value: email, setValue: setEmail },
+              { id: "password", label: t.password, placeholder: t.enPass, type: "password", value: password, setValue: setPassword },
+            ].map(({ id, label, placeholder, type, value, setValue }) => (
+              <motion.div key={id}>
+                <label className="block mb-2 text-gray-300">{label}</label>
+                <input
+                  type={type}
+                  value={value}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}
+                  placeholder={placeholder}
+                  className="w-full p-3 border-2 border-blue-200 dark:border-pink-400 rounded-xl focus:outline-none dark:bg-white text-black"
+                  required
+                />
+              </motion.div>
+            ))}
+            
+            {error && <p className="text-red-500 text-center text-sm">{error}</p>}
+
             <motion.button
-              whileTap={{ scale: 0.97 }}
-              className="w-full bg-gradient-to-r from-blue-400 to-pink-400 text-white font-bold py-3 rounded-lg hover:from-pink-400 hover:to-orange-400 transition"
+              whileTap={{ scale: 0.95 }}
+              className="bg-gradient-to-r from-blue-400 to-pink-400 text-white font-bold p-3 rounded-lg hover:from-pink-400 hover:to-orange-400 w-full shadow-lg disabled:opacity-50"
               type="submit"
+              disabled={loading}
             >
-              {t.login}
+              {loading ? "กำลังเข้าสู่ระบบ..." : t.login}
             </motion.button>
           </form>
 
-          <p className="mt-6 text-center text-gray-700 dark:text-gray-200 text-base">
+          <p className="mt-6 text-sm text-center text-gray-300">
             {t.noAccount}{" "}
-            <span
-              className="font-extrabold text-pink-500 cursor-pointer hover:text-orange-400 transition"
-              onClick={() => (window.location.href = "/register")}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) =>
-                e.key === "Enter" && (window.location.href = "/register")
-              }
-            >
+            <span className="text-pink-400 font-bold cursor-pointer hover:text-orange-300" onClick={() => router.push('/register')}>
               {t.register}
             </span>
           </p>
         </motion.div>
 
-        {/* Success Notification */}
+        {/* Success Message */}
         <AnimatePresence>
           {showSuccess && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="absolute top-10 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-500 via-pink-400 to-orange-300 border-2 border-white text-white font-bold px-10 py-5 rounded-2xl shadow-2xl text-center z-50"
+              initial={{ y: -30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -30, opacity: 0 }}
+              className="absolute top-10 left-1/2 -translate-x-1/2 bg-pink-500 text-white px-10 py-5 rounded-xl shadow-xl"
             >
               {t.success}
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: "100%" }}
-                transition={{ duration: 1 }}
-                className="h-1 bg-white mt-3 rounded-lg"
-              />
+              <motion.div className="h-1 bg-white mt-3 rounded" initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 1 }} />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-    </div>
-  );
-};
-
-type InputFieldProps = {
-  id: string;
-  label: string;
-  placeholder: string;
-  type: string;
-  value: string;
-  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-};
-
-const InputField: React.FC<InputFieldProps> = ({
-  id,
-  label,
-  placeholder,
-  type,
-  value,
-  onChange,
-}) => {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="block mb-2 font-semibold text-gray-700 dark:text-gray-200"
-      >
-        {label}
-      </label>
-      <input
-        type={type}
-        id={id}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className="w-full p-3 border-2 border-blue-200 dark:border-pink-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-pink-400 dark:bg-white text-black transition text-lg shadow"
-        required
-      />
     </div>
   );
 };
