@@ -684,7 +684,7 @@ const fetchUsers = async () => {
         )}
       </Section>
       {/* --- Posts Table --- */}
-      <Section title="จัดการโพสต์">
+      <Section title="จัดการโพสต์"> 
         {loadingPosts ? (
           <LoadingSpinner />
         ) : (
