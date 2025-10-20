@@ -359,7 +359,9 @@ const ProfilePage = () => {
         {/* Posts */}
         <div className="mt-12 w-full max-w-3xl">
           {/* ✅ FIX: ใช้สีข้อความจาก CSS Variable */}
-          <h2 className="text-2xl font-bold mb-4 text-center text-[var(--foreground)]">โพสต์ของฉัน</h2>
+          <h2 className="text-2xl font-bold mb-4 text-center text-[var(--foreground)]">
+            โพสต์ของฉัน
+          </h2>
           {posts.length === 0 ? (
             <p className="text-center text-gray-500">ยังไม่มีโพสต์ของคุณ</p>
           ) : (
@@ -377,8 +379,9 @@ const ProfilePage = () => {
                       images={post.image_url as string[]}
                       onDelete={handleDeletePost}
                       onFav={() => {}}
-                      // ownerId={post.user_id} // ไม่มี props นี้ใน PostCard
-                      // currentUserId={user?.id} // ไม่มี props นี้ใน PostCard
+                      onFav={() => {}}
+                      ownerId={post.user_id}
+                      currentUserId={user?.id}
                     />
                   )
               )}
@@ -409,7 +412,9 @@ const InputField = ({
 }) => (
   <div>
     {/* ✅ FIX: ใช้สีข้อความจาก CSS Variable */}
-    <label className="block mb-2 font-semibold text-lg text-[var(--foreground)] opacity-90">{label}</label>
+    <label className="block mb-2 font-semibold text-lg text-[var(--foreground)] opacity-90">
+      {label}
+    </label>
     <input
       name={name}
       value={value}
@@ -417,12 +422,19 @@ const InputField = ({
       readOnly={readOnly}
       // ✅ FIX: ปรับสี Input Field ให้เข้ากับธีม
       className={`w-full text-lg px-4 py-2 rounded-xl border-2 transition
-        ${readOnly
+        ${
+          readOnly
             ? "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed" // สีสำหรับ readOnly
             : "bg-white dark:bg-gray-700 text-black dark:text-white" // สีสำหรับปกติ
         }
-        ${darkMode ? "border-pink-400 focus:border-pink-300" : "border-blue-300 focus:border-blue-500"}
-        focus:ring-2 ${darkMode ? "focus:ring-pink-300" : "focus:ring-blue-300"} focus:outline-none
+        ${
+          darkMode
+            ? "border-pink-400 focus:border-pink-300"
+            : "border-blue-300 focus:border-blue-500"
+        }
+        focus:ring-2 ${
+          darkMode ? "focus:ring-pink-300" : "focus:ring-blue-300"
+        } focus:outline-none
       `}
       autoComplete="off"
     />
