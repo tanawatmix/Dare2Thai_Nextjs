@@ -692,7 +692,7 @@ const fetchUsers = async () => {
             posts={posts}
             users={users}
             handleDeletePost={handleDeletePost}
-            darkMode={darkMode} // ✅ FIX: ส่ง prop 'darkMode' ไปด้วย
+            darkMode={darkMode} 
           />
         )}
       </Section>
