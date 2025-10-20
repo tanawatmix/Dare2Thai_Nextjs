@@ -14,10 +14,10 @@ interface PostCardProps {
   type: string;
   province: string;
   description: string;
-  postId: number;
-  onEdit?: (postId: number) => void;
-  onDelete: (postId: number) => void;
-  onFav: (postId: number) => void;
+  postId: string; // ✅ เปลี่ยนจาก number → string
+  onEdit?: (postId: string) => void;
+  onDelete: (postId: string) => void;
+  onFav: (postId: string) => void;
   isFav?: boolean;
 }
 

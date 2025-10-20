@@ -49,7 +49,7 @@ const CreatePost: React.FC = () => {
       const fileName = `public/${Date.now()}_${file.name}`;
 
       const { data, error } = await supabase.storage
-        .from("post_image") // <-- เปลี่ยน bucket
+        .from("post_image")
         .upload(fileName, file);
 
       if (error) {
@@ -63,16 +63,27 @@ const CreatePost: React.FC = () => {
       uploadedUrls.push(url);
     }
 
-    // บันทึกลง table posts
+    // ✅ ดึง user ที่ล็อกอินอยู่
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      alert("กรุณาเข้าสู่ระบบก่อนโพสต์");
+      return;
+    }
+
+    // ✅ บันทึกโพสต์พร้อม user_id
     const { data: postData, error: postError } = await supabase
       .from("posts")
       .insert([
         {
+          user_id: user.id, // <--- เพิ่มตรงนี้
           title,
           description: desc,
           place_type: placeType,
           province,
-          image_url: uploadedUrls, // <-- array
+          image_url: uploadedUrls,
         },
       ]);
 
@@ -83,7 +94,6 @@ const CreatePost: React.FC = () => {
     }
 
     alert("โพสต์เรียบร้อย!");
-
     router.push("/post_pages");
   };
 

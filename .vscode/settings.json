@@ -1,0 +1,13 @@
+{
+  "deno.enable": true,
+  "deno.lint": true,
+  "deno.unstable": true,
+  // บอกให้ VS Code ใช้ Deno Linter เฉพาะในโฟลเดอร์ functions
+  "deno.include": [
+    "supabase/functions/"
+  ],
+  // (Optional) ตั้งค่า formatter
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  }
+}

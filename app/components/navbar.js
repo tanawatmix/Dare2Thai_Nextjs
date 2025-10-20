@@ -18,23 +18,35 @@ const Navbar = () => {
   const router = useRouter();
 
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
+  const [user, setUser] = useState(null); // No TypeScript type needed
+  const [profile, setProfile] = useState(null); // No TypeScript type needed
   const [language, setLanguage] = useState(i18n.language);
   const [selected, setSelected] = useState(darkMode ? "dark" : "light");
 
+  // --- Main Authentication Effect ---
   useEffect(() => {
+    // Function to fetch profile data
     const fetchProfile = async (userId) => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*') // Select all profile fields or specify needed ones like 'name, profile_image, role'
         .eq('id', userId)
         .single();
       
       if (data) setProfile(data);
-      else if (error) console.error("Error fetching profile:", error);
+      else if (error) console.error("Error fetching profile:", error.message); // Log error message
     };
 
+    // 1. Check current session on initial load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        if (currentUser) {
+            fetchProfile(currentUser.id);
+        }
+    });
+
+    // 2. Set up auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
@@ -42,15 +54,17 @@ const Navbar = () => {
       if (currentUser) {
         fetchProfile(currentUser.id);
       } else {
-        setProfile(null);
+        setProfile(null); // Clear profile on logout
       }
     });
 
+    // 3. Cleanup listener on component unmount
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once on mount
 
+  // (Other useEffects for language and theme can remain the same)
   useEffect(() => {
     const storedLang = localStorage.getItem("language");
     if (storedLang && storedLang !== i18n.language) {
@@ -65,6 +79,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    // User and profile state will be cleared by the listener
     router.push('/');
     router.refresh();
   };
@@ -76,6 +91,7 @@ const Navbar = () => {
     setLanguage(lang);
   };
 
+  // Use optional chaining (?.) for safety when accessing profile properties
   const isAdmin = profile?.role === 'admin';
 
   return (
@@ -98,13 +114,16 @@ const Navbar = () => {
           )}
 
           {user ? (
+            // Use standard React Fragments <> </> instead of <> </> which is TypeScript syntax
             <>
               <Link href="/profile" className="flex items-center gap-2">
+                {/* Use optional chaining (?.) for safety */}
                 {profile?.profile_image ? (
                   <Image src={profile.profile_image} alt="avatar" width={43} height={43} className="rounded-full object-cover" unoptimized />
                 ) : (
                   <FiUser className={`text-lg ${darkMode ? "text-white" : "text-black"}`} />
                 )}
+                {/* Use optional chaining (?.) for safety */}
                 <span className={darkMode ? "text-white" : "text-black"}>{t("hello_user", { name: profile?.name || user.email })}</span>
               </Link>
               <button onClick={handleLogout} className="ml-1 px-3 py-1 rounded font-bold text-white bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 transition">
@@ -123,19 +142,25 @@ const Navbar = () => {
             <option value="en">ENGLISH</option>
           </select>
 
-          <div className="relative flex w-fit items-center rounded-full border  p-1">
-            <button className={`text-sm font-medium flex items-center gap-1 px-2.5 py-1 transition relative z-10 : "text-slate-300"}`} onClick={() => { setSelected("light"); if (darkMode) toggleDarkMode(); }}>
-              <FiSun /> <span className="hidden md:inline">Light</span>
+          {/* Theme Toggle Buttons - Fixed ClassNames */}
+          <div className="relative flex w-fit items-center rounded-full border border-gray-300 dark:border-gray-600 p-1">
+            <button
+                className={`text-sm font-medium flex items-center gap-1 px-2.5 py-1 transition relative z-10 ${selected === 'light' ? (darkMode ? 'text-white' : 'text-slate-800') : (darkMode ? 'text-slate-300' : 'text-slate-500')}`} // Fixed class logic
+                onClick={() => { setSelected("light"); if (darkMode) toggleDarkMode(); }}>
+                <FiSun /> <span className="hidden md:inline">Light</span>
             </button>
-            <button className={`text-sm font-medium flex items-center gap-1 px-2.5 py-1 transition relative z-10 `} onClick={() => { setSelected("dark"); if (!darkMode) toggleDarkMode(); }}>
-              <FiMoon /> <span className="hidden md:inline">Dark</span>
+            <button
+                className={`text-sm font-medium flex items-center gap-1 px-2.5 py-1 transition relative z-10 ${selected === 'dark' ? 'text-white' : (darkMode ? 'text-slate-300' : 'text-slate-500')}`} // Fixed class logic
+                onClick={() => { setSelected("dark"); if (!darkMode) toggleDarkMode(); }}>
+                <FiMoon /> <span className="hidden md:inline">Dark</span>
             </button>
             <div className={`absolute inset-0 z-0 flex ${selected === "dark" ? "justify-end" : "justify-start"}`}>
-              <motion.span layout transition={{ type: "spring", damping: 15, stiffness: 250 }} className={`h-full w-1/2 rounded-full ${darkMode ? "bg-gradient-to-r from-blue-500 to-purple-600" : "bg-gradient-to-r from-violet-600 to-indigo-600"}`} />
+                <motion.span layout transition={{ type: "spring", damping: 15, stiffness: 250 }} className={`h-full w-1/2 rounded-full ${darkMode ? "bg-gradient-to-r from-blue-500 to-purple-600" : "bg-gradient-to-r from-violet-600 to-indigo-600"}`} />
             </div>
           </div>
         </div>
 
+        {/* Mobile toggle */}
         <div className={`md:hidden ${darkMode ? "text-white" : "text-secondary"}`}>
           <button onClick={toggleMenu}>
             {isOpen ? <FiX size={30} /> : <FiMenu size={28} />}
