@@ -1,11 +1,22 @@
 "use client";
-import React, { useState, ChangeEvent, FormEvent, useContext } from "react";
+
+import React, {
+  useState,
+  useRef,
+  useContext,
+  useEffect,
+  ChangeEvent,
+  FormEvent,
+} from "react";
 import { ThemeContext } from "../ThemeContext";
 import Navbar from "../components/navbar";
 import Footer from "../components/Footer";
-import { BsCardImage } from "react-icons/bs";
+import { FiUploadCloud, FiX } from "react-icons/fi"; // 1. Import icons
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import toast, { Toaster } from "react-hot-toast"; // 2. Import Toaster
+import { motion, AnimatePresence } from "framer-motion";
+import { User } from "@supabase/supabase-js";
 
 const placeTypes = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม"];
 const provinces = [
@@ -18,184 +29,337 @@ const provinces = [
 
 const CreatePost: React.FC = () => {
   const { darkMode } = useContext(ThemeContext) || { darkMode: false };
+  const router = useRouter();
+
+  // Form States
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [placeType, setPlaceType] = useState("");
   const [province, setProvince] = useState("");
-  const router = useRouter();
+
+  // UI States
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+
+  // 3. ตรวจสอบการล็อกอินเมื่อเข้าสู่หน้า
+  useEffect(() => {
+    const checkUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("กรุณาล็อกอินก่อนสร้างโพสต์");
+        router.push("/login");
+      } else {
+        setUser(user);
+        setLoading(false);
+      }
+    };
+    checkUser();
+  }, [router]);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const selectedFiles = Array.from(files).slice(0, 5);
-    setImages(selectedFiles);
-    setImagePreviews(selectedFiles.map((file) => URL.createObjectURL(file)));
+
+    const newFiles = Array.from(files);
+    const totalImages = images.length + newFiles.length;
+
+    if (totalImages > 5) {
+      toast.error("คุณสามารถอัปโหลดได้สูงสุด 5 รูป");
+      return;
+    }
+
+    setImages((prevFiles) => [...prevFiles, ...newFiles]);
+    setImagePreviews((prevPreviews) => [
+      ...prevPreviews,
+      ...newFiles.map((file) => URL.createObjectURL(file)),
+    ]);
+  };
+
+  // 4. ฟังก์ชันสำหรับลบรูปที่เลือก
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => {
+      const newPreviews = prev.filter((_, i) => i !== index);
+      // Clean up object URL
+      URL.revokeObjectURL(prev[index]);
+      return newPreviews;
+    });
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    if (!title || !desc || !placeType || !province) {
-      alert("กรุณากรอกข้อมูลให้ครบ");
+    if (!user) {
+      toast.error("ไม่พบข้อมูลผู้ใช้ กรุณาล็อกอินใหม่");
       return;
     }
+    if (!title || !desc || !placeType || !province) {
+      toast.error("กรุณากรอกข้อมูลให้ครบทุกช่อง");
+      return;
+    }
+    if (images.length === 0) {
+      toast.error("กรุณาอัปโหลดรูปภาพอย่างน้อย 1 รูป");
+      return;
+    }
+
+    setIsSubmitting(true);
+    const loadingToast = toast.loading("กำลังสร้างโพสต์...");
 
     const uploadedUrls: string[] = [];
 
-    for (let i = 0; i < images.length && i < 5; i++) {
-      const file = images[i];
-      const fileName = `public/${Date.now()}_${file.name}`;
+    try {
+      // อัปโหลดรูปภาพ
+      for (const file of images) {
+        const fileName = `public/${user.id}/${Date.now()}_${file.name}`;
+        const { data, error } = await supabase.storage
+          .from("post_image")
+          .upload(fileName, file);
 
-      const { data, error } = await supabase.storage
-        .from("post_image")
-        .upload(fileName, file);
+        if (error) throw new Error(`Upload error: ${error.message}`);
 
-      if (error) {
-        console.error("Upload error:", error.message);
-        continue;
+        const { data: urlData } = supabase.storage
+          .from("post_image")
+          .getPublicUrl(data.path);
+        uploadedUrls.push(urlData.publicUrl);
       }
 
-      const url = supabase.storage.from("post_image").getPublicUrl(data.path)
-        .data.publicUrl;
+      // บันทึกข้อมูลโพสต์
+      const { data: postData, error: postError } = await supabase
+        .from("posts")
+        .insert([
+          {
+            user_id: user.id,
+            title,
+            description: desc,
+            place_type: placeType,
+            province,
+            image_url: uploadedUrls,
+          },
+        ]);
 
-      uploadedUrls.push(url);
+      if (postError) throw new Error(`Post error: ${postError.message}`);
+
+      toast.dismiss(loadingToast);
+      toast.success("สร้างโพสต์เรียบร้อยแล้ว!");
+      router.push("/post_pages");
+      router.refresh(); // สั่งให้หน้า post_pages โหลดข้อมูลใหม่
+    } catch (error: any) {
+      toast.dismiss(loadingToast);
+      toast.error(error.message || "เกิดข้อผิดพลาดในการสร้างโพสต์");
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // ✅ ดึง user ที่ล็อกอินอยู่
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-    if (userError || !user) {
-      alert("กรุณาเข้าสู่ระบบก่อนโพสต์");
-      return;
-    }
-
-    // ✅ บันทึกโพสต์พร้อม user_id
-    const { data: postData, error: postError } = await supabase
-      .from("posts")
-      .insert([
-        {
-          user_id: user.id, // <--- เพิ่มตรงนี้
-          title,
-          description: desc,
-          place_type: placeType,
-          province,
-          image_url: uploadedUrls,
-        },
-      ]);
-
-    if (postError) {
-      console.error("Error creating post:", postError.message);
-      alert("สร้างโพสต์ไม่สำเร็จ");
-      return;
-    }
-
-    alert("โพสต์เรียบร้อย!");
-    router.push("/post_pages");
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-[var(--background)]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
+      </div>
+    );
+  }
+
   return (
+    // ✅ FIX: ใช้ CSS Variables และลบ font-sriracha
     <div
-      className="font-sriracha relative bg-fixed bg-center bg-cover flex-1"
-      style={{
-        backgroundImage: `url(${darkMode ? "/bp.jpg" : "/whiteWater.jpg"})`,
-      }}
+      className={`relative bg-[var(--background)] bg-fixed bg-center bg-cover transition duration-500 flex-1 min-h-screen ${
+        darkMode ? "text-gray-100" : "text-gray-900"
+      }`}
     >
+      <Toaster position="top-right" />
       <Navbar />
-      <div className="py-28">
-        <div className="max-w-md mx-auto p-5 bg-white rounded-lg shadow-md border border-blue-400 dark:border-pink-400">
-          <h2 className="text-xl font-semibold mb-4 text-center">โพสต์ใหม่</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="text"
-              placeholder="ชื่อร้าน / โพสต์"
+      <div className="py-24 min-h-[80vh] flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          // ✅ FIX: ปรับสีพื้นหลังการ์ดและเส้นขอบให้เข้ากับธีม
+          className="w-full max-w-xl mx-auto p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-black/10 dark:border-white/10"
+        >
+          <h2 className="text-3xl font-extrabold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-pink-500 tracking-tight">
+            สร้างโพสต์ใหม่
+          </h2>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <FormInput
+              label="ชื่อร้าน / โพสต์"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full border text-black rounded px-4 py-2"
               required
             />
-            <textarea
-              placeholder="รายละเอียด"
+            <FormTextArea
+              label="รายละเอียด"
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
-              className="w-full border text-black rounded px-4 py-2"
-              rows={4}
               required
             />
 
-            <div className="flex gap-2">
-              <select
+            <div className="flex flex-col sm:flex-row gap-4">
+              <FormSelect
+                label="ประเภท"
                 value={placeType}
                 onChange={(e) => setPlaceType(e.target.value)}
-                className="w-1/2 p-2 border rounded"
+                options={placeTypes}
                 required
-              >
-                <option value="">เลือกประเภท</option>
-                {placeTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-              <select
+              />
+              <FormSelect
+                label="จังหวัด"
                 value={province}
                 onChange={(e) => setProvince(e.target.value)}
-                className="w-1/2 p-2 border rounded"
+                options={provinces}
                 required
-              >
-                <option value="">เลือกจังหวัด</option>
-                {provinces.map((prov) => (
-                  <option key={prov} value={prov}>
-                    {prov}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
-            <button
-              type="button"
-              onClick={() => document.getElementById("image-upload")?.click()}
-              className="w-full bg-blue-400 text-white py-2 rounded flex justify-center items-center gap-2"
-            >
-              <BsCardImage /> เพิ่มรูปภาพ (สูงสุด 5)
-            </button>
-            <input
-              id="image-upload"
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImageChange}
-              className="hidden"
-            />
+            <div>
+              <label className="block mb-2 text-sm font-semibold text-black opacity-90">
+                รูปภาพ (สูงสุด 5 รูป)
+              </label>
+              <button
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-black hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+              >
+                <FiUploadCloud className="text-xl" />
+                คลิกเพื่ออัปโหลดรูปภาพ
+              </button>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+                className="hidden"
+                id="image-upload"
+              />
+              <AnimatePresence>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 mt-4">
+                  {imagePreviews.map((src, idx) => (
+                    <ImageGridItem
+                      key={idx}
+                      src={src}
+                      onRemove={() => handleRemoveImage(idx)}
+                    />
+                  ))}
+                </div>
+              </AnimatePresence>
+            </div>
 
-            {imagePreviews.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {imagePreviews.map((src, idx) => (
-                  <img
-                    key={idx}
-                    src={src}
-                    alt={`preview-${idx}`}
-                    className="w-20 h-20 object-cover rounded border"
-                  />
-                ))}
-              </div>
-            )}
-
-            <button
+            <motion.button
               type="submit"
-              className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 transition"
+              disabled={isSubmitting}
+              whileTap={{ scale: 0.95 }}
+              className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              โพสต์
-            </button>
+              {isSubmitting ? "กำลังโพสต์..." : "โพสต์"}
+            </motion.button>
           </form>
-        </div>
+        </motion.div>
       </div>
       <Footer />
     </div>
   );
 };
+
+// --- Sub-components for Form Fields (ปรับสีให้เข้ากับ Theme) ---
+
+const FormInput = ({
+  label,
+  ...props
+}: {
+  label: string;
+  [key: string]: any;
+}) => (
+  <div>
+    <label className="block mb-1 text-sm font-semibold text-black opacity-90">
+      {label}
+    </label>
+    <input
+      {...props}
+      className="w-full border border-gray-300 text-black dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500 rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700"
+    />
+  </div>
+);
+
+const FormTextArea = ({
+  label,
+  ...props
+}: {
+  label: string;
+  [key: string]: any;
+}) => (
+  <div>
+    <label className="block mb-1 text-sm font-semibold text-black opacity-90">
+      {label}
+    </label>
+    <textarea
+      {...props}
+      rows={4}
+      className="w-full border border-gray-300 text-black dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500 rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700"
+    />
+  </div>
+);
+
+const FormSelect = ({
+  label,
+  options,
+  ...props
+}: {
+  label: string;
+  options: string[];
+  [key: string]: any;
+}) => (
+  <div className="flex-1">
+    <label className="block mb-1 text-sm font-semibold text-black opacity-90">
+      {label}
+    </label>
+    <select
+      {...props}
+      className="w-full border focus:outline-none focus:ring-2 focus:ring-blue-400 text-black rounded-lg px-4 py-2 bg-blue-200 dark:bg-gray-800 dark:text-white"
+    >
+      <option value="">{`เลือก${label}`}</option>
+      {options.map((opt: string) => (
+        <option key={opt} value={opt}>
+          {opt}
+        </option>
+      ))}
+    </select>
+  </div>
+);
+
+const ImageGridItem = ({
+  src,
+  onRemove,
+}: {
+  src: string;
+  onRemove: () => void;
+}) => (
+  <motion.div
+    layout
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.8 }}
+    className="relative w-full aspect-square"
+  >
+    <img
+      src={src}
+      alt="preview"
+      className="w-full h-full object-cover rounded-lg border shadow"
+    />
+    <button
+      type="button"
+      onClick={onRemove}
+      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 leading-none shadow-md transition-transform hover:scale-110"
+    >
+      <FiX size={12} />
+    </button>
+  </motion.div>
+);
 
 export default CreatePost;

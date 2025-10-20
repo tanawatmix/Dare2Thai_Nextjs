@@ -245,18 +245,18 @@ const ProfilePage = () => {
     );
 
   return (
+    // ✅ FIX: ใช้ CSS Variables และลบ font-sriracha
     <div
-      className={`min-h-screen flex flex-col transition-colors duration-500 ${
-        darkMode ? "bg-gray-900 text-white" : "bg-blue-100 text-black"
-      }`}
+      className={`min-h-screen flex flex-col transition-colors duration-500 bg-[var(--background)] text-[var(--foreground)]`}
     >
       <Navbar />
       <main className="flex flex-1 mt-14 flex-col items-center py-8 px-4">
         {/* Profile Form */}
         <motion.div
+          // ✅ FIX: ปรับสีพื้นหลังการ์ดให้ตัดกับ Body
           className={`w-full max-w-2xl p-8 rounded-3xl shadow-2xl border-2 ${
             darkMode
-              ? "bg-black/80 border-pink-400"
+              ? "bg-gray-800/80 border-pink-400"
               : "bg-white/80 border-blue-400"
           }`}
           initial={{ opacity: 0, y: 40 }}
@@ -315,12 +315,14 @@ const ProfilePage = () => {
               name="name"
               value={profile?.name || ""}
               onChange={handleChange}
+              darkMode={darkMode} // ส่ง prop darkMode ไป
             />
             <InputField
               label="ชื่อผู้ใช้"
               name="username"
               value={profile?.username || ""}
               onChange={handleChange}
+              darkMode={darkMode} // ส่ง prop darkMode ไป
             />
             <InputField
               label="อีเมล"
@@ -328,6 +330,7 @@ const ProfilePage = () => {
               value={user?.email || ""}
               onChange={() => {}}
               readOnly
+              darkMode={darkMode} // ส่ง prop darkMode ไป
             />
           </div>
 
@@ -355,7 +358,8 @@ const ProfilePage = () => {
 
         {/* Posts */}
         <div className="mt-12 w-full max-w-3xl">
-          <h2 className="text-2xl font-bold mb-4 text-center">โพสต์ของฉัน</h2>
+          {/* ✅ FIX: ใช้สีข้อความจาก CSS Variable */}
+          <h2 className="text-2xl font-bold mb-4 text-center text-[var(--foreground)]">โพสต์ของฉัน</h2>
           {posts.length === 0 ? (
             <p className="text-center text-gray-500">ยังไม่มีโพสต์ของคุณ</p>
           ) : (
@@ -373,8 +377,8 @@ const ProfilePage = () => {
                       images={post.image_url as string[]}
                       onDelete={handleDeletePost}
                       onFav={() => {}}
-                      ownerId={post.user_id}
-                      currentUserId={user?.id}
+                      // ownerId={post.user_id} // ไม่มี props นี้ใน PostCard
+                      // currentUserId={user?.id} // ไม่มี props นี้ใน PostCard
                     />
                   )
               )}
@@ -387,31 +391,39 @@ const ProfilePage = () => {
   );
 };
 
+// --- InputField Sub-component (แก้ไข) ---
 const InputField = ({
   label,
   name,
   value,
   onChange,
   readOnly = false,
+  darkMode, // รับ prop darkMode
 }: {
   label: string;
   name: string;
   value: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   readOnly?: boolean;
+  darkMode: boolean; // กำหนด Type
 }) => (
   <div>
-    <label className="block mb-2 font-semibold text-lg">{label}</label>
+    {/* ✅ FIX: ใช้สีข้อความจาก CSS Variable */}
+    <label className="block mb-2 font-semibold text-lg text-[var(--foreground)] opacity-90">{label}</label>
     <input
       name={name}
       value={value}
       onChange={onChange}
       readOnly={readOnly}
-      className={`w-full text-lg px-4 py-2 rounded-xl border-2 ${
-        readOnly
-          ? "bg-gray-200 cursor-not-allowed"
-          : "bg-white border-blue-300 focus:border-blue-500"
-      } transition`}
+      // ✅ FIX: ปรับสี Input Field ให้เข้ากับธีม
+      className={`w-full text-lg px-4 py-2 rounded-xl border-2 transition
+        ${readOnly
+            ? "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed" // สีสำหรับ readOnly
+            : "bg-white dark:bg-gray-700 text-black dark:text-white" // สีสำหรับปกติ
+        }
+        ${darkMode ? "border-pink-400 focus:border-pink-300" : "border-blue-300 focus:border-blue-500"}
+        focus:ring-2 ${darkMode ? "focus:ring-pink-300" : "focus:ring-blue-300"} focus:outline-none
+      `}
       autoComplete="off"
     />
   </div>

@@ -61,23 +61,29 @@ const PostPage = () => {
   }, []);
 
   // --- Fetch posts ---
+  // --- Fetch posts ---
   useEffect(() => {
     const fetchPosts = async () => {
+      if (!currentUserId) return;
       setLoading(true);
-      const { data, error } = await supabase
-        .from("posts")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) {
-        toast.error("โหลดโพสต์ล้มเหลว: " + error.message);
-        setLoading(false);
-        return;
-      }
 
-      if (data) {
-        const favIds: string[] = JSON.parse(
-          localStorage.getItem("favoritePostIds") || "[]"
-        );
+      try {
+        // ดึงโพสต์
+        const { data: postsData, error: postsError } = await supabase
+          .from("posts")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (postsError) throw postsError;
+
+        // ดึง favorites ของ user ปัจจุบัน
+        const { data: favData, error: favError } = await supabase
+          .from("favorites")
+          .select("post_id")
+          .eq("user_id", currentUserId);
+        if (favError) throw favError;
+
+        const favIds = favData?.map((f: any) => f.post_id) || [];
+
         const safeParseImages = (imgField: any): string[] => {
           if (!imgField) return [];
           if (Array.isArray(imgField)) return imgField;
@@ -88,7 +94,7 @@ const PostPage = () => {
           }
         };
 
-        const postsWithFav: Post[] = data.map((p: any) => ({
+        const postsWithFav: Post[] = postsData.map((p: any) => ({
           id: p.id,
           image_url: safeParseImages(p.image_url),
           title: p.title,
@@ -96,15 +102,19 @@ const PostPage = () => {
           province: p.province,
           description: p.description,
           owner_id: p.user_id,
-          isFav: favIds.includes(p.id),
+          isFav: favIds.includes(p.id), // ✅ ใช้จาก Supabase
         }));
 
         setPosts(postsWithFav);
+      } catch (err: any) {
+        toast.error("โหลดโพสต์ล้มเหลว: " + err.message);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
+
     fetchPosts();
-  }, []);
+  }, [currentUserId]); // 🔹 เพิ่ม dependency เพื่อ fetch ใหม่หลังได้ userId
 
   // --- Filter ---
   useEffect(() => {
@@ -135,24 +145,44 @@ const PostPage = () => {
   };
 
   // --- Favorite ---
-  const handleFavPost = (postId: string) => {
-    const updatedPosts = posts.map((p) =>
-      p.id === postId ? { ...p, isFav: !p.isFav } : p
-    );
-    setPosts(updatedPosts);
-    const favIds: string[] = JSON.parse(
-      localStorage.getItem("favoritePostIds") || "[]"
-    );
-    if (favIds.includes(postId))
-      localStorage.setItem(
-        "favoritePostIds",
-        JSON.stringify(favIds.filter((id) => id !== postId))
-      );
-    else
-      localStorage.setItem(
-        "favoritePostIds",
-        JSON.stringify([...favIds, postId])
-      );
+  const handleFavPost = async (postId: string) => {
+    if (!currentUserId) return toast.error("ไม่พบผู้ใช้");
+
+    const postIndex = posts.findIndex((p) => p.id === postId);
+    if (postIndex === -1) return;
+
+    const isFav = posts[postIndex].isFav;
+
+    try {
+      if (isFav) {
+        // ลบ favorite ใน Supabase
+        const { error } = await supabase
+          .from("favorites")
+          .delete()
+          .eq("user_id", currentUserId)
+          .eq("post_id", postId);
+        if (error) throw error;
+
+        setPosts((prev) =>
+          prev.map((p) => (p.id === postId ? { ...p, isFav: false } : p))
+        );
+        toast.success("ลบโพสต์ออกจากรายการโปรดแล้ว");
+      } else {
+        // เพิ่ม favorite
+        const { error } = await supabase.from("favorites").insert({
+          user_id: currentUserId,
+          post_id: postId,
+        });
+        if (error) throw error;
+
+        setPosts((prev) =>
+          prev.map((p) => (p.id === postId ? { ...p, isFav: true } : p))
+        );
+        toast.success("เพิ่มโพสต์เข้าในรายการโปรดแล้ว");
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   // --- Delete ---
@@ -207,7 +237,7 @@ const PostPage = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 p-6 rounded-xl shadow-lg border text-black border-gray-200 dark:border-gray-700"
         >
           <div className="relative">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-black" />

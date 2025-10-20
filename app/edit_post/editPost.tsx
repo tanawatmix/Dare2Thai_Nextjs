@@ -239,7 +239,7 @@ const EditPost: React.FC = () => {
                 placeholder="รายละเอียด"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full border focus:outline-none focus:ring-2 focus:ring-blue-400 text-secondary rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-800 dark:text-white"
+                className="w-full border focus:outline-none focus:ring-2 focus:ring-blue-400 text-black rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-800 dark:text-white"
                 rows={4}
                 required
               />
@@ -253,7 +253,7 @@ const EditPost: React.FC = () => {
                 <select
                   value={placeType}
                   onChange={(e) => setPlaceType(e.target.value)}
-                  className="w-full p-2 border rounded-lg bg-blue-50 dark:bg-blue-500 text-white"
+                  className="w-full border focus:outline-none focus:ring-2 focus:ring-blue-400 text-black rounded-lg px-4 py-2 bg-blue-200 dark:bg-gray-800 dark:text-white"
                 >
                   <option value="">เลือกประเภท</option>
                   {placeTypes.map((type) => (
@@ -270,7 +270,7 @@ const EditPost: React.FC = () => {
                 <select
                   value={province}
                   onChange={(e) => setProvince(e.target.value)}
-                  className="w-full p-2 border rounded-lg bg-green-50 dark:bg-green-500 text-white"
+                  className="w-full border focus:outline-none focus:ring-2 focus:ring-blue-400 text-black rounded-lg px-4 py-2 bg-blue-200 dark:bg-gray-800 dark:text-white"
                 >
                   <option value="">เลือกจังหวัด</option>
                   {provinces.map((prov) => (
@@ -289,7 +289,7 @@ const EditPost: React.FC = () => {
               <button
                 type="button"
                 onClick={() => imageInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 border rounded-full hover:bg-blue-200 dark:hover:bg-gray-700 transition"
+                className="w-full flex items-center text-black justify-center gap-2 px-4 py-3 border border-black rounded-full hover:bg-blue-200 dark:hover:bg-gray-700 transition"
               >
                 <BsCardImage className="text-2xl" />
                 เพิ่มรูปภาพ

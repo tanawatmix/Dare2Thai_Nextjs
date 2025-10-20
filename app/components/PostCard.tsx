@@ -22,6 +22,7 @@ interface PostCardProps {
   isFav?: boolean;
 }
 
+// PostCard.tsx
 const PostCard: React.FC<PostCardProps> = ({
   images,
   title,
@@ -37,13 +38,13 @@ const PostCard: React.FC<PostCardProps> = ({
 }) => {
   const router = useRouter();
 
-  const imageSrc =
-    images && images.length > 0 ? images[0] : "/default-placeholder.png";
+  const imageSrc = images?.[0] || "/default-placeholder.png";
 
   const handleViewDetail = () => {
     router.push(`/post_detail?id=${postId}`);
   };
 
+  // เรียก onFav จาก parent
   const handleFav = (e: React.MouseEvent) => {
     e.stopPropagation();
     onFav(postId);
@@ -67,7 +68,6 @@ const PostCard: React.FC<PostCardProps> = ({
         onClick={handleViewDetail}
         className="cursor-pointer rounded-xl overflow-hidden border dark:border-gray-700 shadow-md transition-all duration-300 hover:shadow-2xl hover:border-blue-500/50 dark:hover:border-pink-500/50 group"
       >
-        {/* Image */}
         <div className="relative w-full h-48 overflow-hidden">
           <Image
             src={imageSrc}
@@ -76,6 +76,11 @@ const PostCard: React.FC<PostCardProps> = ({
             className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+          {isOwner && (
+            <span className="absolute top-3 left-3 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md">
+              โพสต์ของคุณ
+            </span>
+          )}
 
           {/* Favorite */}
           <motion.button
