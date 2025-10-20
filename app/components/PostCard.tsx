@@ -14,8 +14,9 @@ interface PostCardProps {
   type: string;
   province: string;
   description: string;
-  postId: string; // ✅ เปลี่ยนจาก number → string
-  onEdit?: (postId: string) => void;
+  postId: string;
+  ownerId: string; // user id ของเจ้าของโพสต์
+  currentUserId?: string; // user id ของผู้ใช้ปัจจุบัน
   onDelete: (postId: string) => void;
   onFav: (postId: string) => void;
   isFav?: boolean;
@@ -28,14 +29,14 @@ const PostCard: React.FC<PostCardProps> = ({
   province,
   description,
   postId,
-  onEdit,
+  ownerId,
+  currentUserId,
   onDelete,
   onFav,
   isFav,
 }) => {
   const router = useRouter();
 
-  // ✅ FIX: Select the first image from the array, or use a placeholder.
   const imageSrc =
     images && images.length > 0 ? images[0] : "/default-placeholder.png";
 
@@ -43,21 +44,12 @@ const PostCard: React.FC<PostCardProps> = ({
     router.push(`/post_detail?id=${postId}`);
   };
 
-  const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onEdit) onEdit(postId);
-    router.push(`/edit_post?id=${postId}`);
-  };
-
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDelete(postId);
-  };
-
   const handleFav = (e: React.MouseEvent) => {
     e.stopPropagation();
     onFav(postId);
   };
+
+  const isOwner = currentUserId === ownerId;
 
   return (
     <Tilt
@@ -75,31 +67,31 @@ const PostCard: React.FC<PostCardProps> = ({
         onClick={handleViewDetail}
         className="cursor-pointer rounded-xl overflow-hidden border dark:border-gray-700 shadow-md transition-all duration-300 hover:shadow-2xl hover:border-blue-500/50 dark:hover:border-pink-500/50 group"
       >
-        {/* --- Image Section --- */}
+        {/* Image */}
         <div className="relative w-full h-48 overflow-hidden">
           <Image
-            src={imageSrc} // This is now always a valid string
+            src={imageSrc}
             alt={title}
-            layout="fill"
-            objectFit="cover"
-            className="transition-transform duration-500 ease-in-out group-hover:scale-110"
+            fill
+            className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+
+          {/* Favorite */}
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={handleFav}
             className="absolute top-3 right-3 p-2 bg-white/20 backdrop-blur-sm rounded-full cursor-pointer hover:bg-white/30 transition-colors"
-            aria-label="Favorite"
           >
             <FiHeart
-              className={`w-5 h-5 transition-all ${
+              className={`w-5 h-5 ${
                 isFav ? "text-red-500 fill-current" : "text-white"
               }`}
             />
           </motion.button>
         </div>
 
-        {/* --- Content Section --- */}
+        {/* Content */}
         <div className="p-4 flex flex-col h-48 justify-between">
           <div>
             <div className="flex justify-between items-center mb-2">
@@ -118,31 +110,41 @@ const PostCard: React.FC<PostCardProps> = ({
             </p>
           </div>
 
-          {/* --- Action Buttons --- */}
+          {/* Actions */}
           <div className="flex justify-between items-center pt-3 border-t border-gray-200 dark:border-gray-700">
             <Link
               href={`/chat?id=${postId}`}
               onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-2 text-sm text-blue-500 hover:underline"
             >
-              <FiMessageSquare />
-              <span>เข้าห้องแชท</span>
+              <FiMessageSquare /> <span>เข้าห้องแชท</span>
             </Link>
+
             <div className="flex items-center gap-3">
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={handleEdit}
-                className="text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                <FiEdit />
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={handleDelete}
-                className="text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-              >
-                <FiTrash2 />
-              </motion.button>
+              {isOwner && (
+                <>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/edit_post?id=${postId}`);
+                    }}
+                    className="text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  >
+                    <FiEdit />
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(postId);
+                    }}
+                    className="text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                  >
+                    <FiTrash2 />
+                  </motion.button>
+                </>
+              )}
             </div>
           </div>
         </div>

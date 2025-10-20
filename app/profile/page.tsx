@@ -23,6 +23,7 @@ type ProfileData = {
 
 type PostData = {
   id: string;
+  user_id: string; // ต้องมี user_id
   title: string;
   description: string;
   place_type: string;
@@ -42,7 +43,6 @@ const ProfilePage = () => {
   const [avatarPreview, setAvatarPreview] = useState<string>(defaultAvatar);
   const [posts, setPosts] = useState<PostData[]>([]);
 
-  // --- ดึงข้อมูลผู้ใช้, profile และโพสต์ ---
   useEffect(() => {
     const fetchData = async () => {
       const {
@@ -95,7 +95,6 @@ const ProfilePage = () => {
     fetchData();
   }, [router]);
 
-  // --- ฟอร์ม Profile ---
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (profile) {
       setProfile({ ...profile, [e.target.name]: e.target.value });
@@ -117,7 +116,6 @@ const ProfilePage = () => {
     let avatarUrl = profile.profile_image;
 
     if (avatarFile) {
-      // ลบรูปเก่า
       if (profile.profile_image) {
         const oldFileName = profile.profile_image.split("/").pop();
         if (oldFileName) {
@@ -162,7 +160,6 @@ const ProfilePage = () => {
     setSaving(false);
   };
 
-  // --- ฟังก์ชันลบโพสต์ ---
   const handleDeletePost = async (postId: string) => {
     const confirm = await Swal.fire({
       title: "ลบโพสต์นี้?",
@@ -184,7 +181,6 @@ const ProfilePage = () => {
     }
   };
 
-  // --- เปลี่ยนรหัสผ่าน ---
   const handleChangePassword = async () => {
     if (!user) return;
 
@@ -256,7 +252,7 @@ const ProfilePage = () => {
     >
       <Navbar />
       <main className="flex flex-1 mt-14 flex-col items-center py-8 px-4">
-        {/* --- Profile Form --- */}
+        {/* Profile Form */}
         <motion.div
           className={`w-full max-w-2xl p-8 rounded-3xl shadow-2xl border-2 ${
             darkMode
@@ -357,26 +353,31 @@ const ProfilePage = () => {
           </motion.button>
         </motion.div>
 
-        {/* --- Posts --- */}
+        {/* Posts */}
         <div className="mt-12 w-full max-w-3xl">
           <h2 className="text-2xl font-bold mb-4 text-center">โพสต์ของฉัน</h2>
           {posts.length === 0 ? (
             <p className="text-center text-gray-500">ยังไม่มีโพสต์ของคุณ</p>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2">
-              {posts.map((post) => (
-                <PostCard
-                  key={post.id}
-                  postId={post.id}
-                  title={post.title}
-                  description={post.description}
-                  type={post.place_type}
-                  province={post.province || "-"}
-                  images={post.image_url as string[]}
-                  onDelete={handleDeletePost}
-                  onFav={() => {}}
-                />
-              ))}
+              {posts.map(
+                (post) =>
+                  post.user_id && (
+                    <PostCard
+                      key={post.id}
+                      postId={post.id}
+                      title={post.title}
+                      description={post.description}
+                      type={post.place_type}
+                      province={post.province || "-"}
+                      images={post.image_url as string[]}
+                      onDelete={handleDeletePost}
+                      onFav={() => {}}
+                      ownerId={post.user_id}
+                      currentUserId={user?.id}
+                    />
+                  )
+              )}
             </div>
           )}
         </div>
