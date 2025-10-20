@@ -379,7 +379,6 @@ const ProfilePage = () => {
                       images={post.image_url as string[]}
                       onDelete={handleDeletePost}
                       onFav={() => {}}
-                      onFav={() => {}}
                       ownerId={post.user_id}
                       currentUserId={user?.id}
                     />
