@@ -80,7 +80,7 @@ const FormInput = ({ label, ...props }: FormInputProps) => (
     <input
       {...props}
       // ✅ FIX: เปลี่ยน text-[var(--foreground)] เป็น text-black dark:text-white
-      className="w-full border text-black border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500  dark:text-white rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700"
+      className="w-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500 text-[var(--foreground)] rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700"
     />
   </div>
 );
