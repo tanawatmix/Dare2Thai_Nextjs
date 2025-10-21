@@ -18,7 +18,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { User } from "@supabase/supabase-js";
 import dynamic from "next/dynamic";
-import { LatLngExpression, LatLngTuple } from "leaflet"; 
+import { LatLngExpression, LatLngTuple } from "leaflet";
 
 // Import MapPicker แบบ Dynamic
 const MapPicker = dynamic(() => import("../components/MapPicker"), {
@@ -203,15 +203,21 @@ const CreatePost: React.FC = () => {
   };
 
   // 7. ฟังก์ชันใหม่สำหรับ Handle จังหวัด
+  // 7. ฟังก์ชันใหม่สำหรับ Handle จังหวัด
   const handleProvinceChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newProvince = e.target.value;
     setProvince(newProvince);
 
-    const newCenter = PROVINCE_COORDS[newProvince] || [13.7563, 100.5018];
+    // 1. กำหนด Type ของค่าเริ่มต้นให้ชัดเจน
+    const defaultCoord: LatLngTuple = [13.7563, 100.5018];
+
+    // 2. Cast newCenter ให้เป็น LatLngTuple (array)
+    const newCenter = (PROVINCE_COORDS[newProvince] ||
+      defaultCoord) as LatLngTuple;
 
     setMapCenter(newCenter);
-    setLatitude(newCenter[0]);
-    setLongitude(newCenter[1]);
+    setLatitude(newCenter[0]); // 3. ตอนนี้ TypeScript รู้จัก newCenter[0] แล้ว
+    setLongitude(newCenter[1]); // 4. ตอนนี้ TypeScript รู้จัก newCenter[1] แล้ว
   };
 
   // 8. ฟังก์ชันสำหรับอัปเดตพิกัด (จากการลากหมุด หรือ ค้นหา)
