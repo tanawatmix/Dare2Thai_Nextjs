@@ -14,15 +14,14 @@ interface PostCardProps {
   type: string;
   province: string;
   description: string;
-  postId: string;
+  postId: string; // ✅ ใช้ string (สำหรับ uuid)
   ownerId: string; // user id ของเจ้าของโพสต์
-  currentUserId?: string; // user id ของผู้ใช้ปัจจุบัน
+  currentUserId: string | undefined; // user id ของผู้ใช้ปัจจุบัน (อาจจะยังไม่ล็อกอิน)
   onDelete: (postId: string) => void;
   onFav: (postId: string) => void;
   isFav?: boolean;
 }
 
-// PostCard.tsx
 const PostCard: React.FC<PostCardProps> = ({
   images,
   title,
@@ -38,19 +37,32 @@ const PostCard: React.FC<PostCardProps> = ({
 }) => {
   const router = useRouter();
 
-  const imageSrc = images?.[0] || "/default-placeholder.png";
+  // ✅ FIX: สร้าง Logic ที่ปลอดภัยที่สุดสำหรับการเลือกรูปภาพ
+  const imageSrc = (images && Array.isArray(images) && images.length > 0 && images[0])
+    ? images[0]
+    : "/default-placeholder.png"; // **ต้องมีไฟล์นี้ในโฟลเดอร์ /public**
 
   const handleViewDetail = () => {
     router.push(`/post_detail?id=${postId}`);
   };
 
-  // เรียก onFav จาก parent
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation(); // ป้องกันไม่ให้ handleViewDetail ทำงาน
+    router.push(`/edit_post?id=${postId}`);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(postId);
+  };
+
   const handleFav = (e: React.MouseEvent) => {
     e.stopPropagation();
     onFav(postId);
   };
 
-  const isOwner = currentUserId === ownerId;
+  // ✅ ตรวจสอบความเป็นเจ้าของอย่างปลอดภัย
+  const isOwner = currentUserId && currentUserId === ownerId;
 
   return (
     <Tilt
@@ -66,16 +78,20 @@ const PostCard: React.FC<PostCardProps> = ({
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.3 }}
         onClick={handleViewDetail}
-        className="cursor-pointer rounded-xl overflow-hidden border dark:border-gray-700 shadow-md transition-all duration-300 hover:shadow-2xl hover:border-blue-500/50 dark:hover:border-pink-500/50 group"
+        className="cursor-pointer rounded-xl overflow-hidden border dark:border-gray-700 shadow-md bg-white dark:bg-gray-800 transition-all duration-300 hover:shadow-2xl hover:border-blue-500/50 dark:hover:border-pink-500/50 group"
       >
+        {/* --- Image Section --- */}
         <div className="relative w-full h-48 overflow-hidden">
           <Image
             src={imageSrc}
             alt={title}
-            fill
-            className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
+            layout="fill" // หรือใช้ fill={true} ใน Next.js v13+
+            objectFit="cover"
+            className="transition-transform duration-500 ease-in-out group-hover:scale-110"
+            priority // เพิ่ม priority สำหรับรูปภาพที่สำคัญ (LCP)
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+          
           {isOwner && (
             <span className="absolute top-3 left-3 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md">
               โพสต์ของคุณ
@@ -87,9 +103,10 @@ const PostCard: React.FC<PostCardProps> = ({
             whileTap={{ scale: 0.9 }}
             onClick={handleFav}
             className="absolute top-3 right-3 p-2 bg-white/20 backdrop-blur-sm rounded-full cursor-pointer hover:bg-white/30 transition-colors"
+            aria-label="Favorite"
           >
             <FiHeart
-              className={`w-5 h-5 ${
+              className={`w-5 h-5 transition-all ${
                 isFav ? "text-red-500 fill-current" : "text-white"
               }`}
             />
@@ -107,7 +124,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 {province}
               </p>
             </div>
-            <h3 className="font-bold text-lg truncate" title={title}>
+            <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate" title={title}>
               {title}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 h-10 overflow-hidden text-ellipsis">
@@ -130,20 +147,14 @@ const PostCard: React.FC<PostCardProps> = ({
                 <>
                   <motion.button
                     whileTap={{ scale: 0.9 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/edit_post?id=${postId}`);
-                    }}
+                    onClick={handleEdit}
                     className="text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   >
                     <FiEdit />
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.9 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(postId);
-                    }}
+                    onClick={handleDelete}
                     className="text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                   >
                     <FiTrash2 />

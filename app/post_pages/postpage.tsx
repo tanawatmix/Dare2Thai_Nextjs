@@ -9,10 +9,23 @@ import PostCard from "../components/PostCard";
 import { supabase } from "@/lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import { FaPlus } from "react-icons/fa";
-import { FiSearch, FiHeart } from "react-icons/fi";
+import {
+  FiSearch,
+  FiHeart,
+  FiChevronLeft,
+  FiChevronRight,
+  FiChevronsLeft,
+  FiChevronsRight,
+  FiClock,
+  FiArrowDown,
+  FiArrowUp,
+  FiFilter,
+} from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { User } from "@supabase/supabase-js"; // Import User
 
+// --- Type Definition for a Post ---
 type Post = {
   id: string;
   image_url: string[];
@@ -20,24 +33,33 @@ type Post = {
   place_type: string;
   province: string;
   description: string;
-  owner_id: string;
+  user_id: string;
+  created_at: string; // เพิ่ม created_at ใน Type
   isFav?: boolean;
 };
 
+// --- Constant Data ---
 const placeTypes = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม"];
-const provinces = [
-  "กรุงเทพมหานคร",
-  "กระบี่",
-  "กาญจนบุรี",
-  "เชียงใหม่",
-  "อุบลราชธานี",
+const filterTags = ["ทั้งหมด", ...placeTypes]; // สร้าง Array สำหรับปุ่ม
+// สร้างข้อมูลสำหรับปุ่ม Sort
+const sortOptions = [
+  {
+    id: "newest",
+    name: "ใหม่สุด",
+    icon: <FiClock className="transform scale-x-[-1]" />,
+  },
+  { id: "oldest", name: "เก่าสุด", icon: <FiClock /> },
+  { id: "az", name: "A-Z", icon: <FiArrowDown size={16} /> },
+  { id: "za", name: "Z-A", icon: <FiArrowUp size={16} /> },
 ];
 
+// --- Main Page Component ---
 const PostPage = () => {
   const { darkMode } = useContext(ThemeContext);
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // --- States ---
   const [posts, setPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [currentPage, setCurrentPage] = useState(
@@ -45,9 +67,10 @@ const PostPage = () => {
   );
   const [searchName, setSearchName] = useState("");
   const [selectedType, setSelectedType] = useState("");
-  const [selectedProvince, setSelectedProvince] = useState("");
+  const [sortBy, setSortBy] = useState("newest"); // เพิ่ม State สำหรับ Sort
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showSortMenu, setShowSortMenu] = useState(false); // State เปิด/ปิดเมนู Sort
 
   const postsPerPage = 12;
 
@@ -55,42 +78,40 @@ const PostPage = () => {
   useEffect(() => {
     const getUser = async () => {
       const { data } = await supabase.auth.getUser();
-      if (data.user) setCurrentUserId(data.user.id);
+      setCurrentUserId(data.user?.id || null);
     };
     getUser();
   }, []);
 
   // --- Fetch posts ---
-  // --- Fetch posts ---
   useEffect(() => {
     const fetchPosts = async () => {
-      if (!currentUserId) return;
       setLoading(true);
-
       try {
-        // ดึงโพสต์
         const { data: postsData, error: postsError } = await supabase
           .from("posts")
           .select("*")
           .order("created_at", { ascending: false });
         if (postsError) throw postsError;
 
-        // ดึง favorites ของ user ปัจจุบัน
-        const { data: favData, error: favError } = await supabase
-          .from("favorites")
-          .select("post_id")
-          .eq("user_id", currentUserId);
-        if (favError) throw favError;
-
-        const favIds = favData?.map((f: any) => f.post_id) || [];
+        let favIds: string[] = [];
+        if (currentUserId) {
+          const { data: favData, error: favError } = await supabase
+            .from("favorites")
+            .select("post_id")
+            .eq("user_id", currentUserId);
+          if (favError) throw favError;
+          favIds = favData?.map((f: any) => f.post_id) || [];
+        }
 
         const safeParseImages = (imgField: any): string[] => {
           if (!imgField) return [];
           if (Array.isArray(imgField)) return imgField;
           try {
-            return JSON.parse(imgField) || [];
+            const parsed = JSON.parse(imgField);
+            return Array.isArray(parsed) ? parsed : [];
           } catch {
-            return [imgField];
+            return [String(imgField)];
           }
         };
 
@@ -101,8 +122,9 @@ const PostPage = () => {
           place_type: p.place_type,
           province: p.province,
           description: p.description,
-          owner_id: p.user_id,
-          isFav: favIds.includes(p.id), // ✅ ใช้จาก Supabase
+          user_id: p.user_id,
+          created_at: p.created_at, // ดึง created_at
+          isFav: favIds.includes(p.id),
         }));
 
         setPosts(postsWithFav);
@@ -112,24 +134,47 @@ const PostPage = () => {
         setLoading(false);
       }
     };
-
     fetchPosts();
-  }, [currentUserId]); // 🔹 เพิ่ม dependency เพื่อ fetch ใหม่หลังได้ userId
+  }, [currentUserId]);
 
-  // --- Filter ---
+  // --- Filter & Sort Logic ---
   useEffect(() => {
-    const filtered = posts.filter((p) => {
+    // กรองข้อมูล
+    let filtered = posts.filter((p) => {
       const matchName = p.title
         .toLowerCase()
         .includes(searchName.toLowerCase());
       const matchType = !selectedType || p.place_type === selectedType;
-      const matchProvince =
-        !selectedProvince || p.province === selectedProvince;
-      return matchName && matchType && matchProvince;
+      return matchName && matchType;
     });
+
+    // จัดเรียงข้อมูล
+    switch (sortBy) {
+      case "newest":
+        filtered.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        break;
+      case "oldest":
+        filtered.sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        break;
+      case "az":
+        filtered.sort((a, b) => a.title.localeCompare(b.title, "th")); // 'th' เพื่อเรียงภาษาไทยถูกต้อง
+        break;
+      case "za":
+        filtered.sort((a, b) => b.title.localeCompare(a.title, "th"));
+        break;
+      default:
+        break;
+    }
+
     setFilteredPosts(filtered);
     setCurrentPage(1);
-  }, [searchName, selectedType, selectedProvince, posts]);
+  }, [searchName, selectedType, posts, sortBy]);
 
   // --- Pagination ---
   const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
@@ -146,12 +191,17 @@ const PostPage = () => {
 
   // --- Favorite ---
   const handleFavPost = async (postId: string) => {
-    if (!currentUserId) return toast.error("ไม่พบผู้ใช้");
+    if (!currentUserId) {
+      toast.error("กรุณาล็อกอินเพื่อกดถูกใจโพสต์");
+      router.push("/login");
+      return;
+    }
 
     const postIndex = posts.findIndex((p) => p.id === postId);
     if (postIndex === -1) return;
 
-    const isFav = posts[postIndex].isFav;
+    const post = posts[postIndex];
+    const isFav = post.isFav;
 
     try {
       if (isFav) {
@@ -190,8 +240,10 @@ const PostPage = () => {
     if (!currentUserId) return toast.error("ไม่พบผู้ใช้");
     const post = posts.find((p) => p.id === postId);
     if (!post) return toast.error("ไม่พบโพสต์");
-    if (post.owner_id !== currentUserId)
+
+    if (post.user_id !== currentUserId) {
       return toast.error("คุณไม่สามารถลบโพสต์นี้ได้");
+    }
 
     if (!confirm("คุณต้องการลบโพสต์นี้ใช่หรือไม่?")) return;
 
@@ -199,6 +251,9 @@ const PostPage = () => {
     if (error) toast.error(error.message);
     else setPosts(posts.filter((p) => p.id !== postId));
   };
+
+  // --- Logic การแสดงผล ---
+  const isFiltering = searchName !== "" || selectedType !== "";
 
   return (
     <div
@@ -209,7 +264,7 @@ const PostPage = () => {
       <Toaster position="top-right" />
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 min-h-screen">
-        {/* Controls */}
+        {/* --- Controls --- */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -232,133 +287,193 @@ const PostPage = () => {
           </Link>
         </motion.div>
 
-        {/* Filter */}
+        {/* --- Filter: ช่องค้นหา --- */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10 p-6 rounded-xl shadow-lg border text-black border-gray-200 dark:border-gray-700"
+          className="mb-6"
         >
           <div className="relative">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-black" />
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 " />
             <input
               type="text"
-              placeholder="ค้นหาชื่อสถานที่..."
               value={searchName}
               onChange={(e) => setSearchName(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">ทุกประเภท</option>
-            {placeTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
-          <select
-            value={selectedProvince}
-            onChange={(e) => setSelectedProvince(e.target.value)}
-            className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">ทุกจังหวัด</option>
-            {provinces.map((prov) => (
-              <option key={prov} value={prov}>
-                {prov}
-              </option>
-            ))}
-          </select>
         </motion.div>
 
-        {/* Posts Grid */}
-        <AnimatePresence>
-          <motion.div
-            layout
-            className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          >
-            {loading ? (
-              <p className="md:col-span-4 text-center">กำลังโหลดโพสต์...</p>
-            ) : currentPosts.length > 0 ? (
-              currentPosts.map((post) => (
-                <PostCard
-                  key={post.id}
-                  postId={post.id}
-                  title={post.title}
-                  description={post.description}
-                  type={post.place_type}
-                  province={post.province || "-"}
-                  images={post.image_url}
-                  onDelete={handleDeletePost}
-                  onFav={handleFavPost}
-                  currentUserId={currentUserId || undefined} // ✅ แปลง null เป็น undefined
-                  ownerId={post.owner_id}
-                  isFav={post.isFav}
-                />
-              ))
-            ) : (
-              <p className="md:col-span-4 text-center text-gray-500">
-                ไม่พบโพสต์ที่ตรงกับเงื่อนไขการค้นหาของคุณ
-              </p>
-            )}
-          </motion.div>
-        </AnimatePresence>
+        {/* --- Filter: ปุ่ม Tag และ ปุ่ม Sort --- */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-10"
+        >
+          {/* ปุ่ม Tag */}
+          <div className="flex flex-wrap gap-3">
+            {filterTags.map((tag) => {
+              const isActive =
+                (tag === "ทั้งหมด" && selectedType === "") ||
+                tag === selectedType;
+              return (
+                <motion.button
+                  key={tag}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelectedType(tag === "ทั้งหมด" ? "" : tag)}
+                  className={`px-4 py-2 rounded-full font-semibold transition-colors duration-300
+                    ${
+                      isActive
+                        ? "bg-blue-500 text-white shadow-md"
+                        : " border border-gray-300 dark:border-gray-600 hover:scale-105 transition-transform duration-300"
+                    }
+                  `}
+                >
+                  {tag}
+                </motion.button>
+              );
+            })}
+          </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="flex justify-center items-center gap-2 mt-12"
-          >
-            <button
-              onClick={() => handlePageChange(1)}
-              disabled={currentPage === 1}
-              className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          {/* ปุ่ม Sort */}
+          <div className="relative">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold hover:scale-105 transition-transform duration-300"
             >
-              {"<<"}
-            </button>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {"<"}
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i + 1}
-                onClick={() => handlePageChange(i + 1)}
-                className={`w-10 h-10 rounded-md font-semibold transition-colors ${
-                  currentPage === i + 1
-                    ? "bg-blue-500 text-white shadow-lg"
-                    : "hover:bg-gray-200 dark:hover:bg-gray-700"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {">"}
-            </button>
-            <button
-              onClick={() => handlePageChange(totalPages)}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {">>"}
-            </button>
-          </motion.div>
-        )}
+              <FiFilter size={16} />
+              <span>
+                {sortOptions.find((opt) => opt.id === sortBy)?.name ||
+                  "จัดเรียง"}
+              </span>
+            </motion.button>
+
+            {/* Dropdown Menu ของ Sort */}
+            <AnimatePresence>
+              {showSortMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-10"
+                >
+                  {sortOptions.map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => {
+                        setSortBy(opt.id);
+                        setShowSortMenu(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
+            ${
+              sortBy === opt.id
+                ? "text-blue-500 dark:text-pink-400 font-bold" // สีของปุ่มที่เลือก
+                : "text-gray-700 dark:text-gray-300" // สีของปุ่มที่ไม่ได้เลือก
+            }
+                      `}
+                    >
+                      {opt.icon}
+                      <span>{opt.name}</span>
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+
+        {/* --- Posts Grid (แสดงผลแบบ Grid รวม + แบ่งหน้า เสมอ) --- */}
+        <AnimatePresence>
+          {loading ? (
+            <p className="md:col-span-4 text-center text-lg text-gray-500">
+              กำลังโหลดโพสต์...
+            </p>
+          ) : (
+            <>
+              {currentPosts.length > 0 ? (
+                <motion.div
+                  layout
+                  className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                >
+                  {currentPosts.map((post) => (
+                    <PostCard
+                      key={post.id}
+                      postId={post.id}
+                      title={post.title}
+                      description={post.description}
+                      type={post.place_type}
+                      province={post.province || "-"}
+                      images={post.image_url}
+                      onDelete={handleDeletePost}
+                      onFav={handleFavPost}
+                      currentUserId={currentUserId || undefined}
+                      ownerId={post.user_id}
+                      isFav={post.isFav}
+                    />
+                  ))}
+                </motion.div>
+              ) : (
+                <p className="md:col-span-4 text-center text-gray-500">
+                  ไม่พบโพสต์ที่ตรงกับเงื่อนไขการค้นหาของคุณ
+                </p>
+              )}
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="flex justify-center items-center gap-2 mt-12"
+                >
+                  <button
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-md hover:scale-105 border hover:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FiChevronsLeft />
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-md hover:scale-105 border hover:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FiChevronLeft />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => (
+                    <button
+                      key={i + 1}
+                      onClick={() => handlePageChange(i + 1)}
+                      className={`w-10 h-10 rounded-md font-semibold transition-colors ${
+                        currentPage === i + 1
+                          ? "bg-blue-500 text-white shadow-lg"
+                          : "hover:scale-105 border hover:border-gray-700"
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-md hover:scale-105 border hover:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FiChevronRight />
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-md hover:scale-105 border hover:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FiChevronsRight />
+                  </button>
+                </motion.div>
+              )}
+            </>
+          )}
+        </AnimatePresence>
       </div>
       <Footer />
     </div>

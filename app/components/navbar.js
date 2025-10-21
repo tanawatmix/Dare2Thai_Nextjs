@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useContext } from "react";
-import { FiMenu, FiX, FiUser, FiMoon, FiSun } from "react-icons/fi";
+import { FiMenu, FiX, FiUser, FiMoon, FiSun, FiLogOut } from "react-icons/fi"; // 1. Import FiLogOut
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -114,21 +114,31 @@ const Navbar = () => {
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
-              <Link href="/profile" className="flex items-center gap-2">
-                <Image
-                  src={profile?.profile_image || "/default-avatar.png"}
-                  alt="avatar"
-                  width={36}
-                  height={36}
-                  className="rounded-full object-cover"
-                  unoptimized
-                />
-                <span className="font-medium">
-                  {profile?.name || user.email}
-                </span>
-              </Link>
+              <> {/* 2. ใช้ Fragment (JavaScript/JSX) */}
+                <Link href="/profile" className="flex items-center gap-2">
+                  <Image
+                    src={profile?.profile_image || "/default-avatar.png"}
+                    alt="avatar"
+                    width={36}
+                    height={36}
+                    className="rounded-full object-cover"
+                    unoptimized
+                  />
+                  <span className="font-medium">
+                    {profile?.name || user.email}
+                  </span>
+                </Link>
+                {/* ✅ 3. เพิ่มปุ่ม Logout ที่นี่ */}
+                <button
+                  onClick={handleLogout}
+                  title="Logout"
+                  className="p-2 rounded-full bg-red-100 dark:bg-red-700 text-red-500 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-600 transition"
+                >
+                  <FiLogOut />
+                </button>
+              </>
             ) : (
-              <>
+              <> {/* ใช้ Fragment (JavaScript/JSX) */}
                 <Link
                   href="/login"
                   className="px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
@@ -148,7 +158,8 @@ const Navbar = () => {
             <select
               value={language}
               onChange={(e) => changeLanguage(e.target.value)}
-              className="border px-2 py-1 rounded text-sm"
+              // 4. แก้ไข className ของ select ให้เข้ากับธีม
+              className={`border px-2 py-1 rounded text-sm ${darkMode ? "bg-gray-700 border-gray-600" : "bg-gray-200 border-gray-300"}`}
             >
               <option value="th">TH</option>
               <option value="en">EN</option>
@@ -170,7 +181,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu (โค้ดส่วนนี้มีปุ่ม Logout อยู่แล้ว) */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -247,7 +258,7 @@ const Navbar = () => {
               <select
                 value={language}
                 onChange={(e) => changeLanguage(e.target.value)}
-                className="border px-2 py-1 rounded text-sm w-24"
+                className={`border px-2 py-1 rounded text-sm w-24 ${darkMode ? "bg-gray-700 border-gray-600" : "bg-gray-200 border-gray-300"}`}
               >
                 <option value="th">TH</option>
                 <option value="en">EN</option>
