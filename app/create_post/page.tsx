@@ -18,7 +18,7 @@ import toast, { Toaster } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { User } from "@supabase/supabase-js";
 import dynamic from "next/dynamic";
-import { LatLngExpression } from "leaflet";
+import { LatLngExpression, LatLngTuple } from "leaflet"; 
 
 // Import MapPicker แบบ Dynamic
 const MapPicker = dynamic(() => import("../components/MapPicker"), {
@@ -210,8 +210,8 @@ const CreatePost: React.FC = () => {
     const newCenter = PROVINCE_COORDS[newProvince] || [13.7563, 100.5018];
 
     setMapCenter(newCenter);
-    setLatitude(newCenter[0] as number);
-    setLongitude(newCenter[1] as number);
+    setLatitude(newCenter[0]);
+    setLongitude(newCenter[1]);
   };
 
   // 8. ฟังก์ชันสำหรับอัปเดตพิกัด (จากการลากหมุด หรือ ค้นหา)
