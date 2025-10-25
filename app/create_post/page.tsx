@@ -21,7 +21,7 @@ import dynamic from "next/dynamic";
 import { LatLngExpression, LatLngTuple } from "leaflet";
 import { FaLocationArrow, FaExternalLinkAlt } from "react-icons/fa"; // Import icons
 
-// Import MapPicker แบบ Dynamic
+// Import MapPicker (which is now Google Maps)
 const MapPicker = dynamic(() => import("../components/MapPicker"), {
   ssr: false,
   loading: () => (
@@ -177,7 +177,9 @@ const CreatePost: React.FC = () => {
   useEffect(() => {
     const initializePage = async () => {
       // 1. ตรวจสอบผู้ใช้ก่อน
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         toast.error("กรุณาล็อกอินก่อนสร้างโพสต์");
         router.push("/login");
@@ -194,13 +196,15 @@ const CreatePost: React.FC = () => {
             setLatitude(latitude);
             setLongitude(longitude);
             setMapCenter([latitude, longitude]);
-            toast.success("พบตำแหน่งปัจจุบันของคุณแล้ว!");
+            // ไม่ต้องแสดง toast สำเร็จทุกครั้งที่โหลด
+            // toast.success("พบตำแหน่งปัจจุบันของคุณแล้ว!");
             setLoading(false); // โหลดเสร็จ
           },
           (error) => {
             // ล้มเหลว: ใช้ค่าเริ่มต้น (กรุงเทพฯ)
             console.warn(`Geolocation error (${error.code}): ${error.message}`);
-            toast.error("ไม่สามารถเข้าถึงตำแหน่งปัจจุบันได้ ใช้ค่าเริ่มต้นแทน");
+            // ไม่ต้องแสดง toast error ทุกครั้งที่โหลด
+            // toast.error("ไม่สามารถเข้าถึงตำแหน่งปัจจุบันได้ ใช้ค่าเริ่มต้นแทน");
             setLoading(false); // โหลดเสร็จ
           }
         );
@@ -237,19 +241,14 @@ const CreatePost: React.FC = () => {
     }
   };
 
-  // 6. ฟังก์ชันสำหรับอัปเดต Title เมื่อเลือก Type
+  // ✅ แก้ไข: อัปเดตเฉพาะ Place Type state, ไม่ยุ่งกับ Title state
   const handlePlaceTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value;
     setPlaceType(newType);
-
-    if (newType && (!title || placeTypes.includes(title))) {
-      setTitle(newType);
-    } else if (!newType && placeTypes.includes(title)) {
-      setTitle("");
-    }
+    // ไม่ต้องทำอะไรกับ state `title` แล้ว
   };
 
-  // 7. ฟังก์ชันใหม่สำหรับ Handle จังหวัด
+  // 7. ฟังก์ชันใหม่สำหรับ Handle จังหวัด (คงเดิม)
   const handleProvinceChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newProvince = e.target.value;
     setProvince(newProvince);
@@ -261,14 +260,14 @@ const CreatePost: React.FC = () => {
     setLongitude(newCenter[1]);
   };
 
-  // 8. ฟังก์ชันสำหรับอัปเดตพิกัด (จากการลากหมุด หรือ ค้นหา)
+  // 8. ฟังก์ชันสำหรับอัปเดตพิกัด (จากการลากหมุด หรือ ค้นหา) (คงเดิม)
   const handleMapUpdate = (lat: number, lng: number) => {
     setLatitude(lat);
     setLongitude(lng);
     setMapCenter([lat, lng]);
   };
 
-  // Image Handlers
+  // Image Handlers (คงเดิม)
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -303,7 +302,7 @@ const CreatePost: React.FC = () => {
     };
   }, [imagePreviews]);
 
-  // --- Submit Handler ---
+  // --- Submit Handler --- (คงเดิม)
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) {
@@ -391,10 +390,10 @@ const CreatePost: React.FC = () => {
       <Navbar />
       <div className="py-24 min-h-[80vh] flex items-center justify-center px-4">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="w-full max-w-xl mx-auto p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-black/10 dark:border-white/10"
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="relative border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-10 max-w-lg w-full backdrop-blur-lg"
         >
           <h2 className="text-3xl font-extrabold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-pink-500 tracking-tight">
             สร้างโพสต์ใหม่
@@ -417,12 +416,13 @@ const CreatePost: React.FC = () => {
               />
             </div>
 
+            {/* ✅ แก้ไข: เปลี่ยน placeholder แบบไดนามิก */}
             <FormInput
               label="ชื่อร้าน / โพสต์"
               placeholder={
                 placeType
-                  ? `เช่น: ${placeType} ...`
-                  : "เช่น: ร้านป้าตามสั่ง, หาดสวรรค์"
+                  ? `เช่น: (${placeType}) ชื่อสถานที่...`
+                  : "เช่น: ร้านป้าตามสั่ง, หาดสวรรค์ (เลือกประเภทก่อน)"
               }
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -437,7 +437,7 @@ const CreatePost: React.FC = () => {
               required
             />
 
-            {/* --- NEW Map Section --- */}
+            {/* --- Map Section --- (คงเดิม) */}
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -477,8 +477,9 @@ const CreatePost: React.FC = () => {
                 </div>
               )}
             </div>
-            {/* --- End NEW Map Section --- */}
+            {/* --- End Map Section --- */}
 
+            {/* --- Image Upload Section --- (คงเดิม) */}
             <div>
               <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 รูปภาพ (สูงสุด 5 รูป)
@@ -512,6 +513,9 @@ const CreatePost: React.FC = () => {
                 </div>
               </AnimatePresence>
             </div>
+            {/* --- End Image Upload Section --- */}
+
+            {/* --- Buttons --- (คงเดิม) */}
             <div className="flex gap-4">
               <motion.button
                 type="button"
@@ -530,6 +534,7 @@ const CreatePost: React.FC = () => {
                 {isSubmitting ? "กำลังโพสต์..." : "โพสต์"}
               </motion.button>
             </div>
+            {/* --- End Buttons --- */}
           </form>
         </motion.div>
       </div>

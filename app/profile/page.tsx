@@ -1,15 +1,32 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent, useContext } from "react";
-import { useRouter } from "next/navigation";
+import React, {
+  useState,
+  useRef,
+  useContext,
+  useEffect,
+  ChangeEvent,
+  FormEvent,
+} from "react";
 import { ThemeContext } from "../ThemeContext";
-import { motion } from "framer-motion";
-import Image from "next/image";
 import Navbar from "../components/navbar";
 import Footer from "../components/Footer";
 import { supabase } from "@/lib/supabaseClient";
 import PostCard from "../components/PostCard";
 import Swal from "sweetalert2";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import { User } from "@supabase/supabase-js";
+
+// --- 1. Import สิ่งที่จำเป็นสำหรับ Cropper ---
+import ReactCrop, {
+  type Crop,
+  type PixelCrop,
+  centerCrop,
+  makeAspectCrop,
+} from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css"; // Import CSS ของ cropper
 
 const defaultAvatar = "/D2T2.png";
 
@@ -23,13 +40,84 @@ type ProfileData = {
 
 type PostData = {
   id: string;
-  user_id: string; // ต้องมี user_id
+  user_id: string;
   title: string;
   description: string;
   place_type: string;
   province: string;
   image_url: string[] | string | null;
 };
+
+// --- 2. ฟังก์ชัน Helper สำหรับสร้าง Canvas (อยู่ข้างนอก Component) ---
+function getCroppedImg(
+  image: HTMLImageElement,
+  crop: PixelCrop
+): Promise<File> {
+  const canvas = document.createElement("canvas");
+  const scaleX = image.naturalWidth / image.width;
+  const scaleY = image.naturalHeight / image.height;
+  canvas.width = crop.width;
+  canvas.height = crop.height;
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    return Promise.reject(new Error("Failed to get canvas context"));
+  }
+
+  const pixelRatio = window.devicePixelRatio || 1;
+  canvas.width = crop.width * pixelRatio;
+  canvas.height = crop.height * pixelRatio;
+  ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  ctx.imageSmoothingQuality = "high";
+
+  ctx.drawImage(
+    image,
+    crop.x * scaleX,
+    crop.y * scaleY,
+    crop.width * scaleX,
+    crop.height * scaleY,
+    0,
+    0,
+    crop.width,
+    crop.height
+  );
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("Canvas is empty"));
+          return;
+        }
+        const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+        resolve(file);
+      },
+      "image/jpeg",
+      0.95 // คุณภาพ 95%
+    );
+  });
+}
+
+// --- 3. ฟังก์ชัน Helper สำหรับคำนวณ Crop เริ่มต้น ---
+function centerAspectCrop(
+  mediaWidth: number,
+  mediaHeight: number,
+  aspect: number
+) {
+  return centerCrop(
+    makeAspectCrop(
+      {
+        unit: "%",
+        width: 90, // เริ่มต้นที่ 90%
+      },
+      aspect,
+      mediaWidth,
+      mediaHeight
+    ),
+    mediaWidth,
+    mediaHeight
+  );
+}
 
 const ProfilePage = () => {
   const router = useRouter();
@@ -43,6 +131,12 @@ const ProfilePage = () => {
   const [avatarPreview, setAvatarPreview] = useState<string>(defaultAvatar);
   const [posts, setPosts] = useState<PostData[]>([]);
 
+  // --- 4. เพิ่ม State สำหรับ Cropper ---
+  const [originalImageSrc, setOriginalImageSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       const {
@@ -54,7 +148,7 @@ const ProfilePage = () => {
       }
       setUser(user);
 
-      // ดึง Profile
+      // (โค้ดส่วนดึงข้อมูลโพสต์และโปรไฟล์เหมือนเดิม)
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -63,7 +157,6 @@ const ProfilePage = () => {
       setProfile(profileData || null);
       setAvatarPreview(profileData?.profile_image || defaultAvatar);
 
-      // ดึงโพสต์
       const { data: postData, error } = await supabase
         .from("posts")
         .select("*")
@@ -101,12 +194,56 @@ const ProfilePage = () => {
     }
   };
 
+  // --- 5. อัปเดต handleImageChange ---
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
+      // เคลียร์ค่าเก่า (ถ้ามี)
+      setAvatarFile(null);
+      setCrop(undefined);
+      setCompletedCrop(null);
+
+      // อ่านไฟล์ใหม่เพื่อแสดงใน Modal
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setOriginalImageSrc(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
+  };
+
+  // --- 6. ฟังก์ชันเมื่อรูปใน Cropper โหลด ---
+  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+    const { width, height } = e.currentTarget;
+    // ตั้งค่า Crop เริ่มต้นให้เป็นสี่เหลี่ยมจัตุรัสกลางภาพ
+    setCrop(centerAspectCrop(width, height, 1 / 1));
+  }
+
+  // --- 7. ฟังก์ชันเมื่อยืนยันการ Crop ---
+  const handleCropConfirm = async () => {
+    if (!completedCrop || !imgRef.current) {
+      Swal.fire("Error", "กรุณาเลือกพื้นที่ก่อน", "error");
+      return;
+    }
+
+    try {
+      const croppedFile = await getCroppedImg(imgRef.current, completedCrop);
+
+      // ตั้งค่าไฟล์ที่ตัดแล้ว
+      setAvatarFile(croppedFile);
+      // สร้าง Preview จากไฟล์ที่ตัดแล้ว
+      setAvatarPreview(URL.createObjectURL(croppedFile));
+      // ปิด Modal
+      setOriginalImageSrc(null);
+    } catch (e) {
+      console.error(e);
+      Swal.fire("Error", "เกิดข้อผิดพลาดขณะตัดรูป", "error");
+    }
+  };
+
+  // --- 8. ฟังก์ชันเมื่อยกเลิกการ Crop ---
+  const handleCropCancel = () => {
+    setOriginalImageSrc(null); // ปิด Modal
   };
 
   const handleSave = async () => {
@@ -116,6 +253,7 @@ const ProfilePage = () => {
     let avatarUrl = profile.profile_image;
 
     if (avatarFile) {
+      // (ส่วนนี้เหมือนเดิม เพราะ avatarFile คือรูปที่ตัดแล้ว)
       if (profile.profile_image) {
         const oldFileName = profile.profile_image.split("/").pop();
         if (oldFileName) {
@@ -141,7 +279,7 @@ const ProfilePage = () => {
         .getPublicUrl(uploadData.path);
       avatarUrl = urlData.publicUrl;
     }
-
+    // (ส่วนที่เหลือของ handleSave เหมือนเดิมทั้งหมด)
     const { error: updateError } = await supabase
       .from("profiles")
       .update({
@@ -160,6 +298,7 @@ const ProfilePage = () => {
     setSaving(false);
   };
 
+  // (โค้ดส่วน handleDeletePost และ handleChangePassword เหมือนเดิม)
   const handleDeletePost = async (postId: string) => {
     const confirm = await Swal.fire({
       title: "ลบโพสต์นี้?",
@@ -245,15 +384,15 @@ const ProfilePage = () => {
     );
 
   return (
-    // ✅ FIX: ใช้ CSS Variables และลบ font-sriracha
     <div
-      className={`min-h-screen flex flex-col transition-colors duration-500 bg-[var(--background)] text-[var(--foreground)]`}
+      className={`min-h-screen flex flex-col transition-colors duration-500 ${
+        darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
+      }`}
     >
       <Navbar />
       <main className="flex flex-1 mt-14 flex-col items-center py-8 px-4">
-        {/* Profile Form */}
+        {/* (โค้ด JSX ส่วน Profile Form เหมือนเดิม) */}
         <motion.div
-          // ✅ FIX: ปรับสีพื้นหลังการ์ดให้ตัดกับ Body
           className={`w-full max-w-2xl p-8 rounded-3xl shadow-2xl border-2 ${
             darkMode
               ? "bg-gray-800/80 border-pink-400"
@@ -304,7 +443,7 @@ const ProfilePage = () => {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={handleImageChange}
+                onChange={handleImageChange} // นี่คือจุดที่เปลี่ยน
               />
             </motion.div>
           </div>
@@ -315,14 +454,14 @@ const ProfilePage = () => {
               name="name"
               value={profile?.name || ""}
               onChange={handleChange}
-              darkMode={darkMode} // ส่ง prop darkMode ไป
+              darkMode={darkMode}
             />
             <InputField
               label="ชื่อผู้ใช้"
               name="username"
               value={profile?.username || ""}
               onChange={handleChange}
-              darkMode={darkMode} // ส่ง prop darkMode ไป
+              darkMode={darkMode}
             />
             <InputField
               label="อีเมล"
@@ -330,7 +469,7 @@ const ProfilePage = () => {
               value={user?.email || ""}
               onChange={() => {}}
               readOnly
-              darkMode={darkMode} // ส่ง prop darkMode ไป
+              darkMode={darkMode}
             />
           </div>
 
@@ -342,23 +481,39 @@ const ProfilePage = () => {
             เปลี่ยนรหัสผ่าน
           </motion.button>
 
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={handleSave}
-            disabled={saving}
-            className={`mt-8 w-full bg-gradient-to-r font-bold py-3 rounded-xl shadow-lg transition text-lg ${
-              darkMode
-                ? "from-pink-400 to-blue-400"
-                : "from-blue-400 to-pink-400"
-            } text-white disabled:opacity-50`}
-          >
-            {saving ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
-          </motion.button>
+          {/* --- ✅ EDIT: เปลี่ยนปุ่มบันทึกเป็น Button Group --- */}
+          <div className="flex flex-col sm:flex-row gap-4 mt-8">
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              onClick={() => router.back()}
+              className={`flex-1 w-full sm:w-auto font-semibold py-3 rounded-xl transition text-lg ${
+                darkMode
+                  ? "bg-gray-600 text-gray-100 hover:bg-gray-500"
+                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+              }`}
+            >
+              กลับ
+            </motion.button>
+
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleSave}
+              disabled={saving}
+              className={`flex-1 w-full sm:w-auto bg-gradient-to-r font-bold py-3 rounded-xl shadow-lg transition text-lg ${
+                darkMode
+                  ? "from-pink-400 to-blue-400"
+                  : "from-blue-400 to-pink-400"
+              } text-white disabled:opacity-50`}
+            >
+              {saving ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
+            </motion.button>
+          </div>
+          {/* --- ✅ END EDIT --- */}
         </motion.div>
 
-        {/* Posts */}
+        {/* (โค้ด JSX ส่วน Posts เหมือนเดิม) */}
         <div className="mt-12 w-full max-w-3xl">
-          {/* ✅ FIX: ใช้สีข้อความจาก CSS Variable */}
           <h2 className="text-2xl font-bold mb-4 text-center text-[var(--foreground)]">
             โพสต์ของฉัน
           </h2>
@@ -388,29 +543,87 @@ const ProfilePage = () => {
           )}
         </div>
       </main>
+
       <Footer />
+
+      {/* --- 9. JSX สำหรับ Crop Modal --- */}
+      <AnimatePresence>
+        {originalImageSrc && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" // เพิ่ม p-4
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className={`p-6 rounded-2xl shadow-xl w-full max-w-md ${
+                darkMode ? "bg-gray-800" : "bg-white"
+              }`}
+            >
+              <h3 className="text-2xl font-bold text-center mb-4">
+                ตัดรูปโปรไฟล์
+              </h3>
+              <ReactCrop
+                crop={crop}
+                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={1} // --- นี่คือจุดที่บังคับให้เป็นสี่เหลี่ยมจัตุรัส ---
+                className="w-full"
+              >
+                <img
+                  ref={imgRef}
+                  alt="Crop me"
+                  src={originalImageSrc}
+                  onLoad={onImageLoad}
+                  className="max-h-[60vh] object-contain"
+                />
+              </ReactCrop>
+              <div className="flex flex-col sm:flex-row gap-4 mt-6">
+                {" "}
+                {/* ปรับ responsive */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCropCancel}
+                  className="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 py-3 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-500 transition"
+                >
+                  ยกเลิก
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCropConfirm}
+                  className="flex-1 bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition"
+                >
+                  ยืนยันการตัด
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
-// --- InputField Sub-component (แก้ไข) ---
+// --- InputField Sub-component (เหมือนเดิม) ---
 const InputField = ({
   label,
   name,
   value,
   onChange,
   readOnly = false,
-  darkMode, // รับ prop darkMode
+  darkMode,
 }: {
   label: string;
   name: string;
   value: string;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   readOnly?: boolean;
-  darkMode: boolean; // กำหนด Type
+  darkMode: boolean;
 }) => (
   <div>
-    {/* ✅ FIX: ใช้สีข้อความจาก CSS Variable */}
     <label className="block mb-2 font-semibold text-lg text-[var(--foreground)] opacity-90">
       {label}
     </label>
@@ -419,12 +632,11 @@ const InputField = ({
       value={value}
       onChange={onChange}
       readOnly={readOnly}
-      // ✅ FIX: ปรับสี Input Field ให้เข้ากับธีม
       className={`w-full text-lg px-4 py-2 rounded-xl border-2 transition
         ${
           readOnly
-            ? "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed" // สีสำหรับ readOnly
-            : "bg-white dark:bg-gray-700 text-black dark:text-white" // สีสำหรับปกติ
+            ? "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+            : "bg-white dark:bg-gray-700 text-black dark:text-white"
         }
         ${
           darkMode

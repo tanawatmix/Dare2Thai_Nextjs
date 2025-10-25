@@ -1,16 +1,31 @@
 "use client";
 
-import React, { useState, useContext, ChangeEvent, FormEvent } from "react";
+import React, {
+  useState,
+  useRef, // 1. Import useRef
+  useContext,
+  ChangeEvent,
+  FormEvent,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeContext } from "../ThemeContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import proDefault from "../../public/dare2New.png";
-import { FiMail, FiLock, FiUser, FiSun, FiMoon } from "react-icons/fi"; // Import icons
+import { FiMail, FiLock, FiUser, FiSun, FiMoon } from "react-icons/fi";
+
+// --- 2. Import สิ่งที่จำเป็นสำหรับ Cropper ---
+import ReactCrop, {
+  type Crop,
+  type PixelCrop,
+  centerCrop,
+  makeAspectCrop,
+} from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css"; // Import CSS ของ cropper
 
 // (Translations object คงเดิม)
 const translations = {
-   th: {
+  th: {
     title: "ลงทะเบียน",
     email: "อีเมล",
     password: "รหัสผ่าน",
@@ -33,6 +48,9 @@ const translations = {
     changAvatar: "เปลี่ยนรูปโปรไฟล์",
     en: "English",
     th: "ไทย",
+    cropTitle: "ตัดรูปโปรไฟล์",
+    cropConfirm: "ยืนยัน",
+    cropCancel: "ยกเลิก",
   },
   en: {
     title: "Register",
@@ -57,8 +75,82 @@ const translations = {
     changAvatar: "Change Profile Picture",
     en: "English",
     th: "ไทย",
+    cropTitle: "Crop Profile Picture",
+    cropConfirm: "Confirm",
+    cropCancel: "Cancel",
   },
 };
+
+// --- 3. ฟังก์ชัน Helper สำหรับสร้าง Canvas (อยู่ข้างนอก Component) ---
+function getCroppedImg(
+  image: HTMLImageElement,
+  crop: PixelCrop
+): Promise<File> {
+  const canvas = document.createElement("canvas");
+  const scaleX = image.naturalWidth / image.width;
+  const scaleY = image.naturalHeight / image.height;
+  canvas.width = crop.width;
+  canvas.height = crop.height;
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    return Promise.reject(new Error("Failed to get canvas context"));
+  }
+
+  const pixelRatio = window.devicePixelRatio || 1;
+  canvas.width = crop.width * pixelRatio;
+  canvas.height = crop.height * pixelRatio;
+  ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  ctx.imageSmoothingQuality = "high";
+
+  ctx.drawImage(
+    image,
+    crop.x * scaleX,
+    crop.y * scaleY,
+    crop.width * scaleX,
+    crop.height * scaleY,
+    0,
+    0,
+    crop.width,
+    crop.height
+  );
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("Canvas is empty"));
+          return;
+        }
+        const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+        resolve(file);
+      },
+      "image/jpeg",
+      0.95 // คุณภาพ 95%
+    );
+  });
+}
+
+// --- 4. ฟังก์ชัน Helper สำหรับคำนวณ Crop เริ่มต้น ---
+function centerAspectCrop(
+  mediaWidth: number,
+  mediaHeight: number,
+  aspect: number
+) {
+  return centerCrop(
+    makeAspectCrop(
+      {
+        unit: "%",
+        width: 90, // เริ่มต้นที่ 90%
+      },
+      aspect,
+      mediaWidth,
+      mediaHeight
+    ),
+    mediaWidth,
+    mediaHeight
+  );
+}
 
 // --- InputField Sub-component ---
 type InputFieldProps = {
@@ -70,9 +162,22 @@ type InputFieldProps = {
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   icon: React.ReactNode;
 };
-const InputField: React.FC<InputFieldProps> = ({ id, label, placeholder, type, value, onChange, icon }) => (
-  <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
-    <label htmlFor={id} className="block mb-2 text-sm font-medium text-gray-300">
+const InputField: React.FC<InputFieldProps> = ({
+  id,
+  label,
+  placeholder,
+  type,
+  value,
+  onChange,
+  icon,
+}) => (
+  <motion.div
+    variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+  >
+    <label
+      htmlFor={id}
+      className="block mb-2 text-sm font-medium text-gray-300"
+    >
       {label}
     </label>
     <div className="relative">
@@ -92,7 +197,6 @@ const InputField: React.FC<InputFieldProps> = ({ id, label, placeholder, type, v
   </motion.div>
 );
 
-
 // --- Main Register Component ---
 const Register: React.FC = () => {
   const router = useRouter();
@@ -111,18 +215,29 @@ const Register: React.FC = () => {
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // --- 5. เพิ่ม State สำหรับ Cropper ---
+  const [originalImageSrc, setOriginalImageSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     if (!email || !password || !username || !name || !confirmPassword) {
-      setError(t.fillAll); setLoading(false); return;
+      setError(t.fillAll);
+      setLoading(false);
+      return;
     }
     if (password !== confirmPassword) {
-      setError(t.passMismatch); setLoading(false); return;
+      setError(t.passMismatch);
+      setLoading(false);
+      return;
     }
 
+    // `avatarPreview` (ซึ่งตอนนี้คือ URL จาก Supabase) จะถูกส่งไปพร้อมกับการสมัคร
     const { data, error: signUpError } = await supabase.auth.signUp({
       email: email,
       password: password,
@@ -130,7 +245,7 @@ const Register: React.FC = () => {
         data: {
           name: name.trim(),
           username: username.trim(),
-          profile_image: avatarPreview,
+          profile_image: avatarPreview, // ใช้ URL ที่อัปโหลดแล้ว
         },
       },
     });
@@ -139,29 +254,81 @@ const Register: React.FC = () => {
       setError(signUpError.message);
     } else {
       setShowSuccess(true);
-      setTimeout(() => router.push('/login'), 2000);
+      setTimeout(() => router.push("/login"), 2000);
     }
     setLoading(false);
   };
 
-  const handleImageSelect = async (e: ChangeEvent<HTMLInputElement>) => {
+  // --- 6. แก้ไข handleImageSelect ให้อ่านไฟล์และเปิด Modal ---
+  const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setLoading(true);
-    const { data, error } = await supabase.storage.from("avatars").upload(`public/${Date.now()}_${file.name}`, file);
-    setLoading(false);
+    // เคลียร์ค่าเก่า (ถ้ามี)
+    setCrop(undefined);
+    setCompletedCrop(null);
 
-    if (error) {
-      setError("เกิดข้อผิดพลาดในการอัปโหลดรูป"); return;
+    // อ่านไฟล์ใหม่เพื่อแสดงใน Modal
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setOriginalImageSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // --- 7. ฟังก์ชันเมื่อรูปใน Cropper โหลด ---
+  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+    const { width, height } = e.currentTarget;
+    setCrop(centerAspectCrop(width, height, 1 / 1)); // 1/1 คือสี่เหลี่ยมจัตุรัส
+  }
+
+  // --- 8. ฟังก์ชันเมื่อยกเลิกการ Crop ---
+  const handleCropCancel = () => {
+    setOriginalImageSrc(null); // ปิด Modal
+  };
+
+  // --- 9. ฟังก์ชันเมื่อยืนยันการ Crop (ตัด -> อัปโหลด -> ตั้งค่า Preview) ---
+  const handleCropConfirm = async () => {
+    if (!completedCrop || !imgRef.current) {
+      setError("กรุณาเลือกพื้นที่ก่อน");
+      return;
     }
 
-    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(data.path);
-    setAvatarPreview(urlData.publicUrl);
+    try {
+      // 1. ตัดรูป
+      const croppedFile = await getCroppedImg(imgRef.current, completedCrop);
+      setLoading(true); // เริ่มหมุน
+      setOriginalImageSrc(null); // ปิด Modal
+
+      // 2. อัปโหลดรูปที่ตัดแล้ว
+      const { data, error } = await supabase.storage
+        .from("avatars")
+        .upload(`public/${Date.now()}_${croppedFile.name}`, croppedFile);
+
+      if (error) {
+        throw new Error("เกิดข้อผิดพลาดในการอัปโหลดรูป");
+      }
+
+      // 3. เอา Public URL
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(data.path);
+
+      // 4. ตั้งค่า Preview (และ URL นี้จะถูกใช้ตอน Register)
+      setAvatarPreview(urlData.publicUrl);
+    } catch (e: any) {
+      setError(e.message || "เกิดข้อผิดพลาด");
+    } finally {
+      setLoading(false); // หยุดหมุน
+    }
   };
 
   return (
-    <div className={`relative min-h-screen transition duration-500 overflow-x-hidden font-sriracha ${darkMode ? "bp text-white" : "wp text-black"}`}>
+    <div
+      className={`relative min-h-screen transition duration-500 overflow-x-hidden font-sriracha ${
+        darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
+      }`}
+    >
       <div className="relative min-h-screen flex items-center justify-center p-4">
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
@@ -171,57 +338,145 @@ const Register: React.FC = () => {
         >
           {/* Top-Right Control Buttons */}
           <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-            <select onChange={(e) => setLang(e.target.value as "th" | "en")} value={lang} className="text-xs font-semibold py-1 px-2 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 focus:outline-none">
+            <select
+              onChange={(e) => setLang(e.target.value as "th" | "en")}
+              value={lang}
+              className="text-xs font-semibold py-1 px-2 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 focus:outline-none"
+            >
               <option value="th">🇹🇭 ไทย</option>
-              <option value="en">🇬🇧 EN</option>
+              <option value="en">en ENGLISH</option>
             </select>
-            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={toggleDarkMode} className="text-xl p-1.5 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={toggleDarkMode}
+              className="text-xl p-1.5 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400"
+            >
               {darkMode ? <FiSun /> : <FiMoon />}
             </motion.button>
           </div>
 
           {/* Left Avatar Section */}
           <div className="flex-1 flex flex-col justify-center items-center gap-4 text-center border-b-2 md:border-b-0 md:border-r-2 pb-8 md:pb-0 md:pr-8 border-blue-400/50 dark:border-pink-400/50">
-            <motion.h3 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400 mb-4">
+            <motion.h3
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400 mb-4"
+            >
               {t.title}
             </motion.h3>
 
-            <motion.div whileHover={{ scale: 1.05, rotate: 2 }} className="relative">
-              <img src={avatarPreview || proDefault.src} alt="Avatar Preview" className="w-40 h-40 rounded-full border-4 border-blue-400 dark:border-pink-400 object-cover shadow-xl"/>
+            <motion.div
+              whileHover={{ scale: 1.05, rotate: 2 }}
+              className="relative"
+            >
+              <img
+                src={avatarPreview || proDefault.src}
+                alt="Avatar Preview"
+                className="w-40 h-40 rounded-full border-4 border-blue-400 dark:border-pink-400 object-cover shadow-xl"
+              />
             </motion.div>
 
-            <label htmlFor="avatar-upload" className="bg-gradient-to-r from-blue-400 to-pink-400 text-white px-5 py-2.5 rounded-lg cursor-pointer font-semibold shadow-lg hover:from-pink-400 hover:to-orange-400 transition-transform hover:scale-105">
-              {t.selectAvatar}
+            <label
+              htmlFor="avatar-upload"
+              className="bg-gradient-to-r from-blue-400 to-pink-400 text-white px-5 py-2.5 rounded-lg cursor-pointer font-semibold shadow-lg hover:from-pink-400 hover:to-orange-400 transition-transform hover:scale-105"
+            >
+              {avatarPreview ? t.changAvatar : t.selectAvatar}
             </label>
-            <input type="file" accept="image/*" id="avatar-upload" className="hidden" onChange={handleImageSelect} />
+            <input
+              type="file"
+              accept="image/*"
+              id="avatar-upload"
+              className="hidden"
+              onChange={handleImageSelect}
+            />
             <p className="text-xs text-gray-400">{t.Optional}</p>
           </div>
 
           {/* Right Form Section */}
           <form onSubmit={handleRegister} className="flex-1">
-            <motion.div className="space-y-4" initial="hidden" animate="visible" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}>
-              <InputField id="name" label={t.name} placeholder={t.name} type="text" value={name} onChange={(e) => setName(e.target.value)} icon={<FiUser />} />
-              <InputField id="username" label={t.username} placeholder={t.enUserN} type="text" value={username} onChange={(e) => setUsername(e.target.value)} icon={<FiUser />} />
-              <InputField id="email" label={t.email} placeholder={t.enMail} type="email" value={email} onChange={(e) => setEmail(e.target.value)} icon={<FiMail />} />
-              <InputField id="password" label={t.password} placeholder={t.enPass} type="password" value={password} onChange={(e) => setPassword(e.target.value)} icon={<FiLock />} />
-              <InputField id="confirmPassword" label={t.conpassword} placeholder={t.enConPass} type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} icon={<FiLock />} />
-              
-              {error && <p className="text-red-400 text-center text-sm pt-2">{error}</p>}
+            <motion.div
+              className="space-y-4"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.08 } },
+              }}
+            >
+              <InputField
+                id="name"
+                label={t.name}
+                placeholder={t.name}
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                icon={<FiUser />}
+              />
+              <InputField
+                id="username"
+                label={t.username}
+                placeholder={t.enUserN}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                icon={<FiUser />}
+              />
+              <InputField
+                id="email"
+                label={t.email}
+                placeholder={t.enMail}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                icon={<FiMail />}
+              />
+              <InputField
+                id="password"
+                label={t.password}
+                placeholder={t.enPass}
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                icon={<FiLock />}
+              />
+              <InputField
+                id="confirmPassword"
+                label={t.conpassword}
+                placeholder={t.enConPass}
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                icon={<FiLock />}
+              />
 
-              <motion.button whileTap={{ scale: 0.98 }} className="w-full bg-gradient-to-r from-blue-500 to-pink-500 text-white font-bold text-lg p-3 mt-4 rounded-lg hover:from-pink-500 hover:to-orange-400 shadow-lg transition-all disabled:opacity-50" type="submit" disabled={loading}>
-                {loading ? "กำลังลงทะเบียน..." : t.login}
+              {error && (
+                <p className="text-red-400 text-center text-sm pt-2">{error}</p>
+              )}
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                className="w-full bg-gradient-to-r from-blue-500 to-pink-500 text-white font-bold text-lg p-3 mt-4 rounded-lg hover:from-pink-500 hover:to-orange-400 shadow-lg transition-all disabled:opacity-50"
+                type="submit"
+                disabled={loading}
+              >
+                {loading ? "กำลังดำเนินการ..." : t.login}
               </motion.button>
             </motion.div>
             <p className="mt-6 text-sm text-center text-gray-300">
               {t.haveAccount}{" "}
-              <span className="text-pink-400 font-bold cursor-pointer hover:text-orange-300 transition" onClick={() => router.push('/login')}>
+              <span
+                className="text-pink-400 font-bold cursor-pointer hover:text-orange-300 transition"
+                onClick={() => router.push("/login")}
+              >
                 {t.register}
               </span>
             </p>
           </form>
         </motion.div>
 
-        {/* Success message */}
+        {/* (โค้ดส่วน Success message เหมือนเดิม) */}
         <AnimatePresence>
           {showSuccess && (
             <motion.div
@@ -241,6 +496,66 @@ const Register: React.FC = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* --- 10. JSX สำหรับ Crop Modal --- */}
+      <AnimatePresence>
+        {originalImageSrc && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className={`p-6 rounded-2xl shadow-xl w-full max-w-md ${
+                darkMode ? "bg-gray-900 border border-pink-400" : "bg-white"
+              }`}
+            >
+              <h3 className="text-2xl font-bold text-center mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400">
+                {t.cropTitle}
+              </h3>
+              <ReactCrop
+                crop={crop}
+                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={1} // --- บังคับสี่เหลี่ยมจัตุรัส ---
+                className="w-full"
+              >
+                <img
+                  ref={imgRef}
+                  alt="Crop me"
+                  src={originalImageSrc}
+                  onLoad={onImageLoad}
+                  className="max-h-[60vh] object-contain"
+                />
+              </ReactCrop>
+              <div className="flex flex-col sm:flex-row gap-4 mt-6">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCropCancel}
+                  className={`flex-1 py-3 rounded-lg font-semibold transition ${
+                    darkMode
+                      ? "bg-gray-600 text-gray-100 hover:bg-gray-500"
+                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                  }`}
+                >
+                  {t.cropCancel}
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCropConfirm}
+                  className="flex-1 bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition"
+                >
+                  {t.cropConfirm}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

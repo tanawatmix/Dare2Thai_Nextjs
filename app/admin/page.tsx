@@ -427,23 +427,24 @@ export default function AdminPage() {
       }
     };
 
-   // ใน AdminPage.tsx
+    // ใน AdminPage.tsx
 
-const fetchUsers = async () => {
-  setLoadingUsers(true);
+    const fetchUsers = async () => {
+      setLoadingUsers(true);
 
-  // ✅ เปลี่ยนมาเรียกใช้ Edge Function
-  const { data: combinedUsers, error: functionError } = await supabase.functions.invoke('get-all-users');
+      // ✅ เปลี่ยนมาเรียกใช้ Edge Function
+      const { data: combinedUsers, error: functionError } =
+        await supabase.functions.invoke("get-all-users");
 
-  if (functionError) {
-    toast.error("ไม่สามารถโหลดข้อมูลผู้ใช้: " + functionError.message);
-    console.error("Function invoke error:", functionError);
-  } else if (combinedUsers) {
-    setUsers(combinedUsers); // ข้อมูลที่ได้จะมีอีเมลจริงอยู่แล้ว
-  }
+      if (functionError) {
+        toast.error("ไม่สามารถโหลดข้อมูลผู้ใช้: " + functionError.message);
+        console.error("Function invoke error:", functionError);
+      } else if (combinedUsers) {
+        setUsers(combinedUsers); // ข้อมูลที่ได้จะมีอีเมลจริงอยู่แล้ว
+      }
 
-  setLoadingUsers(false);
-};
+      setLoadingUsers(false);
+    };
 
     const fetchPosts = async () => {
       setLoadingPosts(true);
@@ -554,6 +555,8 @@ const fetchUsers = async () => {
       if (profileError) {
         toast.error("ลบโปรไฟล์ไม่สำเร็จ: " + profileError.message);
       } else {
+        // ที่จริงแล้วควรเรียก Edge Function 'delete-user' ที่ลบจาก auth.users ด้วย
+        // แต่สำหรับตอนนี้ เราจะแค่ลบโปรไฟล์และข้อมูลใน state
         setUsers((prev) => prev.filter((u) => u.id !== userId));
         setPosts((prev) => prev.filter((p) => p.user_id !== userId));
         showNotification(`ลบผู้ใช้ ID: ${userId.substring(0, 8)}... สำเร็จ`);
@@ -599,7 +602,9 @@ const fetchUsers = async () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       // ✅ FIX: ใช้ CSS Variables สำหรับพื้นหลังและสีข้อความ และลบ font-sriracha
-      className={`min-h-screen p-6 transition-colors duration-300 bg-[var(--background)] text-[var(--foreground)]`}
+      className={`min-h-screen p-6 transition-colors duration-300 ${
+        darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
+      }`}
     >
       <Toaster position="top-center" />
       {/* --- Header --- */}
@@ -684,7 +689,7 @@ const fetchUsers = async () => {
         )}
       </Section>
       {/* --- Posts Table --- */}
-      <Section title="จัดการโพสต์"> 
+      <Section title="จัดการโพสต์">
         {loadingPosts ? (
           <LoadingSpinner />
         ) : (
@@ -692,7 +697,7 @@ const fetchUsers = async () => {
             posts={posts}
             users={users}
             handleDeletePost={handleDeletePost}
-            darkMode={darkMode} 
+            darkMode={darkMode}
           />
         )}
       </Section>

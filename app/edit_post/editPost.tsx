@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { User } from "@supabase/supabase-js";
 import dynamic from "next/dynamic";
 import { LatLngExpression, LatLngTuple } from "leaflet";
+import { FaLocationArrow, FaExternalLinkAlt } from "react-icons/fa"; // Import icons
 
 // 3. Import MapPicker แบบ Dynamic
 const MapPicker = dynamic(() => import("../components/MapPicker"), {
@@ -85,35 +86,35 @@ type FormSelectProps = {
 // --- Sub-components for Form Fields ---
 const FormInput = ({ label, ...props }: FormInputProps) => (
   <div>
-    <label className="block mb-1 text-sm font-semibold text-black opacity-90">
+    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
       {label}
     </label>
     <input
       {...props}
-      className="w-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500 text-black rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700"
+      className="w-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500 text-black dark:text-white rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700"
     />
   </div>
 );
 const FormTextArea = ({ label, ...props }: FormTextAreaProps) => (
   <div>
-    <label className="block mb-1 text-sm font-semibold text-black opacity-90">
+    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
       {label}
     </label>
     <textarea
       {...props}
       rows={4}
-      className="w-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500 text-black rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700"
+      className="w-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500 text-black dark:text-white rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700"
     />
   </div>
 );
 const FormSelect = ({ label, options, ...props }: FormSelectProps) => (
   <div className="flex-1">
-    <label className="block mb-1 text-sm font-semibold text-black opacity-90">
+    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
       {label}
     </label>
     <select
       {...props}
-      className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+      className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <option value="">{`เลือก${label}`}</option>
       {options.map((opt: string) => (
@@ -416,10 +417,10 @@ const EditPost: React.FC = () => {
       <Navbar />
       <div className="py-24 min-h-[80vh] flex items-center justify-center px-4">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="w-full max-w-xl mx-auto p-8 bg-white dark:bg-gray-500 rounded-2xl shadow-2xl border border-black/10 dark:border-white/10"
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="relative border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-10 max-w-lg w-full backdrop-blur-lg"
         >
           <h2 className="text-3xl font-extrabold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-pink-500 tracking-tight">
             แก้ไขโพสต์
@@ -460,7 +461,7 @@ const EditPost: React.FC = () => {
 
             {/* 16. เพิ่ม MapPicker */}
             <div>
-              <label className="block mb-2 text-sm font-semibold text-black opacity-90">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                 ปักหมุดตำแหน่ง (คลิก, ลาก, หรือค้นหา)
               </label>
               <div className="rounded-lg overflow-hidden border-2 border-gray-300 dark:border-gray-600">
@@ -471,16 +472,27 @@ const EditPost: React.FC = () => {
                 />
               </div>
               {latitude && (
-                <p className="text-xs text-black mt-1">
-                  ปักหมุดแล้ว: Lat: {latitude.toFixed(4)}, Lng:{" "}
-                  {longitude.toFixed(4)}
-                </p>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    ปักหมุดแล้ว: Lat: {latitude.toFixed(4)}, Lng:{" "}
+                    {longitude.toFixed(4)}
+                  </p>
+                  <a
+                    href={`https://www.google.com/maps?q=${latitude},${longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs font-medium text-green-500 hover:underline"
+                  >
+                    เปิดใน Google Maps
+                    <FaExternalLinkAlt size={10} />
+                  </a>
+                </div>
               )}
             </div>
 
             {/* ส่วนอัปโหลดรูปภาพ */}
             <div>
-              <label className="block mb-2 text-sm font-semibold text-black opacity-90">
+              <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 รูปภาพ (สูงสุด 5 รูป)
               </label>
               <button

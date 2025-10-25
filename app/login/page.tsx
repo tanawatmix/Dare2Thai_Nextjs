@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ThemeContext } from "../ThemeContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
-import bp from "../../public/bp.jpg";
-import wp from "../../public/whiteWater.jpg";
+// 1. Import icons ที่จำเป็น
+import { FiMail, FiLock, FiSun, FiMoon } from "react-icons/fi";
 
 // Type สำหรับภาษา
 type Lang = "th" | "en";
@@ -41,6 +41,52 @@ const translations = {
   },
 };
 
+// --- 2. คัดลอก InputField Component มาจากหน้า Register ---
+type InputFieldProps = {
+  id: string;
+  label: string;
+  placeholder: string;
+  type: string;
+  value: string;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  icon: React.ReactNode;
+};
+const InputField: React.FC<InputFieldProps> = ({
+  id,
+  label,
+  placeholder,
+  type,
+  value,
+  onChange,
+  icon,
+}) => (
+  <motion.div
+    variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+  >
+    <label
+      htmlFor={id}
+      className="block mb-2 text-sm font-medium text-gray-300"
+    >
+      {label}
+    </label>
+    <div className="relative">
+      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-pink-400">
+        {icon}
+      </div>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full p-3 pl-10 border-2 border-blue-200 dark:border-pink-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 dark:bg-white text-black transition"
+        required
+      />
+    </div>
+  </motion.div>
+);
+
+// --- Main Login Component ---
 const Login: React.FC = () => {
   const router = useRouter();
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
@@ -67,10 +113,12 @@ const Login: React.FC = () => {
       return;
     }
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    });
+    const { data, error: signInError } = await supabase.auth.signInWithPassword(
+      {
+        email: email,
+        password: password,
+      }
+    );
 
     if (signInError) {
       setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
@@ -85,22 +133,36 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className={`relative min-h-screen transition duration-500 overflow-x-hidden ${darkMode ? "bp text-white" : "wp text-black"}`}>
+    <div
+      className={`relative min-h-screen transition duration-500 overflow-x-hidden ${
+        darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
+      }`}
+    >
       <div className="relative min-h-screen flex items-center justify-center px-4">
         <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-10 max-w-lg w-full backdrop-blur-lg"
+          className="relative border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-10 max-w-lg w-full backdrop-blur-lg"
         >
-          {/* Top Right Buttons */}
-          <div className="absolute top-0 right-0 flex flex-col items-end gap-2 z-10 p-3">
-             <motion.button whileHover={{ scale: 1.05 }} className="..." onClick={() => setLang(lang === "th" ? "en" : "th")}>
-               {lang === "th" ? "EN" : "ไทย"}
-             </motion.button>
-             <motion.button whileHover={{ scale: 1.05 }} className="..." onClick={toggleDarkMode}>
-               {darkMode ? "☀️ Light" : "🌙 Dark"}
-             </motion.button>
+          {/* --- 3. อัปเดตปุ่ม Top Right --- */}
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <select
+              onChange={(e) => setLang(e.target.value as "th" | "en")}
+              value={lang}
+              className="text-xs font-semibold py-1 px-2 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 focus:outline-none"
+            >
+              <option value="th">🇹🇭 ไทย</option>
+              <option value="en">en ENGLISH</option>
+            </select>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={toggleDarkMode}
+              className="text-xl p-1.5 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400"
+            >
+              {darkMode ? <FiSun /> : <FiMoon />}
+            </motion.button>
           </div>
 
           <motion.h3
@@ -112,25 +174,40 @@ const Login: React.FC = () => {
             {t.title}
           </motion.h3>
 
+          {/* --- 4. อัปเดต Form ให้ใช้ InputField --- */}
           <form onSubmit={handleLogin} className="space-y-6">
-            {[
-              { id: "email", label: t.email, placeholder: t.enMail, type: "email", value: email, setValue: setEmail },
-              { id: "password", label: t.password, placeholder: t.enPass, type: "password", value: password, setValue: setPassword },
-            ].map(({ id, label, placeholder, type, value, setValue }) => (
-              <motion.div key={id}>
-                <label className="block mb-2 text-gray-300">{label}</label>
-                <input
-                  type={type}
-                  value={value}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}
-                  placeholder={placeholder}
-                  className="w-full p-3 border-2 border-blue-200 dark:border-pink-400 rounded-xl focus:outline-none dark:bg-white text-black"
-                  required
-                />
-              </motion.div>
-            ))}
-            
-            {error && <p className="text-red-500 text-center text-sm">{error}</p>}
+            <motion.div
+              className="space-y-4"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.08 } },
+              }}
+            >
+              <InputField
+                id="email"
+                label={t.email}
+                placeholder={t.enMail}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                icon={<FiMail />}
+              />
+              <InputField
+                id="password"
+                label={t.password}
+                placeholder={t.enPass}
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                icon={<FiLock />}
+              />
+            </motion.div>
+
+            {error && (
+              <p className="text-red-500 text-center text-sm pt-2">{error}</p>
+            )}
 
             <motion.button
               whileTap={{ scale: 0.95 }}
@@ -144,7 +221,10 @@ const Login: React.FC = () => {
 
           <p className="mt-6 text-sm text-center text-gray-300">
             {t.noAccount}{" "}
-            <span className="text-pink-400 font-bold cursor-pointer hover:text-orange-300" onClick={() => router.push('/register')}>
+            <span
+              className="text-pink-400 font-bold cursor-pointer hover:text-orange-300"
+              onClick={() => router.push("/register")}
+            >
               {t.register}
             </span>
           </p>
@@ -160,7 +240,12 @@ const Login: React.FC = () => {
               className="absolute top-10 left-1/2 -translate-x-1/2 bg-pink-500 text-white px-10 py-5 rounded-xl shadow-xl"
             >
               {t.success}
-              <motion.div className="h-1 bg-white mt-3 rounded" initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: 1 }} />
+              <motion.div
+                className="h-1 bg-white mt-3 rounded"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ duration: 1 }}
+              />
             </motion.div>
           )}
         </AnimatePresence>
