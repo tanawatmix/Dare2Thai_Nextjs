@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useContext } from "react";
-import { FiMenu, FiX, FiUser, FiMoon, FiSun, FiLogOut } from "react-icons/fi"; // 1. Import FiLogOut
+import { FiMenu, FiX, FiUser, FiMoon, FiSun, FiLogOut } from "react-icons/fi";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,11 +9,13 @@ import { supabase } from "@/lib/supabaseClient";
 import logo from "../../public/dare2New.png";
 import { ThemeContext } from "./../ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
 const Navbar = () => {
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
   const router = useRouter();
+  const { t } = useTranslation(); // ✅ ใช้ i18next แปลภาษา
 
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -91,20 +93,20 @@ const Navbar = () => {
             href="/"
             className="hover:text-blue-500 transition-colors duration-200"
           >
-            Home
+            {t("home")}
           </Link>
           <Link
             href="/post_pages"
             className="hover:text-blue-500 transition-colors duration-200"
           >
-            Places
+            {t("place")}
           </Link>
           {user && isAdmin && (
             <Link
               href="/admin"
               className="hover:text-red-500 transition-colors duration-200"
             >
-              Admin Panel
+              {t("admin_panel")}
             </Link>
           )}
         </div>
@@ -114,10 +116,10 @@ const Navbar = () => {
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
-              <> {/* 2. ใช้ Fragment (JavaScript/JSX) */}
+              <>
                 <Link href="/profile" className="flex items-center gap-2">
                   <Image
-                    src={profile?.profile_image || "/default-avatar.png"}
+                    src={profile?.profile_image || "/dare2New.png"}
                     alt="avatar"
                     width={36}
                     height={36}
@@ -128,28 +130,27 @@ const Navbar = () => {
                     {profile?.name || user.email}
                   </span>
                 </Link>
-                {/* ✅ 3. เพิ่มปุ่ม Logout ที่นี่ */}
                 <button
                   onClick={handleLogout}
-                  title="Logout"
+                  title={t("logout")}
                   className="p-2 rounded-full bg-red-100 dark:bg-red-700 text-red-500 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-600 transition"
                 >
                   <FiLogOut />
                 </button>
               </>
             ) : (
-              <> {/* ใช้ Fragment (JavaScript/JSX) */}
+              <>
                 <Link
                   href="/login"
                   className="px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
                 >
-                  Login
+                  {t("login")}
                 </Link>
                 <Link
                   href="/register"
                   className="px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
                 >
-                  Register
+                  {t("register")}
                 </Link>
               </>
             )}
@@ -158,8 +159,11 @@ const Navbar = () => {
             <select
               value={language}
               onChange={(e) => changeLanguage(e.target.value)}
-              // 4. แก้ไข className ของ select ให้เข้ากับธีม
-              className={`border px-2 py-1 rounded text-sm ${darkMode ? "bg-gray-700 border-gray-600" : "bg-gray-200 border-gray-300"}`}
+              className={`border px-2 py-1 rounded text-sm ${
+                darkMode
+                  ? "bg-gray-700 border-gray-600"
+                  : "bg-gray-200 border-gray-300"
+              }`}
             >
               <option value="th">TH</option>
               <option value="en">EN</option>
@@ -181,7 +185,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu (โค้ดส่วนนี้มีปุ่ม Logout อยู่แล้ว) */}
+      {/* Mobile Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -196,20 +200,20 @@ const Navbar = () => {
               href="/"
               className="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
             >
-              Home
+              {t("home")}
             </Link>
             <Link
               href="/post_pages"
               className="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
             >
-              Places
+              {t("place")}
             </Link>
             {user && isAdmin && (
               <Link
                 href="/admin"
                 className="px-2 py-1 rounded hover:bg-red-100 dark:hover:bg-red-700 transition"
               >
-                Admin Panel
+                {t("admin_panel")}
               </Link>
             )}
 
@@ -233,7 +237,7 @@ const Navbar = () => {
                   onClick={handleLogout}
                   className="w-full text-left text-red-500 hover:text-red-700 px-2 py-1 rounded transition"
                 >
-                  Logout
+                  {t("logout")}
                 </button>
               </>
             ) : (
@@ -242,13 +246,13 @@ const Navbar = () => {
                   href="/login"
                   className="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
                 >
-                  Login
+                  {t("login")}
                 </Link>
                 <Link
                   href="/register"
                   className="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
                 >
-                  Register
+                  {t("register")}
                 </Link>
               </>
             )}
@@ -258,7 +262,11 @@ const Navbar = () => {
               <select
                 value={language}
                 onChange={(e) => changeLanguage(e.target.value)}
-                className={`border px-2 py-1 rounded text-sm w-24 ${darkMode ? "bg-gray-700 border-gray-600" : "bg-gray-200 border-gray-300"}`}
+                className={`border px-2 py-1 rounded text-sm w-24 ${
+                  darkMode
+                    ? "bg-gray-700 border-gray-600"
+                    : "bg-gray-200 border-gray-300"
+                }`}
               >
                 <option value="th">TH</option>
                 <option value="en">EN</option>
