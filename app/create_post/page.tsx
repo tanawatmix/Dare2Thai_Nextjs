@@ -19,12 +19,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { User } from "@supabase/supabase-js";
 import dynamic from "next/dynamic";
 import { LatLngExpression, LatLngTuple } from "leaflet";
+import { FaLocationArrow, FaExternalLinkAlt } from "react-icons/fa"; // Import icons
 
 // Import MapPicker แบบ Dynamic
 const MapPicker = dynamic(() => import("../components/MapPicker"), {
   ssr: false,
   loading: () => (
-    <p className="text-center text-gray-500">กำลังโหลดแผนที่...</p>
+    <div className="h-64 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+      <p className="text-center text-gray-500">กำลังโหลดแผนที่...</p>
+    </div>
   ),
 });
 
@@ -70,30 +73,28 @@ type FormSelectProps = {
   [key: string]: any;
 };
 
-// --- Sub-components for Form Fields (แก้ไขสี) ---
+// --- Sub-components for Form Fields ---
 
 const FormInput = ({ label, ...props }: FormInputProps) => (
   <div>
-    <label className="block mb-1 text-sm font-semibold text-black opacity-90">
+    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
       {label}
     </label>
     <input
       {...props}
-      // ✅ FIX: เปลี่ยน text-[var(--foreground)] เป็น text-black dark:text-white
-      className="w-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500 text-[var(--foreground)] rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700"
+      className="w-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500 text-black dark:text-white rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700"
     />
   </div>
 );
 
 const FormTextArea = ({ label, ...props }: FormTextAreaProps) => (
   <div>
-    <label className="block mb-1 text-sm font-semibold text-black opacity-90">
+    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
       {label}
     </label>
     <textarea
       {...props}
       rows={4}
-      // ✅ FIX: เปลี่ยน text-[var(--foreground)] เป็น text-black dark:text-white
       className="w-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500 text-black dark:text-white rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700"
     />
   </div>
@@ -101,12 +102,11 @@ const FormTextArea = ({ label, ...props }: FormTextAreaProps) => (
 
 const FormSelect = ({ label, options, ...props }: FormSelectProps) => (
   <div className="flex-1">
-    <label className="block mb-1 text-sm font-semibold text-black opacity-90">
+    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
       {label}
     </label>
     <select
       {...props}
-      // ✅ FIX: เปลี่ยน text-[var(--foreground)] เป็น text-black dark:text-white (หรือ dark:text-gray-300)
       className="w-full p-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
     >
       <option value="">{`เลือก${label}`}</option>
@@ -173,22 +173,69 @@ const CreatePost: React.FC = () => {
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
 
-  // ตรวจสอบการล็อกอิน
+  // ตรวจสอบการล็อกอินและดึงตำแหน่งปัจจุบัน
   useEffect(() => {
-    const checkUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    const initializePage = async () => {
+      // 1. ตรวจสอบผู้ใช้ก่อน
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error("กรุณาล็อกอินก่อนสร้างโพสต์");
         router.push("/login");
+        return; // หยุดการทำงาน
+      }
+      setUser(user);
+
+      // 2. ถ้ามีผู้ใช้, พยายามดึงตำแหน่งปัจจุบัน
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            // สำเร็จ: ตั้งค่าแผนที่เป็นตำแหน่งปัจจุบัน
+            const { latitude, longitude } = position.coords;
+            setLatitude(latitude);
+            setLongitude(longitude);
+            setMapCenter([latitude, longitude]);
+            toast.success("พบตำแหน่งปัจจุบันของคุณแล้ว!");
+            setLoading(false); // โหลดเสร็จ
+          },
+          (error) => {
+            // ล้มเหลว: ใช้ค่าเริ่มต้น (กรุงเทพฯ)
+            console.warn(`Geolocation error (${error.code}): ${error.message}`);
+            toast.error("ไม่สามารถเข้าถึงตำแหน่งปัจจุบันได้ ใช้ค่าเริ่มต้นแทน");
+            setLoading(false); // โหลดเสร็จ
+          }
+        );
       } else {
-        setUser(user);
-        setLoading(false);
+        // เบราว์เซอร์ไม่รองรับ: ใช้ค่าเริ่มต้น
+        console.warn("Geolocation not supported by this browser.");
+        setLoading(false); // โหลดเสร็จ
       }
     };
-    checkUser();
+
+    initializePage();
   }, [router]);
+
+  // ฟังก์ชันสำหรับปุ่ม "ใช้ตำแหน่งปัจจุบัน"
+  const handleGetCurrentLocation = () => {
+    if ("geolocation" in navigator) {
+      const locationToast = toast.loading("กำลังค้นหาตำแหน่งของคุณ...");
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setLatitude(latitude);
+          setLongitude(longitude);
+          setMapCenter([latitude, longitude]);
+          toast.dismiss(locationToast);
+          toast.success("ปักหมุดที่ตำแหน่งปัจจุบันของคุณแล้ว!");
+        },
+        (error) => {
+          toast.dismiss(locationToast);
+          toast.error(`ไม่สามารถเข้าถึงตำแหน่ง: ${error.message}`);
+        }
+      );
+    } else {
+      toast.error("เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง");
+    }
+  };
 
   // 6. ฟังก์ชันสำหรับอัปเดต Title เมื่อเลือก Type
   const handlePlaceTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -203,21 +250,15 @@ const CreatePost: React.FC = () => {
   };
 
   // 7. ฟังก์ชันใหม่สำหรับ Handle จังหวัด
-  // 7. ฟังก์ชันใหม่สำหรับ Handle จังหวัด
   const handleProvinceChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newProvince = e.target.value;
     setProvince(newProvince);
-
-    // 1. กำหนด Type ของค่าเริ่มต้นให้ชัดเจน
     const defaultCoord: LatLngTuple = [13.7563, 100.5018];
-
-    // 2. Cast newCenter ให้เป็น LatLngTuple (array)
     const newCenter = (PROVINCE_COORDS[newProvince] ||
       defaultCoord) as LatLngTuple;
-
     setMapCenter(newCenter);
-    setLatitude(newCenter[0]); // 3. ตอนนี้ TypeScript รู้จัก newCenter[0] แล้ว
-    setLongitude(newCenter[1]); // 4. ตอนนี้ TypeScript รู้จัก newCenter[1] แล้ว
+    setLatitude(newCenter[0]);
+    setLongitude(newCenter[1]);
   };
 
   // 8. ฟังก์ชันสำหรับอัปเดตพิกัด (จากการลากหมุด หรือ ค้นหา)
@@ -334,7 +375,7 @@ const CreatePost: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-[var(--background)]">
+      <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
       </div>
     );
@@ -396,10 +437,21 @@ const CreatePost: React.FC = () => {
               required
             />
 
+            {/* --- NEW Map Section --- */}
             <div>
-              <label className="block mb-2 text-sm font-semibold text-black opacity-90">
-                ปักหมุดตำแหน่ง (คลิก, ลาก, หรือค้นหา)
-              </label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  ปักหมุดตำแหน่ง (คลิก, ลาก, หรือค้นหา)
+                </label>
+                <button
+                  type="button"
+                  onClick={handleGetCurrentLocation}
+                  className="flex items-center gap-1 text-xs font-medium text-blue-500 hover:underline"
+                >
+                  <FaLocationArrow size={10} />
+                  ใช้ตำแหน่งปัจจุบัน
+                </button>
+              </div>
               <div className="rounded-lg overflow-hidden border-2 border-gray-300 dark:border-gray-600">
                 <MapPicker
                   onLocationChange={handleMapUpdate}
@@ -408,15 +460,27 @@ const CreatePost: React.FC = () => {
                 />
               </div>
               {latitude && (
-                <p className="text-xs text-gray-500 mt-1">
-                  ปักหมุดแล้ว: Lat: {latitude.toFixed(4)}, Lng:{" "}
-                  {longitude.toFixed(4)}
-                </p>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    ปักหมุดแล้ว: Lat: {latitude.toFixed(4)}, Lng:{" "}
+                    {longitude.toFixed(4)}
+                  </p>
+                  <a
+                    href={`https://www.google.com/maps?q=${latitude},${longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs font-medium text-green-500 hover:underline"
+                  >
+                    เปิดใน Google Maps
+                    <FaExternalLinkAlt size={10} />
+                  </a>
+                </div>
               )}
             </div>
+            {/* --- End NEW Map Section --- */}
 
             <div>
-              <label className="block mb-2 text-sm font-semibold text-black opacity-90">
+              <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
                 รูปภาพ (สูงสุด 5 รูป)
               </label>
               <button
