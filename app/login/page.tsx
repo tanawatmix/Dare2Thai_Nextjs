@@ -79,7 +79,7 @@ const InputField: React.FC<InputFieldProps> = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full p-3 pl-10 border-2 border-blue-200 dark:border-pink-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 dark:bg-white text-black transition"
+        className="w-full p-3 pl-10 border-2 border-blue-200 bg-gray-300 dark:border-pink-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 dark:bg-white text-black transition"
         required
       />
     </div>
@@ -145,7 +145,6 @@ const Login: React.FC = () => {
           transition={{ duration: 0.5 }}
           className="relative border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-10 max-w-lg w-full backdrop-blur-lg"
         >
-          {/* --- 3. อัปเดตปุ่ม Top Right --- */}
           <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
             <select
               onChange={(e) => setLang(e.target.value as "th" | "en")}
@@ -173,8 +172,6 @@ const Login: React.FC = () => {
           >
             {t.title}
           </motion.h3>
-
-          {/* --- 4. อัปเดต Form ให้ใช้ InputField --- */}
           <form onSubmit={handleLogin} className="space-y-6">
             <motion.div
               className="space-y-4"
@@ -230,7 +227,6 @@ const Login: React.FC = () => {
           </p>
         </motion.div>
 
-        {/* Success Message */}
         <AnimatePresence>
           {showSuccess && (
             <motion.div

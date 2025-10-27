@@ -114,7 +114,7 @@ const PostCard: React.FC<PostCardProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-4 flex flex-col h-48 justify-between">
+        <div className="p-4 flex flex-col h-48 justify-between bg-gray-50 backdrop-blur-sm bg-opacity-10  ">
           <div>
             <div className="flex justify-between items-center mb-2">
               <p className="text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 px-2 py-1 rounded-full">

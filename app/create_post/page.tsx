@@ -77,19 +77,19 @@ type FormSelectProps = {
 
 const FormInput = ({ label, ...props }: FormInputProps) => (
   <div>
-    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
+    <label className="block mb-1 text-sm font-semibold text-white">
       {label}
     </label>
     <input
       {...props}
-      className="w-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500 text-black dark:text-white rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700"
+      className="w-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-pink-500 text-black  rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700"
     />
   </div>
 );
 
 const FormTextArea = ({ label, ...props }: FormTextAreaProps) => (
   <div>
-    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
+    <label className="block mb-1 text-sm font-semibold text-white">
       {label}
     </label>
     <textarea
@@ -102,7 +102,7 @@ const FormTextArea = ({ label, ...props }: FormTextAreaProps) => (
 
 const FormSelect = ({ label, options, ...props }: FormSelectProps) => (
   <div className="flex-1">
-    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
+    <label className="block mb-1 text-sm font-semibold text-white">
       {label}
     </label>
     <select
@@ -191,13 +191,10 @@ const CreatePost: React.FC = () => {
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            // สำเร็จ: ตั้งค่าแผนที่เป็นตำแหน่งปัจจุบัน
             const { latitude, longitude } = position.coords;
             setLatitude(latitude);
             setLongitude(longitude);
             setMapCenter([latitude, longitude]);
-            // ไม่ต้องแสดง toast สำเร็จทุกครั้งที่โหลด
-            // toast.success("พบตำแหน่งปัจจุบันของคุณแล้ว!");
             setLoading(false); // โหลดเสร็จ
           },
           (error) => {
@@ -416,7 +413,6 @@ const CreatePost: React.FC = () => {
               />
             </div>
 
-            {/* ✅ แก้ไข: เปลี่ยน placeholder แบบไดนามิก */}
             <FormInput
               label="ชื่อร้าน / โพสต์"
               placeholder={
@@ -437,10 +433,9 @@ const CreatePost: React.FC = () => {
               required
             />
 
-            {/* --- Map Section --- (คงเดิม) */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                <label className="block text-sm font-semibold text-white">
                   ปักหมุดตำแหน่ง (คลิก, ลาก, หรือค้นหา)
                 </label>
                 <button
@@ -461,7 +456,7 @@ const CreatePost: React.FC = () => {
               </div>
               {latitude && (
                 <div className="flex justify-between items-center mt-1">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-white">
                     ปักหมุดแล้ว: Lat: {latitude.toFixed(4)}, Lng:{" "}
                     {longitude.toFixed(4)}
                   </p>
@@ -477,11 +472,9 @@ const CreatePost: React.FC = () => {
                 </div>
               )}
             </div>
-            {/* --- End Map Section --- */}
 
-            {/* --- Image Upload Section --- (คงเดิม) */}
             <div>
-              <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+              <label className="block mb-2 text-sm font-semibold text-white">
                 รูปภาพ (สูงสุด 5 รูป)
               </label>
               <button
@@ -513,9 +506,7 @@ const CreatePost: React.FC = () => {
                 </div>
               </AnimatePresence>
             </div>
-            {/* --- End Image Upload Section --- */}
 
-            {/* --- Buttons --- (คงเดิม) */}
             <div className="flex gap-4">
               <motion.button
                 type="button"
@@ -534,7 +525,6 @@ const CreatePost: React.FC = () => {
                 {isSubmitting ? "กำลังโพสต์..." : "โพสต์"}
               </motion.button>
             </div>
-            {/* --- End Buttons --- */}
           </form>
         </motion.div>
       </div>

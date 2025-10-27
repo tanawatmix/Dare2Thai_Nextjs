@@ -86,7 +86,7 @@ type FormSelectProps = {
 // --- Sub-components for Form Fields ---
 const FormInput = ({ label, ...props }: FormInputProps) => (
   <div>
-    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
+    <label className="block mb-1 text-sm font-semibold text-white">
       {label}
     </label>
     <input
@@ -97,7 +97,7 @@ const FormInput = ({ label, ...props }: FormInputProps) => (
 );
 const FormTextArea = ({ label, ...props }: FormTextAreaProps) => (
   <div>
-    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
+    <label className="block mb-1 text-sm font-semibold text-white">
       {label}
     </label>
     <textarea
@@ -109,7 +109,7 @@ const FormTextArea = ({ label, ...props }: FormTextAreaProps) => (
 );
 const FormSelect = ({ label, options, ...props }: FormSelectProps) => (
   <div className="flex-1">
-    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">
+    <label className="block mb-1 text-sm font-semibold text-white">
       {label}
     </label>
     <select
@@ -461,7 +461,7 @@ const EditPost: React.FC = () => {
 
             {/* 16. เพิ่ม MapPicker */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-semibold text-white">
                 ปักหมุดตำแหน่ง (คลิก, ลาก, หรือค้นหา)
               </label>
               <div className="rounded-lg overflow-hidden border-2 border-gray-300 dark:border-gray-600">
@@ -473,7 +473,7 @@ const EditPost: React.FC = () => {
               </div>
               {latitude && (
                 <div className="flex justify-between items-center mt-1">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-white">
                     ปักหมุดแล้ว: Lat: {latitude.toFixed(4)}, Lng:{" "}
                     {longitude.toFixed(4)}
                   </p>
@@ -492,7 +492,7 @@ const EditPost: React.FC = () => {
 
             {/* ส่วนอัปโหลดรูปภาพ */}
             <div>
-              <label className="block mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+              <label className="block mb-2 text-sm font-semibold text-white">
                 รูปภาพ (สูงสุด 5 รูป)
               </label>
               <button
