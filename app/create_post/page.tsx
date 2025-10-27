@@ -19,7 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { User } from "@supabase/supabase-js";
 import dynamic from "next/dynamic";
 import { LatLngExpression, LatLngTuple } from "leaflet";
-import { FaLocationArrow, FaExternalLinkAlt } from "react-icons/fa"; // Import icons
+import { FaLocationArrow, FaExternalLinkAlt } from "react-icons/fa";
 
 // Import MapPicker (which is now Google Maps)
 const MapPicker = dynamic(() => import("../components/MapPicker"), {
@@ -195,20 +195,16 @@ const CreatePost: React.FC = () => {
             setLatitude(latitude);
             setLongitude(longitude);
             setMapCenter([latitude, longitude]);
-            setLoading(false); // โหลดเสร็จ
+            setLoading(false);
           },
           (error) => {
-            // ล้มเหลว: ใช้ค่าเริ่มต้น (กรุงเทพฯ)
             console.warn(`Geolocation error (${error.code}): ${error.message}`);
-            // ไม่ต้องแสดง toast error ทุกครั้งที่โหลด
-            // toast.error("ไม่สามารถเข้าถึงตำแหน่งปัจจุบันได้ ใช้ค่าเริ่มต้นแทน");
-            setLoading(false); // โหลดเสร็จ
+            setLoading(false); 
           }
         );
       } else {
-        // เบราว์เซอร์ไม่รองรับ: ใช้ค่าเริ่มต้น
         console.warn("Geolocation not supported by this browser.");
-        setLoading(false); // โหลดเสร็จ
+        setLoading(false);
       }
     };
 
@@ -242,7 +238,6 @@ const CreatePost: React.FC = () => {
   const handlePlaceTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value;
     setPlaceType(newType);
-    // ไม่ต้องทำอะไรกับ state `title` แล้ว
   };
 
   // 7. ฟังก์ชันใหม่สำหรับ Handle จังหวัด (คงเดิม)
@@ -288,7 +283,7 @@ const CreatePost: React.FC = () => {
     setImages((prev) => prev.filter((_, i) => i !== index));
     setImagePreviews((prev) => {
       const newPreviews = prev.filter((_, i) => i !== index);
-      URL.revokeObjectURL(prev[index]); // Clean up object URL
+      URL.revokeObjectURL(prev[index]);
       return newPreviews;
     });
   };

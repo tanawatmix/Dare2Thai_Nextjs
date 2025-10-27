@@ -125,7 +125,7 @@ const Login: React.FC = () => {
     } else if (data.session) {
       setShowSuccess(true);
       setTimeout(() => {
-        router.push("/"); // ไปที่หน้าแรกหลังล็อกอินสำเร็จ
+        router.push("/");
         router.refresh(); // สั่งให้ refresh เพื่อให้ Navbar อัปเดต
       }, 1500);
     }

@@ -185,7 +185,6 @@ const FavoritesPage = () => {
 
     try {
       if (isFav) {
-        // ลบ favorite
         await supabase
           .from("favorites")
           .delete()

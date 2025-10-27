@@ -18,26 +18,25 @@ import {
   FiXCircle,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
-import { User } from "@supabase/supabase-js"; // Import User type if needed
+import { User } from "@supabase/supabase-js";
 
 // --- Type Definitions ---
 type SupabaseUser = {
-  id: string; // UUID from auth.users / profiles
-  email?: string | undefined; // Make email optional as we might mock it
+  id: string;
+  email?: string | undefined;
 };
 
 type Profile = {
-  id: string; // Should match auth.users id
+  id: string;
   username: string;
-  name: string; // Ensure this column exists in your profiles table
+  name: string;
   role: string;
 };
 
 type Post = {
-  id: string; // UUID from posts table
-  user_id: string; // Foreign key referencing profiles.id (or auth.users.id)
+  id: string;
+  user_id: string;
   title: string;
-  // Allow profiles to be object, array, or null to handle JOIN variations
   profiles: { username: string } | { username: string }[] | null;
 };
 
@@ -86,7 +85,7 @@ const LoadingSpinner = () => (
 );
 const LoadingComponent = ({ text }: { text: string }) => (
   <div className="flex flex-col items-center justify-center min-h-screen">
-    <LoadingSpinner /> {/* Reuse the spinner */}
+    <LoadingSpinner />
     <p className="text-lg text-[var(--foreground)] opacity-80 mt-2">{text}</p>
   </div>
 );
@@ -104,7 +103,6 @@ const Section = ({
       initial={{ opacity: 0, x: -30 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5 }}
-      // ✅ FIX: ใช้สีจาก CSS Variable
       className="text-2xl font-semibold mb-5 text-[var(--foreground)] opacity-90 flex items-center gap-2"
     >
       {title === "จัดการผู้ใช้" ? <FiUser /> : <FiFileText />} {title}
@@ -427,12 +425,8 @@ export default function AdminPage() {
       }
     };
 
-    // ใน AdminPage.tsx
-
     const fetchUsers = async () => {
       setLoadingUsers(true);
-
-      // ✅ เปลี่ยนมาเรียกใช้ Edge Function
       const { data: combinedUsers, error: functionError } =
         await supabase.functions.invoke("get-all-users");
 
@@ -440,7 +434,7 @@ export default function AdminPage() {
         toast.error("ไม่สามารถโหลดข้อมูลผู้ใช้: " + functionError.message);
         console.error("Function invoke error:", functionError);
       } else if (combinedUsers) {
-        setUsers(combinedUsers); // ข้อมูลที่ได้จะมีอีเมลจริงอยู่แล้ว
+        setUsers(combinedUsers);
       }
 
       setLoadingUsers(false);
@@ -449,8 +443,6 @@ export default function AdminPage() {
     const fetchPosts = async () => {
       setLoadingPosts(true);
       console.log("AdminPage: Attempting to fetch posts (simplified)...");
-
-      // ✅ FIX: ดึงข้อมูลเฉพาะตาราง posts ไม่ต้อง JOIN profiles
       const { data, error } = await supabase
         .from("posts")
         .select(`id, user_id, title`);
@@ -555,8 +547,6 @@ export default function AdminPage() {
       if (profileError) {
         toast.error("ลบโปรไฟล์ไม่สำเร็จ: " + profileError.message);
       } else {
-        // ที่จริงแล้วควรเรียก Edge Function 'delete-user' ที่ลบจาก auth.users ด้วย
-        // แต่สำหรับตอนนี้ เราจะแค่ลบโปรไฟล์และข้อมูลใน state
         setUsers((prev) => prev.filter((u) => u.id !== userId));
         setPosts((prev) => prev.filter((p) => p.user_id !== userId));
         showNotification(`ลบผู้ใช้ ID: ${userId.substring(0, 8)}... สำเร็จ`);
@@ -601,7 +591,6 @@ export default function AdminPage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      // ✅ FIX: ใช้ CSS Variables สำหรับพื้นหลังและสีข้อความ และลบ font-sriracha
       className={`min-h-screen p-6 transition-colors duration-300 ${
         darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
       }`}
@@ -618,7 +607,6 @@ export default function AdminPage() {
           หน้าจัดการระบบ (Admin)
         </h1>
         <div className="flex items-center gap-3">
-          {/* ✅ FIX: ปรับสีปุ่ม "กลับหน้าหลัก" ให้เข้ากับธีม */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

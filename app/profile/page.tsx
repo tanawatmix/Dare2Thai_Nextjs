@@ -6,7 +6,6 @@ import React, {
   useContext,
   useEffect,
   ChangeEvent,
-  FormEvent,
 } from "react";
 import { ThemeContext } from "../ThemeContext";
 import Navbar from "../components/navbar";
@@ -17,16 +16,15 @@ import Swal from "sweetalert2";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { User } from "@supabase/supabase-js";
 
-// --- 1. Import สิ่งที่จำเป็นสำหรับ Cropper ---
+// Cropper
 import ReactCrop, {
   type Crop,
   type PixelCrop,
   centerCrop,
   makeAspectCrop,
 } from "react-image-crop";
-import "react-image-crop/dist/ReactCrop.css"; // Import CSS ของ cropper
+import "react-image-crop/dist/ReactCrop.css";
 
 const defaultAvatar = "/D2T2.png";
 
@@ -48,11 +46,8 @@ type PostData = {
   image_url: string[] | string | null;
 };
 
-// --- 2. ฟังก์ชัน Helper สำหรับสร้าง Canvas (อยู่ข้างนอก Component) ---
-function getCroppedImg(
-  image: HTMLImageElement,
-  crop: PixelCrop
-): Promise<File> {
+// Create cropped image file from canvas
+function getCroppedImg(image: HTMLImageElement, crop: PixelCrop): Promise<File> {
   const canvas = document.createElement("canvas");
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
@@ -93,22 +88,18 @@ function getCroppedImg(
         resolve(file);
       },
       "image/jpeg",
-      0.95 // คุณภาพ 95%
+      0.95
     );
   });
 }
 
-// --- 3. ฟังก์ชัน Helper สำหรับคำนวณ Crop เริ่มต้น ---
-function centerAspectCrop(
-  mediaWidth: number,
-  mediaHeight: number,
-  aspect: number
-) {
+// Centered square crop
+function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
   return centerCrop(
     makeAspectCrop(
       {
         unit: "%",
-        width: 90, // เริ่มต้นที่ 90%
+        width: 90,
       },
       aspect,
       mediaWidth,
@@ -131,7 +122,6 @@ const ProfilePage = () => {
   const [avatarPreview, setAvatarPreview] = useState<string>(defaultAvatar);
   const [posts, setPosts] = useState<PostData[]>([]);
 
-  // --- 4. เพิ่ม State สำหรับ Cropper ---
   const [originalImageSrc, setOriginalImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
@@ -148,7 +138,6 @@ const ProfilePage = () => {
       }
       setUser(user);
 
-      // (โค้ดส่วนดึงข้อมูลโพสต์และโปรไฟล์เหมือนเดิม)
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -194,16 +183,13 @@ const ProfilePage = () => {
     }
   };
 
-  // --- 5. อัปเดต handleImageChange ---
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // เคลียร์ค่าเก่า (ถ้ามี)
       setAvatarFile(null);
       setCrop(undefined);
       setCompletedCrop(null);
 
-      // อ่านไฟล์ใหม่เพื่อแสดงใน Modal
       const reader = new FileReader();
       reader.onloadend = () => {
         setOriginalImageSrc(reader.result as string);
@@ -212,14 +198,11 @@ const ProfilePage = () => {
     }
   };
 
-  // --- 6. ฟังก์ชันเมื่อรูปใน Cropper โหลด ---
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
-    // ตั้งค่า Crop เริ่มต้นให้เป็นสี่เหลี่ยมจัตุรัสกลางภาพ
     setCrop(centerAspectCrop(width, height, 1 / 1));
   }
 
-  // --- 7. ฟังก์ชันเมื่อยืนยันการ Crop ---
   const handleCropConfirm = async () => {
     if (!completedCrop || !imgRef.current) {
       Swal.fire("Error", "กรุณาเลือกพื้นที่ก่อน", "error");
@@ -228,12 +211,8 @@ const ProfilePage = () => {
 
     try {
       const croppedFile = await getCroppedImg(imgRef.current, completedCrop);
-
-      // ตั้งค่าไฟล์ที่ตัดแล้ว
       setAvatarFile(croppedFile);
-      // สร้าง Preview จากไฟล์ที่ตัดแล้ว
       setAvatarPreview(URL.createObjectURL(croppedFile));
-      // ปิด Modal
       setOriginalImageSrc(null);
     } catch (e) {
       console.error(e);
@@ -241,9 +220,8 @@ const ProfilePage = () => {
     }
   };
 
-  // --- 8. ฟังก์ชันเมื่อยกเลิกการ Crop ---
   const handleCropCancel = () => {
-    setOriginalImageSrc(null); // ปิด Modal
+    setOriginalImageSrc(null);
   };
 
   const handleSave = async () => {
@@ -253,7 +231,6 @@ const ProfilePage = () => {
     let avatarUrl = profile.profile_image;
 
     if (avatarFile) {
-      // (ส่วนนี้เหมือนเดิม เพราะ avatarFile คือรูปที่ตัดแล้ว)
       if (profile.profile_image) {
         const oldFileName = profile.profile_image.split("/").pop();
         if (oldFileName) {
@@ -279,7 +256,7 @@ const ProfilePage = () => {
         .getPublicUrl(uploadData.path);
       avatarUrl = urlData.publicUrl;
     }
-    // (ส่วนที่เหลือของ handleSave เหมือนเดิมทั้งหมด)
+
     const { error: updateError } = await supabase
       .from("profiles")
       .update({
@@ -298,7 +275,6 @@ const ProfilePage = () => {
     setSaving(false);
   };
 
-  // (โค้ดส่วน handleDeletePost และ handleChangePassword เหมือนเดิม)
   const handleDeletePost = async (postId: string) => {
     const confirm = await Swal.fire({
       title: "ลบโพสต์นี้?",
@@ -391,7 +367,6 @@ const ProfilePage = () => {
     >
       <Navbar />
       <main className="flex flex-1 mt-14 flex-col items-center py-8 px-4">
-        {/* (โค้ด JSX ส่วน Profile Form เหมือนเดิม) */}
         <motion.div
           className={`w-full max-w-2xl p-8 rounded-3xl shadow-2xl border-2 ${
             darkMode
@@ -443,7 +418,7 @@ const ProfilePage = () => {
                 type="file"
                 accept="image/*"
                 className="hidden"
-                onChange={handleImageChange} // นี่คือจุดที่เปลี่ยน
+                onChange={handleImageChange}
               />
             </motion.div>
           </div>
@@ -481,7 +456,6 @@ const ProfilePage = () => {
             เปลี่ยนรหัสผ่าน
           </motion.button>
 
-          {/* --- ✅ EDIT: เปลี่ยนปุ่มบันทึกเป็น Button Group --- */}
           <div className="flex flex-col sm:flex-row gap-4 mt-8">
             <motion.button
               type="button"
@@ -509,10 +483,8 @@ const ProfilePage = () => {
               {saving ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}
             </motion.button>
           </div>
-          {/* --- ✅ END EDIT --- */}
         </motion.div>
 
-        {/* (โค้ด JSX ส่วน Posts เหมือนเดิม) */}
         <div className="mt-12 w-full max-w-3xl">
           <h2 className="text-2xl font-bold mb-4 text-center text-[var(--foreground)]">
             โพสต์ของฉัน
@@ -546,14 +518,13 @@ const ProfilePage = () => {
 
       <Footer />
 
-      {/* --- 9. JSX สำหรับ Crop Modal --- */}
       <AnimatePresence>
         {originalImageSrc && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" // เพิ่ม p-4
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -570,7 +541,7 @@ const ProfilePage = () => {
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
                 onComplete={(c) => setCompletedCrop(c)}
-                aspect={1} // --- นี่คือจุดที่บังคับให้เป็นสี่เหลี่ยมจัตุรัส ---
+                aspect={1}
                 className="w-full"
               >
                 <img
@@ -582,8 +553,6 @@ const ProfilePage = () => {
                 />
               </ReactCrop>
               <div className="flex flex-col sm:flex-row gap-4 mt-6">
-                {" "}
-                {/* ปรับ responsive */}
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={handleCropCancel}
@@ -607,7 +576,6 @@ const ProfilePage = () => {
   );
 };
 
-// --- InputField Sub-component (เหมือนเดิม) ---
 const InputField = ({
   label,
   name,
@@ -643,9 +611,7 @@ const InputField = ({
             ? "border-pink-400 focus:border-pink-300"
             : "border-blue-300 focus:border-blue-500"
         }
-        focus:ring-2 ${
-          darkMode ? "focus:ring-pink-300" : "focus:ring-blue-300"
-        } focus:outline-none
+        focus:ring-2 ${darkMode ? "focus:ring-pink-300" : "focus:ring-blue-300"} focus:outline-none
       `}
       autoComplete="off"
     />

@@ -3,7 +3,7 @@
 import { useState, useEffect, useContext, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ThemeContext } from "../ThemeContext";
-import Navbar from "../components/navbar"; // Assuming Navbar has a fixed height (e.g., h-16)
+import Navbar from "../components/navbar";
 import Footer from "../components/Footer";
 import PostCard from "../components/PostCard";
 import { supabase } from "@/lib/supabaseClient";
@@ -23,9 +23,8 @@ import {
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { User } from "@supabase/supabase-js"; // Import User
+import { User } from "@supabase/supabase-js";
 
-// --- Type Definition for a Post ---
 type Post = {
   id: string;
   image_url: string[];
@@ -38,7 +37,6 @@ type Post = {
   isFav?: boolean;
 };
 
-// --- Constant Data ---
 const placeTypes = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม"];
 const filterTags = ["ทั้งหมด", ...placeTypes];
 const sortOptions = [
@@ -52,13 +50,11 @@ const sortOptions = [
   { id: "za", name: "Z-A", icon: <FiArrowUp size={16} /> },
 ];
 
-// --- Main Page Component ---
 const PostPage = () => {
   const { darkMode } = useContext(ThemeContext);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // --- States ---
   const [posts, setPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [currentPage, setCurrentPage] = useState(
@@ -71,19 +67,15 @@ const PostPage = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showSortMenu, setShowSortMenu] = useState(false);
 
-  // --- States and Refs for Sticky Bar ---
   const [isSticky, setIsSticky] = useState(false);
-  const stickyContainerRef = useRef<HTMLDivElement>(null); // Ref to the placeholder div
-  const filterBarRef = useRef<HTMLDivElement>(null); // Ref to the actual filter bar
+  const stickyContainerRef = useRef<HTMLDivElement>(null);
+  const filterBarRef = useRef<HTMLDivElement>(null);
   const [filterBarHeight, setFilterBarHeight] = useState(0);
-  const [stickyOffsetTop, setStickyOffsetTop] = useState(0); // Store initial top offset
+  const [stickyOffsetTop, setStickyOffsetTop] = useState(0);
 
-  // --- Assumed Navbar Height ---
-  const NAVBAR_HEIGHT = 64; // in pixels
-
+  const NAVBAR_HEIGHT = 64;
   const postsPerPage = 12;
 
-  // --- Get current user ---
   useEffect(() => {
     const getUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -92,7 +84,6 @@ const PostPage = () => {
     getUser();
   }, []);
 
-  // --- Fetch posts ---
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
@@ -146,7 +137,6 @@ const PostPage = () => {
     fetchPosts();
   }, [currentUserId]);
 
-  // --- Filter & Sort Logic ---
   useEffect(() => {
     let filtered = posts.filter((p) => {
       const matchName = p.title
@@ -180,10 +170,8 @@ const PostPage = () => {
     }
 
     setFilteredPosts(filtered);
-    // setCurrentPage(1); // Reset page only when filter/sort actually changes via handlers
   }, [searchName, selectedType, posts, sortBy]);
 
-  // --- Effect for managing Sticky Bar ---
   useEffect(() => {
     const container = stickyContainerRef.current;
     const filterBar = filterBarRef.current;
@@ -191,14 +179,14 @@ const PostPage = () => {
     if (!container || !filterBar) return;
 
     const calculateInitialPosition = () => {
-        let top = 0;
-        let element: HTMLElement | null = container;
-        while(element) {
-            top += element.offsetTop;
-            element = element.offsetParent as HTMLElement | null;
-        }
-        setStickyOffsetTop(top);
-        setFilterBarHeight(filterBar.offsetHeight);
+      let top = 0;
+      let element: HTMLElement | null = container;
+      while (element) {
+        top += element.offsetTop;
+        element = element.offsetParent as HTMLElement | null;
+      }
+      setStickyOffsetTop(top);
+      setFilterBarHeight(filterBar.offsetHeight);
     };
 
     calculateInitialPosition();
@@ -217,32 +205,28 @@ const PostPage = () => {
     };
   }, [stickyOffsetTop]);
 
-  // --- Function to handle tag selection and scroll ---
   const handleSelectType = (tag: string) => {
     const newType = tag === "ทั้งหมด" ? "" : tag;
     setSelectedType(newType);
     setCurrentPage(1);
 
     setTimeout(() => {
-        const targetScrollY = Math.max(0, stickyOffsetTop - NAVBAR_HEIGHT);
-        window.scrollTo({ top: targetScrollY, behavior: "smooth" });
+      const targetScrollY = Math.max(0, stickyOffsetTop - NAVBAR_HEIGHT);
+      window.scrollTo({ top: targetScrollY, behavior: "smooth" });
     }, 0);
   };
 
-  // --- ✅ NEW: Function to handle sort change and scroll ---
   const handleSortChange = (sortId: string) => {
     setSortBy(sortId);
-    setShowSortMenu(false); // Close the dropdown
-    setCurrentPage(1); // Reset page to 1
+    setShowSortMenu(false);
+    setCurrentPage(1);
 
-    // Scroll to top after state update
     setTimeout(() => {
-        const targetScrollY = Math.max(0, stickyOffsetTop - NAVBAR_HEIGHT);
-        window.scrollTo({ top: targetScrollY, behavior: "smooth" });
+      const targetScrollY = Math.max(0, stickyOffsetTop - NAVBAR_HEIGHT);
+      window.scrollTo({ top: targetScrollY, behavior: "smooth" });
     }, 0);
   };
 
-  // --- Pagination ---
   const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
@@ -257,7 +241,6 @@ const PostPage = () => {
     }
   };
 
-  // --- Favorite ---
   const handleFavPost = async (postId: string) => {
     if (!currentUserId) {
       toast.error("กรุณาล็อกอินเพื่อกดถูกใจโพสต์");
@@ -270,32 +253,40 @@ const PostPage = () => {
     const isFav = post.isFav;
     try {
       if (isFav) {
-        const { error } = await supabase.from("favorites").delete().eq("user_id", currentUserId).eq("post_id", postId);
+        const { error } = await supabase
+          .from("favorites")
+          .delete()
+          .eq("user_id", currentUserId)
+          .eq("post_id", postId);
         if (error) throw error;
         setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, isFav: false } : p)));
         toast.success("ลบโพสต์ออกจากรายการโปรดแล้ว");
       } else {
-        const { error } = await supabase.from("favorites").insert({ user_id: currentUserId, post_id: postId });
+        const { error } = await supabase
+          .from("favorites")
+          .insert({ user_id: currentUserId, post_id: postId });
         if (error) throw error;
         setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, isFav: true } : p)));
         toast.success("เพิ่มโพสต์เข้าในรายการโปรดแล้ว");
       }
-    } catch (err: any) { toast.error(err.message); }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
-  // --- Delete ---
   const handleDeletePost = async (postId: string) => {
     if (!currentUserId) return toast.error("ไม่พบผู้ใช้");
     const post = posts.find((p) => p.id === postId);
     if (!post) return toast.error("ไม่พบโพสต์");
-    if (post.user_id !== currentUserId) { return toast.error("คุณไม่สามารถลบโพสต์นี้ได้"); }
+    if (post.user_id !== currentUserId) {
+      return toast.error("คุณไม่สามารถลบโพสต์นี้ได้");
+    }
     if (!confirm("คุณต้องการลบโพสต์นี้ใช่หรือไม่?")) return;
     const { error } = await supabase.from("posts").delete().eq("id", postId);
     if (error) toast.error(error.message);
     else setPosts(posts.filter((p) => p.id !== postId));
   };
 
-  // --- Logic การแสดงผล ---
   const isFiltering = searchName !== "" || selectedType !== "";
 
   return (
@@ -305,33 +296,29 @@ const PostPage = () => {
       }`}
     >
       <Toaster position="top-right" />
-      <Navbar /> {/* Assuming Navbar has h-16 (64px) */}
+      <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 min-h-screen">
-        {/* --- Controls --- */}
-        <motion.div /* ... Controls content ... */
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8"
         >
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
             onClick={() => router.push("/create_post")}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-pink-500 text-white font-semibold rounded-lg shadow-md hover:from-pink-500 hover:to-orange-500 transition-all w-full md:w-auto"
+            className="flex items-center gap-2 px-6 py-3 bg-gray-200 text-black font-semibold rounded-lg w-full md:w-auto"
           >
             <FaPlus /> สร้างโพสต์ใหม่
           </motion.button>
           <Link
             href="/Favorites"
-            className="flex items-center gap-2 text-pink-500 font-semibold hover:text-pink-600 transition-colors"
+            className="flex items-center gap-2 text-gray-700 font-semibold"
           >
             <FiHeart /> ดูรายการโปรด
           </Link>
         </motion.div>
 
-        {/* --- Filter: ช่องค้นหา --- */}
-        <motion.div /* ... Search input content ... */
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
@@ -354,7 +341,6 @@ const PostPage = () => {
           </div>
         </motion.div>
 
-        {/* --- Container for Sticky Bar Placeholder --- */}
         <div ref={stickyContainerRef} style={{ height: isSticky ? `${filterBarHeight}px` : 'auto' }} className="mb-10">
           <motion.div
             ref={filterBarRef}
@@ -363,25 +349,23 @@ const PostPage = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className={`flex flex-col sm:flex-row justify-between items-center gap-4 transition-all duration-300 w-full z-40
               ${isSticky
-                ? `fixed top-16 left-0 right-0 py-4 px-4 sm:px-6 lg:px-8 shadow-lg ${darkMode ? 'bg-gray-900 border-b border-gray-700' : 'bg-gray-50 border-b border-gray-200'}`
+                ? `fixed top-16 left-0 right-0 py-4 px-4 sm:px-6 lg:px-8 border-b ${darkMode ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'}`
                 : 'relative'
               }
             `}
             style={isSticky ? { width: '100%', left: '0', paddingLeft: stickyContainerRef.current?.getBoundingClientRect().left, paddingRight: stickyContainerRef.current?.getBoundingClientRect().left } : {}}
           >
-            {/* Filter Tags */}
             <div className="flex flex-wrap gap-3">
-               {filterTags.map((tag) => {
+              {filterTags.map((tag) => {
                 const isActive = (tag === "ทั้งหมด" && !selectedType) || tag === selectedType;
                 return (
                   <motion.button
                     key={tag}
-                    whileTap={{ scale: 0.95 }}
                     onClick={() => handleSelectType(tag)}
                     className={`px-4 py-2 rounded-full font-semibold transition-all duration-300 text-sm sm:text-base
                       ${isActive
-                        ? `${darkMode ? 'bg-pink-500 text-white' : 'bg-blue-500 text-white'} shadow-md`
-                        : `${darkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-white text-gray-700 hover:bg-gray-100'} border border-gray-300 dark:border-gray-600 hover:scale-105`
+                        ? `${darkMode ? 'bg-gray-700 text-gray-100' : 'bg-gray-300 text-black'}`
+                        : `${darkMode ? 'bg-gray-800 text-gray-300' : 'bg-white text-gray-700'} border border-gray-300`
                       }
                     `}
                   >
@@ -391,15 +375,13 @@ const PostPage = () => {
               })}
             </div>
 
-            {/* Sort Button & Dropdown */}
             <div className="relative">
-               <motion.button
-                whileTap={{ scale: 0.95 }}
+              <motion.button
                 onClick={() => setShowSortMenu(!showSortMenu)}
-                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 text-sm sm:text-base border hover:scale-105
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm sm:text-base border
                   ${darkMode
-                    ? 'bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                    ? 'bg-gray-800 text-gray-300 border-gray-600'
+                    : 'bg-white text-gray-700 border-gray-300'
                   }
                 `}
               >
@@ -412,17 +394,16 @@ const PostPage = () => {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className={`absolute right-0 top-full mt-2 w-48 rounded-lg shadow-xl border overflow-hidden z-50 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+                    className={`absolute right-0 top-full mt-2 w-48 rounded-lg border overflow-hidden z-50 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
                   >
                     {sortOptions.map((opt) => (
                       <button
                         key={opt.id}
-                        // ✅ CHANGED: Use the new handler function
                         onClick={() => handleSortChange(opt.id)}
                         className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors duration-200
                           ${sortBy === opt.id
-                            ? `${darkMode ? 'text-pink-400 bg-gray-700' : 'text-blue-500 bg-gray-100'} font-bold`
-                            : `${darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100'}`
+                            ? `${darkMode ? 'text-gray-100 bg-gray-700' : 'text-black bg-gray-100'} font-semibold`
+                            : `${darkMode ? 'text-gray-300' : 'text-gray-700'}`
                           }
                         `}
                       >
@@ -435,10 +416,9 @@ const PostPage = () => {
               </AnimatePresence>
             </div>
           </motion.div>
-        </div> {/* End Sticky Bar Placeholder */}
+        </div>
 
-        {/* --- Posts Grid --- */}
-         <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait">
           {loading ? (
             <motion.div
               key="loading"
@@ -447,11 +427,11 @@ const PostPage = () => {
               exit={{ opacity: 0 }}
               className="flex justify-center items-center py-20"
             >
-               <svg className={`animate-spin h-10 w-10 ${darkMode ? 'text-pink-400' : 'text-blue-500'}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-               </svg>
-               <span className="ml-3 text-lg text-gray-500 dark:text-gray-400">กำลังโหลดโพสต์...</span>
+              <svg className={`animate-spin h-10 w-10 ${darkMode ? 'text-pink-400' : 'text-blue-500'}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span className="ml-3 text-lg text-gray-500 dark:text-gray-400">กำลังโหลดโพสต์...</span>
             </motion.div>
           ) : (
             <motion.div
@@ -489,7 +469,6 @@ const PostPage = () => {
                 </p>
               )}
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -498,52 +477,47 @@ const PostPage = () => {
                   className="flex justify-center items-center gap-2 mt-12 flex-wrap"
                 >
                   <motion.button
-                    whileTap={{ scale: 0.9 }}
                     onClick={() => handlePageChange(1)}
                     disabled={currentPage === 1}
-                    className={`p-2 rounded-md transition duration-200 border ${darkMode ? 'border-gray-600 hover:bg-gray-700 disabled:text-gray-600' : 'border-gray-300 hover:bg-gray-100 disabled:text-gray-400'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    className={`p-2 rounded-md transition duration-200 border ${darkMode ? 'border-gray-600 disabled:text-gray-600' : 'border-gray-300 disabled:text-gray-400'} disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <FiChevronsLeft />
                   </motion.button>
                   <motion.button
-                   whileTap={{ scale: 0.9 }}
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                     className={`p-2 rounded-md transition duration-200 border ${darkMode ? 'border-gray-600 hover:bg-gray-700 disabled:text-gray-600' : 'border-gray-300 hover:bg-gray-100 disabled:text-gray-400'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    className={`p-2 rounded-md transition duration-200 border ${darkMode ? 'border-gray-600 disabled:text-gray-600' : 'border-gray-300 disabled:text-gray-400'} disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <FiChevronLeft />
                   </motion.button>
                   {Array.from({ length: totalPages }, (_, i) => {
-                      const pageNum = i + 1;
-                      return (
-                          <motion.button
-                              whileTap={{ scale: 0.9 }}
-                              key={pageNum}
-                              onClick={() => handlePageChange(pageNum)}
-                              className={`w-10 h-10 rounded-md font-semibold transition-all duration-200 border
-                                  ${currentPage === pageNum
-                                      ? `${darkMode ? 'bg-pink-500 text-white border-pink-500' : 'bg-blue-500 text-white border-blue-500'} shadow-lg`
-                                      : `${darkMode ? 'border-gray-600 hover:bg-gray-700' : 'border-gray-300 hover:bg-gray-100'} hover:scale-105`
-                                  }
-                              `}
-                          >
-                              {pageNum}
-                          </motion.button>
-                      );
+                    const pageNum = i + 1;
+                    return (
+                      <motion.button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`w-10 h-10 rounded-md font-semibold transition-all duration-200 border
+                          ${currentPage === pageNum
+                            ? `${darkMode ? 'bg-gray-700 text-gray-100 border-gray-700' : 'bg-gray-300 text-black border-gray-300'}`
+                            : `${darkMode ? 'border-gray-600' : 'border-gray-300'}`
+                          }
+                        `}
+                      >
+                        {pageNum}
+                      </motion.button>
+                    );
                   })}
                   <motion.button
-                   whileTap={{ scale: 0.9 }}
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                     className={`p-2 rounded-md transition duration-200 border ${darkMode ? 'border-gray-600 hover:bg-gray-700 disabled:text-gray-600' : 'border-gray-300 hover:bg-gray-100 disabled:text-gray-400'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    className={`p-2 rounded-md transition duration-200 border ${darkMode ? 'border-gray-600 disabled:text-gray-600' : 'border-gray-300 disabled:text-gray-400'} disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <FiChevronRight />
                   </motion.button>
                   <motion.button
-                    whileTap={{ scale: 0.9 }}
                     onClick={() => handlePageChange(totalPages)}
                     disabled={currentPage === totalPages}
-                     className={`p-2 rounded-md transition duration-200 border ${darkMode ? 'border-gray-600 hover:bg-gray-700 disabled:text-gray-600' : 'border-gray-300 hover:bg-gray-100 disabled:text-gray-400'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    className={`p-2 rounded-md transition duration-200 border ${darkMode ? 'border-gray-600 disabled:text-gray-600' : 'border-gray-300 disabled:text-gray-400'} disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <FiChevronsRight />
                   </motion.button>
@@ -559,4 +533,3 @@ const PostPage = () => {
 };
 
 export default PostPage;
-

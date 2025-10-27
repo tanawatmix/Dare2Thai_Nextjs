@@ -9,7 +9,7 @@ import Image from "next/image";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
-import dynamic from 'next/dynamic'; // ✅ 1. Import dynamic
+import dynamic from 'next/dynamic';
 
 // --- Lightbox Components ---
 import Lightbox from "yet-another-react-lightbox";
@@ -32,13 +32,11 @@ import {
 import wp from "../../public/whiteWater.jpg";
 import bp from "../../public/bp.jpg";
 
-// ✅ 2. Import MapDisplay แบบ Dynamic
 const MapDisplay = dynamic(() => import('../components/MapDisplay'), {
     ssr: false,
     loading: () => <p className="text-center text-gray-500">กำลังโหลดแผนที่...</p>
 });
 
-// ✅ 3. อัปเดต Interface ให้มี latitude และ longitude
 interface PostFromSupabase {
   id: string;
   title: string;
@@ -46,8 +44,8 @@ interface PostFromSupabase {
   image_url: string | string[] | null;
   place_type: string;
   province: string;
-  latitude: number;  // <-- เพิ่ม
-  longitude: number; // <-- เพิ่ม
+  latitude: number;
+  longitude: number;
 }
 
 interface Post {
@@ -57,8 +55,8 @@ interface Post {
   image_url: string[];
   place_type: string;
   province: string;
-  latitude: number;  // <-- เพิ่ม
-  longitude: number; // <-- เพิ่ม
+  latitude: number;
+  longitude: number;
 }
 
 const PostDetailsUI: React.FC = () => {
@@ -100,7 +98,7 @@ const PostDetailsUI: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from("posts")
-          .select("*") // ดึงมาทั้งหมด (รวม lat/lng)
+          .select("*")
           .eq("id", postId)
           .single<PostFromSupabase>();
           
@@ -125,8 +123,8 @@ const PostDetailsUI: React.FC = () => {
           place_type: data.place_type,
           province: data.province,
           image_url: safeParseImages(data.image_url),
-          latitude: data.latitude, // <-- เพิ่ม
-          longitude: data.longitude, // <-- เพิ่ม
+          latitude: data.latitude,
+          longitude: data.longitude,
         };
         
         setPost(parsedPost);
@@ -245,7 +243,7 @@ const PostDetailsUI: React.FC = () => {
             {post.description}
           </motion.p>
           
-          {/* ✅ 4. เพิ่มส่วนแสดงผลแผนที่ */}
+          {/* 4.ส่วนแสดงผลแผนที่ */}
           {post.latitude && post.longitude && (
               <motion.div variants={itemVariants} className="my-8">
                   <h3 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">

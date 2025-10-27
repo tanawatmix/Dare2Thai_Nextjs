@@ -19,11 +19,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { User } from "@supabase/supabase-js";
 import dynamic from "next/dynamic";
 import { LatLngExpression, LatLngTuple } from "leaflet";
-import { FaLocationArrow, FaExternalLinkAlt } from "react-icons/fa"; // Import icons
+import { FaLocationArrow, FaExternalLinkAlt } from "react-icons/fa"; 
 
-// 3. Import MapPicker แบบ Dynamic
 const MapPicker = dynamic(() => import("../components/MapPicker"), {
-  ssr: false, // ปิด Server-Side Rendering
+  ssr: false,
   loading: () => (
     <p className="text-center text-gray-500">กำลังโหลดแผนที่...</p>
   ),
@@ -39,7 +38,6 @@ const provinces = [
   "อุบลราชธานี",
 ];
 
-// 4. สร้าง Object เก็บพิกัดของแต่ละจังหวัด
 const PROVINCE_COORDS: { [key: string]: LatLngExpression } = {
   กรุงเทพมหานคร: [13.7563, 100.5018],
   กระบี่: [8.0833, 98.9063],
@@ -49,7 +47,6 @@ const PROVINCE_COORDS: { [key: string]: LatLngExpression } = {
   "": [13.7563, 100.5018], // ค่าเริ่มต้น (กทม.)
 };
 
-// --- Type Definitions ---
 type Post = {
   id: string;
   title: string;
@@ -58,11 +55,10 @@ type Post = {
   province: string;
   image_url: string[];
   user_id: string;
-  latitude: number; // 5. เพิ่ม latitude
-  longitude: number; // 6. เพิ่ม longitude
+  latitude: number; 
+  longitude: number;
 };
 
-// --- Type Definitions for Sub-components ---
 type FormInputProps = {
   label: string;
   value: string;
@@ -83,7 +79,6 @@ type FormSelectProps = {
   [key: string]: any;
 };
 
-// --- Sub-components for Form Fields ---
 const FormInput = ({ label, ...props }: FormInputProps) => (
   <div>
     <label className="block mb-1 text-sm font-semibold text-white">
@@ -160,13 +155,10 @@ const EditPost: React.FC = () => {
   const searchParams = useSearchParams();
   const postId = searchParams.get("id");
   const { darkMode } = useContext(ThemeContext) || { darkMode: false };
-
   const [post, setPost] = useState<Post | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  // Form States
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [placeType, setPlaceType] = useState("");
@@ -174,8 +166,6 @@ const EditPost: React.FC = () => {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
-
-  // 7. เพิ่ม State สำหรับพิกัด (ใช้ค่าเริ่มต้น กทม.)
   const [latitude, setLatitude] = useState<number>(13.7563);
   const [longitude, setLongitude] = useState<number>(100.5018);
   const [mapCenter, setMapCenter] = useState<LatLngExpression>([
@@ -183,8 +173,7 @@ const EditPost: React.FC = () => {
   ]);
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
-
-  // --- Fetch post data & Check Ownership ---
+  // 7. ดึงข้อมูลโพสต์เมื่อ component โหลด
   useEffect(() => {
     if (!postId) {
       toast.error("ไม่พบ ID ของโพสต์");
@@ -274,8 +263,8 @@ const EditPost: React.FC = () => {
       defaultCoord) as LatLngTuple;
 
     setMapCenter(newCenter);
-    setLatitude(newCenter[0]); // 3. ไม่ต้องใช้ 'as number'
-    setLongitude(newCenter[1]); // 4. ไม่ต้องใช้ 'as number'
+    setLatitude(newCenter[0]);
+    setLongitude(newCenter[1]);
   };
 
   // 14. ฟังก์ชันสำหรับอัปเดตพิกัด (จากการลากหมุด หรือ ค้นหา)
@@ -335,8 +324,7 @@ const EditPost: React.FC = () => {
       newImagePreviews.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [newImagePreviews]);
-
-  // --- Submit edited post ---
+  // --- Form Submission ---
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!post || !user) return;
@@ -380,8 +368,8 @@ const EditPost: React.FC = () => {
           place_type: placeType,
           province,
           image_url: uploadedImageUrls,
-          latitude: latitude, // 15. อัปเดตพิกัด
-          longitude: longitude, // 15. อัปเดตพิกัด
+          latitude: latitude,
+          longitude: longitude,
         })
         .eq("id", post.id);
 
