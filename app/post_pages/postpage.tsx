@@ -322,8 +322,8 @@ const PostPage = () => {
         }
     );
 
-     // ✅ FIX: Check if result exists (is not void) before checking instanceof Error
-     if (result && result instanceof Error) {
+     // ✅ FIX: Remove the unnecessary truthiness check `result &&`
+     if (result instanceof Error) {
         console.log("Deletion cancelled or pre-promise error:", result.message);
         return; // Stop execution if user cancelled or another error occurred before deletion attempt
      }
@@ -357,9 +357,9 @@ const PostPage = () => {
        <div className="max-w-8xl mx-auto px-0 sm:px-0 lg:px-0 pt-[64px] h-64 sm:h-80 md:h-96 lg:h-[500px] overflow-hidden"> {/* Adjusted padding and max-width */}
             <Hero
               slides={[
-                { image: "/f1.jpg", title: "ภูเก็ต สวรรค์แห่งทะเล", subtitle: "เที่ยวทะเล ดำน้ำ ดูพระอาทิตย์ตก" },
+                { image: "/f2.jpg", title: "ภูเก็ต สวรรค์แห่งทะเล", subtitle: "เที่ยวทะเล ดำน้ำ ดูพระอาทิตย์ตก" },
                 { image: "/f2.jpg", title: "เชียงใหม่ เมืองแห่งวัฒนธรรม", subtitle: "สัมผัสธรรมชาติและวิถีชาวเหนือ" },
-                { image: "/f3.jpg", title: "กรุงเทพมหานคร", subtitle: "ชีวิตเมืองที่ไม่เคยหลับไหล" },
+                { image: "/f2.jpg", title: "กรุงเทพมหานคร", subtitle: "ชีวิตเมืองที่ไม่เคยหลับไหล" },
               ]}
               autoPlay
               interval={5000}
