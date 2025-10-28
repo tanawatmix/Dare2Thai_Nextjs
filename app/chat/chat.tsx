@@ -294,13 +294,7 @@ const ChatUI = () => {
                     >
                       {msg.username}
                     </strong>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {new Date(msg.created_at).toLocaleTimeString("th-TH", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        timeZone: "Asia/Bangkok",
-                      })}
-                    </span>
+                     <span className="text-xs text-gray-500 dark:text-gray-400">{new Date(msg.created_at.replace(' ', 'T') + 'Z').toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" })}</span>
                   </div>
                   <div
                     className={`mt-1 max-w-xs md:max-w-md w-fit rounded-lg shadow-md ${
