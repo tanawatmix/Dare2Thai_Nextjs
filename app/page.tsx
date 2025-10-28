@@ -141,7 +141,7 @@ export default function HomeUI(): JSX.Element {
 
             <div className="mx-auto h-20 flex items-center justify-center">
               <motion.button
-                className="group flex items-center justify-center gap-2 border-2 border-pink-500 dark:border-blue-400 bg-gradient-to-r from-pink-400 via-orange-300 to-yellow-200 dark:from-blue-900 dark:via-purple-900 dark:to-gray-900 px-8 py-4 text-xl font-bold rounded-full shadow-lg hover:scale-105 transition-transform text-white duration-200 relative overflow-hidden hover:shadow-pink-400/40"
+                className="group flex items-center justify-center gap-2 border-2 border-pink-500 dark:border-blue-400 bg-gradient-to-r from-pink-400 via-orange-300 to-yellow-200 dark:from-blue-900 dark:via-purple-900 dark:to-gray-900 px-8 py-2 text-[14px] font-bold rounded-full shadow-lg hover:scale-105 transition-transform text-white duration-200 relative overflow-hidden hover:shadow-pink-400/40"
                 onClick={() => {
                   handleClick();
                   window.location.href = "/post_pages";
@@ -189,15 +189,15 @@ export default function HomeUI(): JSX.Element {
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
-          className="max-w-3xl bg-gradient-to-br from-pink-100/90 via-white/90 to-yellow-100/90 dark:from-orange-400/95 dark:via-green-400/90 dark:to-orange-400/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border-2 border-pink-300 dark:border-pink-700 text-black dark:text-white"
+          className="max-w-xl bg-gradient-to-br from-pink-100/90 via-white/90 to-yellow-100/90 dark:from-orange-400/95 dark:via-green-400/90 dark:to-orange-400/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border-2 border-pink-300 dark:border-pink-700 text-black dark:text-white"
           aria-label="วัฒนธรรมไทย"
         >
-          <h2 className="text-3xl font-extrabold text-pink-500 dark:text-pink-300 mb-8 drop-shadow-lg flex items-center justify-center gap-3">
+          <h2 className="text-xl font-extrabold text-pink-500 dark:text-pink-300 mb-8 drop-shadow-lg flex items-center justify-center gap-3">
             <span className="inline-block animate-bounce">🌸</span>
             {t("culture")}
             <span className="inline-block animate-bounce">🌸</span>
           </h2>
-          <ul className="text-xl font-medium leading-relaxed mb-6 text-left mx-auto max-w-2xl space-y-3">
+          <ul className="text-xs font-medium leading-relaxed mb-6 text-left mx-auto max-w-2xl space-y-3">
             <li>
               <span className="font-bold text-pink-600 dark:text-pink-300">
                 •
@@ -257,12 +257,12 @@ export default function HomeUI(): JSX.Element {
           className="max-w2xl bg-gradient-to-br from-blue-100/90 via-white/90 to-green-100/90 dark:from-blue-600/95 dark:via-pink-400/90 dark:to-white -900/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border-2 border-blue-300 dark:border-yellow-400 text-black dark:text-white"
           aria-label="ธรรมชาติสุดมหัศจรรย์"
         >
-          <h2 className="text-2xl font-extrabold text-blue-500 dark:text-yellow-300 mb-8 drop-shadow-lg flex items-center justify-center gap-3">
+          <h2 className="text-xl font-extrabold text-blue-500 dark:text-yellow-300 mb-8 drop-shadow-lg flex items-center justify-center gap-3">
             <span className="inline-block animate-bounce">🏝️</span>
             {t("pa")}
             <span className="inline-block animate-bounce">🌿</span>
           </h2>
-          <ul className="text-xl font-medium leading-relaxed mb-6 text-left mx-auto max-w-2xl space-y-3">
+          <ul className="text-xs font-medium leading-relaxed mb-6 text-left mx-auto max-w-2xl space-y-3">
             <li>
               <span className="font-bold text-blue-600 dark:text-yellow-300">
                 •
@@ -293,12 +293,12 @@ export default function HomeUI(): JSX.Element {
           </ul>
 
           <div className="flex flex-wrap justify-center gap-4 mt-6 mb-10">
-            <span className="inline-block text-xl animate-pulse">🌳</span>
-            <span className="inline-block text-xl animate-pulse">🏞️</span>
-            <span className="inline-block text-xl animate-pulse">🌊</span>
-            <span className="inline-block text-xl animate-pulse">🌾</span>
-            <span className="inline-block text-xl animate-pulse">🦜</span>
-            <span className="inline-block text-xl animate-pulse">🦋</span>
+            <span className="inline-block text-xs animate-pulse">🌳</span>
+            <span className="inline-block text-xs animate-pulse">🏞️</span>
+            <span className="inline-block text-xs animate-pulse">🌊</span>
+            <span className="inline-block text-xs animate-pulse">🌾</span>
+            <span className="inline-block text-xs animate-pulse">🦜</span>
+            <span className="inline-block text-xs animate-pulse">🦋</span>
           </div>
           <div className="mt-8 flex flex-wrap justify-center gap-3 text-lg">
             <span className="px-3 py-1 rounded-full bg-green-200/60 dark:bg-green-900/60 text-green-700 dark:text-green-200 font-semibold shadow">
@@ -323,7 +323,7 @@ export default function HomeUI(): JSX.Element {
           initial={{ opacity: 0, y: 60 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2 }}
-          className="max-w-2xl bg-gradient-to-br from-yellow-100/90 via-white/90 to-orange-100/90 dark:from-red-400/95 dark:via-blue-600/90 dark:to-purple-600/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border border-yellow-400"
+          className="max-w-xl bg-gradient-to-br from-yellow-100/90 via-white/90 to-orange-100/90 dark:from-red-400/95 dark:via-blue-600/90 dark:to-purple-600/95 p-10 md:p-16 rounded-3xl shadow-2xl backdrop-blur-2xl border border-yellow-400"
           aria-label="ช้อป กิน เที่ยว"
         >
           <h2 className="text-2xl font-bold text-yellow-500 dark:text-yellow-300 mb-6 drop-shadow-lg flex items-center justify-center gap-3">
@@ -331,7 +331,7 @@ export default function HomeUI(): JSX.Element {
             {t("food")}
             <span className="inline-block animate-bounce">🍜</span>
           </h2>
-          <ul className="text-xl text-gray-800 dark:text-white leading-relaxed mb-6 text-left mx-auto max-w-2xl space-y-3">
+          <ul className="text-xs text-gray-800 dark:text-white leading-relaxed mb-6 text-left mx-auto max-w-2xl space-y-3">
             <li>
               <span className="font-bold text-yellow-600 dark:text-yellow-300">
                 •
@@ -357,12 +357,12 @@ export default function HomeUI(): JSX.Element {
             </li>
           </ul>
           <div className="flex flex-wrap justify-center gap-4 mt-6">
-            <span className="inline-block text-xl animate-pulse">🍲</span>
-            <span className="inline-block text-xl animate-pulse">🍢</span>
-            <span className="inline-block text-xl animate-pulse">🥢</span>
-            <span className="inline-block text-xl animate-pulse">🛒</span>
-            <span className="inline-block text-xl animate-pulse">🧺</span>
-            <span className="inline-block text-xl animate-pulse">🧁</span>
+            <span className="inline-block text-xs animate-pulse">🍲</span>
+            <span className="inline-block text-xs animate-pulse">🍢</span>
+            <span className="inline-block text-xs animate-pulse">🥢</span>
+            <span className="inline-block text-xs animate-pulse">🛒</span>
+            <span className="inline-block text-xs animate-pulse">🧺</span>
+            <span className="inline-block text-xs animate-pulse">🧁</span>
           </div>
           <div className="mt-8 flex flex-wrap justify-center gap-3 text-lg">
             <span className="px-3 py-1 rounded-full bg-green-200/60 dark:bg-green-900/60 text-green-700 dark:text-green-200 font-semibold shadow">

@@ -1,137 +1,203 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
-import { Icon, LatLngExpression } from 'leaflet';
-import L from 'leaflet';
-import { useState, useEffect, useRef } from 'react';
+import { Icon, LatLngExpression } from "leaflet";
+import L from "leaflet";
+import { useState, useEffect, useRef } from "react";
+import { GeoSearchControl, OpenStreetMapProvider } from "leaflet-geosearch";
+import "leaflet-geosearch/dist/geosearch.css";
 
-// Import geosearch
-import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
-import 'leaflet-geosearch/dist/geosearch.css';
-
-// --- (Icon Fix - เหมือนเดิม) ---
-const defaultIcon = new Icon({
-    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41]
-});
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+// --- Custom Marker Icon ---
+const customIcon = new Icon({
+  iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+  iconSize: [35, 45],
+  iconAnchor: [17, 45],
 });
 
-// --- Component ย่อยสำหรับ Marker ---
-function DraggableMarker({ position, onPositionChange }: {
-    position: LatLngExpression,
-    onPositionChange: (lat: number, lng: number) => void
+// --- Draggable Marker ---
+function DraggableMarker({
+  position,
+  onPositionChange,
+}: {
+  position: LatLngExpression;
+  onPositionChange: (lat: number, lng: number) => void;
 }) {
-    const markerRef = useRef<L.Marker | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
 
-    // ใช้ useMapEvents เพื่อรับการคลิกบนแผนที่
-    useMapEvents({
-        click(e) {
-            onPositionChange(e.latlng.lat, e.latlng.lng);
+  useMapEvents({
+    click(e) {
+      onPositionChange(e.latlng.lat, e.latlng.lng);
+    },
+  });
+
+  return (
+    <Marker
+      position={position}
+      icon={customIcon}
+      draggable
+      ref={(ref) => {
+        markerRef.current = ref ?? null;
+      }}
+      eventHandlers={{
+        dragend: () => {
+          const marker = markerRef.current;
+          if (marker) {
+            const newPos = marker.getLatLng();
+            onPositionChange(newPos.lat, newPos.lng);
+          }
         },
+      }}
+    />
+  );
+}
+
+// --- Update Map View ---
+function MapViewUpdater({
+  center,
+  zoom,
+}: {
+  center: LatLngExpression;
+  zoom: number;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    map.flyTo(center, zoom);
+  }, [center, zoom, map]);
+  return null;
+}
+
+// --- Search Box ---
+const SearchField = ({
+  onLocationFound,
+}: {
+  onLocationFound: (lat: number, lng: number) => void;
+}) => {
+  const map = useMap();
+
+  useEffect(() => {
+    const provider = new OpenStreetMapProvider();
+    const searchControl = new (GeoSearchControl as any)({
+      provider,
+      style: "bar",
+      autoClose: true,
+      keepResult: true,
     });
 
-    return (
-        <Marker
-            position={position}
-            icon={defaultIcon}
-            draggable={true}
-            eventHandlers={{
-                dragend: () => {
-                    const marker = markerRef.current;
-                    if (marker != null) {
-                        const newPos = marker.getLatLng();
-                        onPositionChange(newPos.lat, newPos.lng);
-                    }
-                },
-            }}
-            ref={markerRef}
-        />
-    );
-}
+    map.addControl(searchControl);
 
-// --- Component ย่อยสำหรับอัปเดต View ---
-function MapViewUpdater({ center, zoom }: { center: LatLngExpression, zoom: number }) {
-    const map = useMap();
-    useEffect(() => {
-        map.flyTo(center, zoom); // สั่งให้แผนที่ "บิน" ไปที่พิกัดใหม่
-    }, [center, zoom, map]);
-    return null;
-}
+    map.on("geosearch/showlocation", (result: any) => {
+      onLocationFound(result.location.y, result.location.x);
+    });
 
-// --- Component ย่อยสำหรับเพิ่มกล่องค้นหา ---
-const SearchField = ({ onLocationFound }: { 
-    onLocationFound: (lat: number, lng: number) => void 
-}) => {
-    const map = useMap();
+    return () => {
+      map.removeControl(searchControl);
+    };
+  }, [map, onLocationFound]);
 
-    useEffect(() => {
-        const provider = new OpenStreetMapProvider();
-        const searchControl = new (GeoSearchControl as any)({
-            provider: provider,
-            style: 'bar', // รูปแบบของกล่องค้นหา
-            autoClose: true,
-            keepResult: true,
-        });
-        
-        map.addControl(searchControl);
-
-        // "ฟัง" Event เมื่อค้นหาเจอ
-        map.on('geosearch/showlocation', (result: any) => {
-            onLocationFound(result.location.y, result.location.x); // y คือ lat, x คือ lng
-        });
-
-        return () => { map.removeControl(searchControl) };
-    }, [map, onLocationFound]);
-
-    return null;
+  return null;
 };
 
+// --- Locate Me Button ---
+const LocateButton = ({
+  onLocate,
+}: {
+  onLocate: (lat: number, lng: number) => void;
+}) => {
+  const map = useMap();
 
-// --- Props ที่ Component นี้จะรับ ---
-interface MapPickerProps {
-  onLocationChange: (lat: number, lng: number) => void;
-  center: LatLngExpression; // พิกัดที่ต้องการให้แผนที่แสดง (สำหรับเลื่อนตามจังหวัด)
-  markerPosition: LatLngExpression; // พิกัดของหมุด
-}
-
-// --- Main MapPicker Component ---
-const MapPicker: React.FC<MapPickerProps> = ({ onLocationChange, center, markerPosition }) => {
-    
-    const handleLocationUpdate = (lat: number, lng: number) => {
-        onLocationChange(lat, lng);
+  useEffect(() => {
+    const handleLocate = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            map.flyTo([latitude, longitude], 15);
+            onLocate(latitude, longitude);
+          },
+          (err) => console.warn("ไม่สามารถเข้าถึงตำแหน่งได้:", err)
+        );
+      }
     };
 
-    return (
-        <MapContainer
-            center={center}
-            zoom={13}
-            style={{ height: '400px', width: '100%', borderRadius: '0.5rem', zIndex: 1 }}
-            scrollWheelZoom={true}
-        >
-            <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {/* Component สำหรับอัปเดต View เมื่อ 'center' เปลี่ยน */}
-            <MapViewUpdater center={center} zoom={13} />
-            
-            {/* Component สำหรับ Marker ที่ลากได้ */}
-            <DraggableMarker position={markerPosition} onPositionChange={handleLocationUpdate} />
+    const locateControl = new (L.Control as any)({ position: "bottomright" });
+    locateControl.onAdd = () => {
+      const div = L.DomUtil.create("div", "leaflet-bar leaflet-control");
+      div.style.cursor = "pointer";
+      div.style.padding = "6px 10px";
+      div.style.background = "white";
+      div.style.borderRadius = "4px";
+      div.style.boxShadow = "0 1px 4px rgba(0,0,0,0.3)";
+      div.innerText = "📍 ตำแหน่งปัจจุบัน";
 
-            {/* Component สำหรับกล่องค้นหา */}
-            <SearchField onLocationFound={handleLocationUpdate} />
-        </MapContainer>
-    );
+      div.onclick = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        handleLocate();
+      };
+
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+
+      return div;
+    };
+
+    locateControl.addTo(map);
+    return () => locateControl.remove();
+  }, [map, onLocate]);
+
+  return null;
+};
+
+// --- Main MapPicker Component ---
+interface MapPickerProps {
+  onLocationChange: (lat: number, lng: number) => void;
+  center: LatLngExpression;
+  markerPosition: LatLngExpression;
+}
+
+const MapPicker: React.FC<MapPickerProps> = ({
+  onLocationChange,
+  center,
+  markerPosition,
+}) => {
+  const [currentMarker, setCurrentMarker] =
+    useState<LatLngExpression>(markerPosition);
+  const [mapCenter, setMapCenter] = useState<LatLngExpression>(center);
+
+  const handleMarkerChange = (lat: number, lng: number) => {
+    setCurrentMarker([lat, lng]);
+    setMapCenter([lat, lng]);
+    onLocationChange(lat, lng);
+  };
+
+  return (
+    <MapContainer
+      center={mapCenter}
+      zoom={13}
+      style={{ height: "400px", width: "100%", borderRadius: "0.5rem" }}
+      scrollWheelZoom
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <MapViewUpdater center={mapCenter} zoom={13} />
+      <DraggableMarker
+        position={currentMarker}
+        onPositionChange={handleMarkerChange}
+      />
+      <SearchField onLocationFound={handleMarkerChange} />
+      <LocateButton onLocate={handleMarkerChange} />
+    </MapContainer>
+  );
 };
 
 export default MapPicker;

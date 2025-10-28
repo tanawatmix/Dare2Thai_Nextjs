@@ -1,68 +1,111 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import "leaflet/dist/leaflet.css"; // Import CSS ของ Leaflet
-import { Icon, LatLngExpression } from 'leaflet';
-import L from 'leaflet'; // Import L
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import { Icon, LatLngExpression } from "leaflet";
+import { useEffect, useState } from "react";
 
-// --- แก้ไขปัญหา Icon ของ Marker ไม่แสดง ---
-// (จำเป็นต้องมีไฟล์เหล่านี้ในโฟลเดอร์ /public/images/ หรือใช้ URL จาก CDN)
+// Icon ของ Marker
 const defaultIcon = new Icon({
-    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41]
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
 });
 
-// Hack เพื่อให้ Icon ทำงานถูกต้องใน Next.js
+// Hack สำหรับ Next.js
+import L from "leaflet";
 // @ts-ignore
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
-// --- สิ้นสุดการแก้ไข Icon ---
 
-
-// Props ที่ Component นี้จะรับ
+// Props
 interface MapDisplayProps {
-  latitude: number;
-  longitude: number;
-  postTitle?: string; // (Optional) เพิ่ม title เพื่อแสดงใน Popup
+  latitude?: number;
+  longitude?: number;
+  postTitle?: string;
 }
 
-const MapDisplay: React.FC<MapDisplayProps> = ({ latitude, longitude, postTitle }) => {
-    
-    // ตรวจสอบว่ามีค่าพิกัดที่ถูกต้องหรือไม่
-    if (!latitude || !longitude) {
-        return <div className="text-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">ไม่พบข้อมูลพิกัด</div>;
+// Component สำหรับเลื่อน map ไปตำแหน่งใหม่
+interface RecenterMapProps {
+  position: [number, number];
+}
+const RecenterMap: React.FC<RecenterMapProps> = ({ position }) => {
+  const map = useMap();
+  map.setView(position, map.getZoom());
+  return null;
+};
+
+const MapDisplay: React.FC<MapDisplayProps> = ({
+  latitude,
+  longitude,
+  postTitle,
+}) => {
+  const [position, setPosition] = useState<[number, number] | null>(
+    latitude && longitude ? [latitude, longitude] : null
+  );
+
+  // ใช้ Geolocation หากไม่มีพิกัด
+  useEffect(() => {
+    if (!position && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setPosition([pos.coords.latitude, pos.coords.longitude]);
+        },
+        (err) => {
+          console.error("ไม่สามารถเข้าถึงตำแหน่งปัจจุบัน:", err);
+        }
+      );
     }
+  }, [position]);
 
-    const position: LatLngExpression = [latitude, longitude];
-
+  if (!position) {
     return (
-        <MapContainer
-            center={position}
-            zoom={15} // ซูมเข้าไปใกล้ๆ ตำแหน่งที่ปักหมุด
-            style={{ height: '300px', width: '100%', borderRadius: '1rem', zIndex: 0 }} // zIndex: 0
-            scrollWheelZoom={false} // ปิดการซูมด้วย scroll (เหมาะสำหรับการแสดงผล)
-            touchZoom={false}
-            dragging={false}
-        >
-            <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <Marker position={position} icon={defaultIcon}>
-                {postTitle && (
-                    <Popup>
-                        <span className="font-bold">{postTitle}</span>
-                    </Popup>
-                )}
-            </Marker>
-        </MapContainer>
+      <div className="text-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+        กำลังหาตำแหน่งปัจจุบัน...
+      </div>
     );
+  }
+
+  const [lat, lng] = position;
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+  return (
+    <MapContainer
+      center={position as LatLngExpression}
+      zoom={15}
+      style={{ height: "300px", width: "100%", borderRadius: "1rem" }}
+      scrollWheelZoom={false}
+      touchZoom={false}
+      dragging={false}
+    >
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <RecenterMap position={position} />
+      <Marker position={position as LatLngExpression} icon={defaultIcon}>
+        <Popup>
+          <div className="flex flex-col gap-2">
+            {postTitle && <span className="font-bold">{postTitle}</span>}
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 underline"
+            >
+              เปิดใน Google Maps
+            </a>
+          </div>
+        </Popup>
+      </Marker>
+    </MapContainer>
+  );
 };
 
 export default MapDisplay;

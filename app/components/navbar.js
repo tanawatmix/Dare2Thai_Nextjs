@@ -68,7 +68,7 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`fixed w-full z-50 px-6 py-3 shadow-md transition-colors duration-500 ${
+      className={`fixed w-full z-50 px-6 py-3 transition-colors duration-500 ${
         darkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900"
       }`}
     >

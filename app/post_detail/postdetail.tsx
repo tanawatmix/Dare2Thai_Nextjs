@@ -189,7 +189,7 @@ const PostDetailsUI: React.FC = () => {
             variants={itemVariants}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => router.back()}
+            onClick={() => router.push("/post_pages")}
             className="flex items-center gap-2 px-4 py-2 mb-8 text-blue-700 dark:text-pink-300 font-semibold hover:underline transition-all duration-300"
           >
             <FiArrowLeft className="text-xl" />
