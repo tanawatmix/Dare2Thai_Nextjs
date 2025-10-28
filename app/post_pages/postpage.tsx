@@ -293,10 +293,11 @@ const PostPage = () => {
     const post = posts.find((p) => p.id === postId);
     if (!post) return toast.error("ไม่พบโพสต์");
     if (post.user_id !== currentUserId) { return toast.error("คุณไม่สามารถลบโพสต์นี้ได้"); }
-    // Replace confirm with Swal for better UX
-    const result = await toast.promise(
+
+    // Use Swal for confirmation
+    const result: void | Error = await toast.promise( // Define expected type for result
         new Promise<void>((resolve, reject) => {
-            import('sweetalert2').then(async (Swal) => { // Dynamic import Swal
+            import('sweetalert2').then(async (Swal) => {
                 const confirmResult = await Swal.default.fire({
                     title: "ต้องการลบโพสต์นี้?",
                     text: "การกระทำนี้ไม่สามารถย้อนกลับได้!",
@@ -310,9 +311,9 @@ const PostPage = () => {
                 if (confirmResult.isConfirmed) {
                     resolve();
                 } else {
-                    reject(new Error("User cancelled"));
+                    reject(new Error("User cancelled")); // Reject with an error object
                 }
-            });
+            }).catch(reject); // Catch dynamic import errors
         }),
         {
             loading: 'กำลังลบ...',
@@ -321,12 +322,13 @@ const PostPage = () => {
         }
     );
 
-     // Proceed with deletion only if confirmed
-    if (result && result instanceof Error) {
+     // ✅ FIX: Check if result exists (is not void) before checking instanceof Error
+     if (result && result instanceof Error) {
         console.log("Deletion cancelled or pre-promise error:", result.message);
         return; // Stop execution if user cancelled or another error occurred before deletion attempt
      }
 
+    // Proceed with deletion only if confirmed and no pre-promise error
     try {
         const { error } = await supabase.from("posts").delete().eq("id", postId);
         if (error) {
@@ -355,9 +357,9 @@ const PostPage = () => {
        <div className="max-w-8xl mx-auto px-0 sm:px-0 lg:px-0 pt-[64px] h-64 sm:h-80 md:h-96 lg:h-[500px] overflow-hidden"> {/* Adjusted padding and max-width */}
             <Hero
               slides={[
-                { image: "/f2.jpg", title: "ภูเก็ต สวรรค์แห่งทะเล", subtitle: "เที่ยวทะเล ดำน้ำ ดูพระอาทิตย์ตก" },
+                { image: "/f1.jpg", title: "ภูเก็ต สวรรค์แห่งทะเล", subtitle: "เที่ยวทะเล ดำน้ำ ดูพระอาทิตย์ตก" },
                 { image: "/f2.jpg", title: "เชียงใหม่ เมืองแห่งวัฒนธรรม", subtitle: "สัมผัสธรรมชาติและวิถีชาวเหนือ" },
-                { image: "/f2.jpg", title: "กรุงเทพมหานคร", subtitle: "ชีวิตเมืองที่ไม่เคยหลับไหล" },
+                { image: "/f3.jpg", title: "กรุงเทพมหานคร", subtitle: "ชีวิตเมืองที่ไม่เคยหลับไหล" },
               ]}
               autoPlay
               interval={5000}
@@ -503,7 +505,7 @@ const PostPage = () => {
         {/* --- Posts Grid --- */}
          <AnimatePresence mode="wait">
           {loading ? (
-            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex justify-center items-center py-20">
+             <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex justify-center items-center py-20">
                <svg className={`animate-spin h-10 w-10 ${darkMode ? 'text-pink-400' : 'text-blue-500'}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
