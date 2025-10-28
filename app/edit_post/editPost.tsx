@@ -474,7 +474,7 @@ const EditPost: React.FC = () => {
     return (
       <div className="flex justify-center items-center min-h-screen bg-[var(--background)]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
-        <span className="ml-4 text-[var(--foreground)]">กำลังโหลดโพสต์...</span>
+        <span className="ml-4 text-[var(--foreground)]">กำลังโหลดการเดินทางของคุณ...</span>
       </div>
     );
 
@@ -494,7 +494,7 @@ const EditPost: React.FC = () => {
           className="relative border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-10 max-w-lg w-full backdrop-blur-lg"
         >
           <h2 className="text-3xl font-extrabold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-pink-500 tracking-tight">
-            แก้ไขโพสต์
+            แก้ไขการเดินทางของคุณ
           </h2>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex flex-col sm:flex-row gap-4">

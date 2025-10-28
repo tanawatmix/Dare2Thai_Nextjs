@@ -68,7 +68,7 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`fixed w-full z-50 px-6 py-3 transition-colors duration-500 ${
+      className={`fixed w-full z-50 px-6 py-3 shadow-md transition-colors duration-500 ${
         darkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900"
       }`}
     >
@@ -88,6 +88,8 @@ const Navbar = () => {
         </Link>
 
         {/* Center: Menu */}
+        {/* Center: Menu */}
+        {/* Center: Menu */}
         <div className="hidden md:flex gap-8 font-semibold text-base absolute left-1/2 transform -translate-x-1/2">
           <Link
             href="/"
@@ -100,6 +102,12 @@ const Navbar = () => {
             className="hover:text-blue-500 transition-colors duration-200"
           >
             {t("place")}
+          </Link>
+          <Link
+            href="/news"
+            className="hover:text-blue-500 transition-colors duration-200"
+          >
+            {t("news")}
           </Link>
           {user && isAdmin && (
             <Link
@@ -207,6 +215,12 @@ const Navbar = () => {
               className="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
             >
               {t("place")}
+            </Link>
+            <Link
+              href="/news"
+              className="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+            >
+              ข่าวสาร
             </Link>
             {user && isAdmin && (
               <Link

@@ -386,7 +386,7 @@ const PostPage = () => {
                 : "bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600"
              }`}
           >
-            <FaPlus /> สร้างโพสต์ใหม่
+            <FaPlus /> แชร์การเดินทางของคุณ
           </motion.button>
           <Link
             href="/Favorites"

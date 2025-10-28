@@ -264,7 +264,7 @@ const CreatePost: React.FC = () => {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        toast.error("กรุณาล็อกอินก่อนสร้างโพสต์");
+        toast.error("กรุณาล็อกอินก่อนแชร์การเดินทางของคุณ");
         router.push("/login");
         return; // หยุดการทำงาน
       }
@@ -398,7 +398,7 @@ const CreatePost: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    const loadingToast = toast.loading("กำลังสร้างโพสต์...");
+    const loadingToast = toast.loading("กำลังแชร์การเดินทางของคุณ...");
 
     const uploadedUrls: string[] = [];
 
@@ -435,12 +435,12 @@ const CreatePost: React.FC = () => {
       if (postError) throw new Error(`Post error: ${postError.message}`);
 
       toast.dismiss(loadingToast);
-      toast.success("สร้างโพสต์เรียบร้อยแล้ว!");
+      toast.success("แชร์การเดินทางของคุณเรียบร้อยแล้ว!");
       router.push("/post_pages");
       router.refresh();
     } catch (error: any) {
       toast.dismiss(loadingToast);
-      toast.error(error.message || "เกิดข้อผิดพลาดในการสร้างโพสต์");
+      toast.error(error.message || "เกิดข้อผิดพลาดในการแชร์การเดินทางของคุณ");
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -471,7 +471,7 @@ const CreatePost: React.FC = () => {
           className="relative border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-10 max-w-lg w-full backdrop-blur-lg"
         >
           <h2 className="text-3xl font-extrabold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-pink-500 tracking-tight">
-            สร้างโพสต์ใหม่
+            แชร์การเดินทางของคุณ
           </h2>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex flex-col sm:flex-row gap-4">
