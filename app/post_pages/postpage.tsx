@@ -322,7 +322,10 @@ const PostPage = () => {
     );
 
      // Proceed with deletion only if confirmed
-    if (result instanceof Error) return; // Means user cancelled or other pre-promise error
+    if (result && result instanceof Error) {
+        console.log("Deletion cancelled or pre-promise error:", result.message);
+        return; // Stop execution if user cancelled or another error occurred before deletion attempt
+     }
 
     try {
         const { error } = await supabase.from("posts").delete().eq("id", postId);
