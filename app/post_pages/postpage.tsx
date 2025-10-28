@@ -322,8 +322,10 @@ const PostPage = () => {
         }
     );
 
-     if (result !== undefined && result instanceof Error) {
-        console.log("Deletion cancelled or pre-promise error:", result.message);
+     // ✅ FIX: Check for the presence of a 'message' property instead of instanceof
+     // Also checks if 'result' exists and is an object first
+     if (typeof result === 'object' && result !== null && 'message' in result) {
+        console.log("Deletion cancelled or pre-promise error:", (result as Error).message);
         return; // Stop execution if user cancelled or another error occurred before deletion attempt
      }
 
@@ -366,7 +368,7 @@ const PostPage = () => {
         </div>
 
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 min-h-screen"> {/* Adjusted py */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-15 min-h-screen"> {/* Adjusted py */}
         {/* --- Controls --- */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
