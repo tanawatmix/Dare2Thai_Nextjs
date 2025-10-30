@@ -86,9 +86,6 @@ const Navbar = () => {
             Dare2Thai
           </span>
         </Link>
-
-        {/* Center: Menu */}
-        {/* Center: Menu */}
         {/* Center: Menu */}
         <div className="hidden md:flex gap-8 font-semibold text-base absolute left-1/2 transform -translate-x-1/2">
           <Link
@@ -220,8 +217,10 @@ const Navbar = () => {
               href="/news"
               className="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
             >
-              ข่าวสาร
+              
+            {t("news")}
             </Link>
+            
             {user && isAdmin && (
               <Link
                 href="/admin"
