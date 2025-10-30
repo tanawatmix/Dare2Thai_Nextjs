@@ -41,7 +41,7 @@ type Post = {
 };
 
 // --- Constant Data ---
-const placeTypes = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม"];
+const placeTypes = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม", "คาเฟ่", "ร้านขายของฝาก", "โรงเรียน", "วัด", "อื่นๆ"];
 const filterTags = ["ทั้งหมด", ...placeTypes];
 const sortOptions = [
   {
