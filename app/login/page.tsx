@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ThemeContext } from "../ThemeContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 // 1. Import icons ที่จำเป็น
 import { FiMail, FiLock, FiSun, FiMoon } from "react-icons/fi";
 
@@ -163,7 +164,6 @@ const Login: React.FC = () => {
               {darkMode ? <FiSun /> : <FiMoon />}
             </motion.button>
           </div>
-
           <motion.h3
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -215,7 +215,6 @@ const Login: React.FC = () => {
               {loading ? "กำลังเข้าสู่ระบบ..." : t.login}
             </motion.button>
           </form>
-
           <p className="mt-6 text-sm text-center text-gray-300">
             {t.noAccount}{" "}
             <span
@@ -225,6 +224,14 @@ const Login: React.FC = () => {
               {t.register}
             </span>
           </p>
+          <div className="flex justify-center mt-6">
+            <Link
+              href="/post_pages"
+              className="text-xl font-semibold py-1 px-5 rounded-full border hover:scale-105 transition duration-200 border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 focus:outline-none inline-flex items-center justify-center"
+            >
+              {t.home}
+            </Link>
+          </div>
         </motion.div>
 
         <AnimatePresence>

@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import proDefault from "../../public/dare2New.png";
 import { FiMail, FiLock, FiUser, FiSun, FiMoon } from "react-icons/fi";
+import Link from "next/link";
 
 // --- 2. Import สิ่งที่จำเป็นสำหรับ Cropper ---
 import ReactCrop, {
@@ -473,6 +474,14 @@ const Register: React.FC = () => {
                 {t.register}
               </span>
             </p>
+            <div className="flex justify-center mt-1">
+            <Link
+              href="/post_pages"
+              className="text-xl font-semibold py-1 px-5 rounded-full border hover:scale-105 transition duration-200 border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 focus:outline-none inline-flex items-center justify-center"
+            >
+              {t.home}
+            </Link>
+          </div>
           </form>
         </motion.div>
 
