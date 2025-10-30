@@ -25,7 +25,7 @@ interface PostCardProps {
 
   description: string;
 
-  postId: string; // ✅ ใช้ string (สำหรับ uuid)
+  postId: string;
 
   ownerId: string; // user id ของเจ้าของโพสต์
 

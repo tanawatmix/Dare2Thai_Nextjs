@@ -23,7 +23,6 @@ export default function HomeUI(): JSX.Element {
   const { scrollY } = useScroll();
   const [mousePosition, setMousePosition] = useState<MousePosition>({ x: 0, y: 0 });
 
-  // สร้าง Audio object
   const clickSound = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
