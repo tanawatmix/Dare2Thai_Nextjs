@@ -193,7 +193,7 @@ const ManageNewsContent: React.FC = () => {
 
   const resetForm = () => {
      localResetFormStates();
-     router.push("/admin/manage-news", { scroll: false });
+     router.push("/news", { scroll: false });
    };
 
 
@@ -351,11 +351,11 @@ const ManageNewsContent: React.FC = () => {
         <Toaster position="top-center" />
 
         <motion.button
-            onClick={() => router.push('/admin')}
+            onClick={() => router.push("/news")}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className={`flex items-center gap-1.5 mb-6 text-sm font-medium transition-colors ${ darkMode ? 'text-gray-400 hover:text-pink-400' : 'text-gray-600 hover:text-blue-600'}`}>
-             <FiArrowLeft /> กลับไปหน้า Admin หลัก
+             <FiArrowLeft /> กลับไปหน้าNEWS
          </motion.button>
 
         <motion.div
