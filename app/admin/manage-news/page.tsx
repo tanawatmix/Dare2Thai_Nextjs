@@ -27,7 +27,7 @@ import Image from "next/image"; // Import Image
 // Simple Markdown Editor (can be replaced with a more robust one like react-markdown-editor-lite)
 const SimpleMarkdownEditor = dynamic(() => import('../../components/SimpleMarkdownEditor'), { // Assume you create this component
     ssr: false,
-    loading: () => <div className="w-full h-40 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center"><p className="text-gray-500">Loading editor...</p></div> // Improved loading state
+    loading: () => <div className="w-full h-40 rounded-lg flex items-center justify-center"><p className="text-gray-500">Loading editor...</p></div> // Improved loading state
 });
 
 
@@ -51,8 +51,7 @@ const LoadingComponent = ({ text }: { text: string }) => (
         <p className="text-lg text-[var(--foreground)] opacity-80 mt-2">{text}</p>
     </div>
 );
-
-// ✅ 2. Create the inner component that uses useSearchParams
+ 
 const ManageNewsContent: React.FC = () => {
   const { darkMode } = useContext(ThemeContext);
   const router = useRouter();
@@ -346,7 +345,7 @@ const ManageNewsContent: React.FC = () => {
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString("th-TH");
 
   return (
-    <> {/* Use Fragment because Navbar and Footer are outside this component now */}
+    <> 
       <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 w-full">
         <Toaster position="top-center" />
 
@@ -372,9 +371,11 @@ const ManageNewsContent: React.FC = () => {
               <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} required
                 className={`w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 transition ${ darkMode ? 'bg-gray-700 border-gray-600 focus:ring-pink-500 focus:border-pink-500' : 'bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500' }`} />
             </div>
+             {/* value={content} onChange={setContent} */}
             <div>
-              <label htmlFor="content" className="block text-sm font-medium mb-1">เนื้อหา (รองรับ Markdown)</label>
-              <SimpleMarkdownEditor value={content} onChange={setContent} />
+              <label htmlFor="content" className="block text-sm font-medium mb-1">เนื้อหา</label>
+              <input type="text" id="content" value={content} onChange={(e) => setContent(e.target.value)} required
+                className={`w-full p-15 border rounded-lg focus:outline-none focus:ring-2 transition ${ darkMode ? 'bg-gray-700 border-gray-600 focus:ring-pink-500 focus:border-pink-500' : 'bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500' }`} />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">รูปภาพประกอบ (Optional)</label>

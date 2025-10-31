@@ -57,7 +57,6 @@ const NewsListPage: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
 
-      // User session and profile
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -73,7 +72,6 @@ const NewsListPage: React.FC = () => {
         setProfile(profileData ?? null);
       }
 
-      // Fetch news
       const { data, error } = await supabase
         .from("news")
         .select("id, title, content, image_url, created_at")
@@ -93,7 +91,6 @@ const NewsListPage: React.FC = () => {
 
   const isAdmin = profile?.role === "admin";
 
-  // Masonry responsive breakpoints
   const breakpointColumnsObj = {
     default: 3,
     1024: 3,
@@ -158,20 +155,19 @@ const NewsListPage: React.FC = () => {
               columnClassName="flex flex-col gap-6"
             >
               {newsList.map((article, index) => {
-                // สลับขนาด card: every 4th card ใหญ่
                 const isLarge = index % 4 === 0;
 
                 return (
                   <div
                     key={article.id}
-                    className={`${isLarge ? "md:col-span-2" : ""}`} // ขยายความกว้างใน column (Masonry)
+                    className={`${isLarge ? "md:col-span-2" : ""}`}
                   >
                     <NewsCard
                       article={article}
                       darkMode={darkMode}
                       onClick={(id) => router.push(`/news/${id}`)}
                       style={{
-                        height: isLarge ? "400px" : "250px", // กำหนดความสูงใหญ่-เล็ก
+                        height: isLarge ? "400px" : "250px",
                       }}
                     />
                   </div>

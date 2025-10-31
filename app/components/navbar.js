@@ -132,7 +132,7 @@ const Navbar = () => {
                     unoptimized
                   />
                   <span className="font-medium">
-                    {profile?.name || user.email}
+                    {profile?.username || user.email}
                   </span>
                 </Link>
                 <button

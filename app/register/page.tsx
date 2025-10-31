@@ -1,12 +1,6 @@
 "use client";
 
-import React, {
-  useState,
-  useRef, // 1. Import useRef
-  useContext,
-  ChangeEvent,
-  FormEvent,
-} from "react";
+import React, { useState, useRef, useContext, ChangeEvent, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeContext } from "../ThemeContext";
 import { supabase } from "@/lib/supabaseClient";
@@ -15,16 +9,9 @@ import proDefault from "../../public/dare2New.png";
 import { FiMail, FiLock, FiUser, FiSun, FiMoon } from "react-icons/fi";
 import Link from "next/link";
 
-// --- 2. Import สิ่งที่จำเป็นสำหรับ Cropper ---
-import ReactCrop, {
-  type Crop,
-  type PixelCrop,
-  centerCrop,
-  makeAspectCrop,
-} from "react-image-crop";
-import "react-image-crop/dist/ReactCrop.css"; // Import CSS ของ cropper
+import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 
-// (Translations object คงเดิม)
 const translations = {
   th: {
     title: "ลงทะเบียน",
@@ -82,11 +69,7 @@ const translations = {
   },
 };
 
-// --- 3. ฟังก์ชัน Helper สำหรับสร้าง Canvas (อยู่ข้างนอก Component) ---
-function getCroppedImg(
-  image: HTMLImageElement,
-  crop: PixelCrop
-): Promise<File> {
+function getCroppedImg(image: HTMLImageElement, crop: PixelCrop): Promise<File> {
   const canvas = document.createElement("canvas");
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
@@ -127,22 +110,17 @@ function getCroppedImg(
         resolve(file);
       },
       "image/jpeg",
-      0.95 // คุณภาพ 95%
+      0.95
     );
   });
 }
 
-// --- 4. ฟังก์ชัน Helper สำหรับคำนวณ Crop เริ่มต้น ---
-function centerAspectCrop(
-  mediaWidth: number,
-  mediaHeight: number,
-  aspect: number
-) {
+function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
   return centerCrop(
     makeAspectCrop(
       {
         unit: "%",
-        width: 90, // เริ่มต้นที่ 90%
+        width: 90,
       },
       aspect,
       mediaWidth,
@@ -153,7 +131,6 @@ function centerAspectCrop(
   );
 }
 
-// --- InputField Sub-component ---
 type InputFieldProps = {
   id: string;
   label: string;
@@ -163,22 +140,10 @@ type InputFieldProps = {
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   icon: React.ReactNode;
 };
-const InputField: React.FC<InputFieldProps> = ({
-  id,
-  label,
-  placeholder,
-  type,
-  value,
-  onChange,
-  icon,
-}) => (
-  <motion.div
-    variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-  >
-    <label
-      htmlFor={id}
-      className="block mb-2 text-sm font-medium text-gray-300"
-    >
+
+const InputField: React.FC<InputFieldProps> = ({ id, label, placeholder, type, value, onChange, icon }) => (
+  <motion.div variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}>
+    <label htmlFor={id} className="block mb-2 text-sm font-medium text-gray-300">
       {label}
     </label>
     <div className="relative">
@@ -191,14 +156,13 @@ const InputField: React.FC<InputFieldProps> = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="w-full p-3 pl-10 border-2 border-blue-200 dark:border-pink-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 dark:bg-white text-black transition"
+        className="w-full p-3 pl-10 border-2 border-blue-200 dark:border-pink-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 bg-gray-300 text-black transition"
         required
       />
     </div>
   </motion.div>
 );
 
-// --- Main Register Component ---
 const Register: React.FC = () => {
   const router = useRouter();
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
@@ -216,7 +180,6 @@ const Register: React.FC = () => {
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // --- 5. เพิ่ม State สำหรับ Cropper ---
   const [originalImageSrc, setOriginalImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
@@ -238,15 +201,14 @@ const Register: React.FC = () => {
       return;
     }
 
-    // `avatarPreview` (ซึ่งตอนนี้คือ URL จาก Supabase) จะถูกส่งไปพร้อมกับการสมัคร
     const { data, error: signUpError } = await supabase.auth.signUp({
-      email: email,
-      password: password,
+      email,
+      password,
       options: {
         data: {
           name: name.trim(),
           username: username.trim(),
-          profile_image: avatarPreview, // ใช้ URL ที่อัปโหลดแล้ว
+          profile_image: avatarPreview,
         },
       },
     });
@@ -260,16 +222,13 @@ const Register: React.FC = () => {
     setLoading(false);
   };
 
-  // --- 6. แก้ไข handleImageSelect ให้อ่านไฟล์และเปิด Modal ---
   const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // เคลียร์ค่าเก่า (ถ้ามี)
     setCrop(undefined);
     setCompletedCrop(null);
 
-    // อ่านไฟล์ใหม่เพื่อแสดงใน Modal
     const reader = new FileReader();
     reader.onloadend = () => {
       setOriginalImageSrc(reader.result as string);
@@ -277,18 +236,15 @@ const Register: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  // --- 7. ฟังก์ชันเมื่อรูปใน Cropper โหลด ---
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
-    setCrop(centerAspectCrop(width, height, 1 / 1)); // 1/1 คือสี่เหลี่ยมจัตุรัส
+    setCrop(centerAspectCrop(width, height, 1 / 1));
   }
 
-  // --- 8. ฟังก์ชันเมื่อยกเลิกการ Crop ---
   const handleCropCancel = () => {
-    setOriginalImageSrc(null); // ปิด Modal
+    setOriginalImageSrc(null);
   };
 
-  // --- 9. ฟังก์ชันเมื่อยืนยันการ Crop (ตัด -> อัปโหลด -> ตั้งค่า Preview) ---
   const handleCropConfirm = async () => {
     if (!completedCrop || !imgRef.current) {
       setError("กรุณาเลือกพื้นที่ก่อน");
@@ -296,27 +252,66 @@ const Register: React.FC = () => {
     }
 
     try {
-      // 1. ตัดรูป
       const croppedFile = await getCroppedImg(imgRef.current, completedCrop);
-      setLoading(true); // เริ่มหมุน
-      setOriginalImageSrc(null); // ปิด Modal
+      setLoading(true);
+      setOriginalImageSrc(null);
 
-      // 2. อัปโหลดรูปที่ตัดแล้ว
-      const { data, error } = await supabase.storage
-        .from("avatars")
-        .upload(`public/${Date.now()}_${croppedFile.name}`, croppedFile);
+      const { data, error } = await supabase.storage.from("avatars").upload(
+        `public/${Date.now()}_${croppedFile.name}`,
+        croppedFile
+      );
 
       if (error) {
         throw new Error("เกิดข้อผิดพลาดในการอัปโหลดรูป");
       }
 
-      // 3. เอา Public URL
-      const { data: urlData } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(data.path);
-
-      // 4. ตั้งค่า Preview (และ URL นี้จะถูกใช้ตอน Register)
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(data.path);
       setAvatarPreview(urlData.publicUrl);
+    } catch (e: any) {
+      setError(e.message || "เกิดข้อผิดพลาด");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className={`relative min-h-screen transition duration-500 overflow-x-hidden font-sriracha ${
+        darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
+      }`}
+    >
+      <div className="relative min-h-screen flex items-center justify-center p-4">
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="relative border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-8 max-w-4xl w-full backdrop-blur-lg flex flex-col md:flex-row gap-8"
+        >
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <select
+              onChange={(e) => setLang(e.target.value as "th" | "en")}
+              value={lang}
+              className="text-xs font-semibold py-1 px-2 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 focus:outline-none"
+            >
+              <option value="th">🇹🇭 ไทย</option>
+              <option value="en">en ENGLISH</option>
+            </select>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={toggleDarkMode}
+              className="text-xl p-1.5 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400"
+            >
+              {darkMode ? <FiSun /> : <FiMoon />}
+            </motion.button>
+          </div>
+
+          <div className="flex-1 flex flex-col justify-center items-center gap-4 text-center border-b-2 md:border-b-0 md:border-r-2 pb-8 md:pb-0 md:pr-8 border-blue-400/50 dark:border-pink-400/50"></div>
+            <motion.h3 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400 mb-4">
+              {t.title}
+            </motion.h3>
+
+            <motion.div whileHover={{ scale: 1.05, rotate: 2 }} className="relative">
     } catch (e: any) {
       setError(e.message || "เกิดข้อผิดพลาด");
     } finally {
@@ -485,7 +480,6 @@ const Register: React.FC = () => {
           </form>
         </motion.div>
 
-        {/* (โค้ดส่วน Success message เหมือนเดิม) */}
         <AnimatePresence>
           {showSuccess && (
             <motion.div
@@ -506,7 +500,6 @@ const Register: React.FC = () => {
         </AnimatePresence>
       </div>
 
-      {/* --- 10. JSX สำหรับ Crop Modal --- */}
       <AnimatePresence>
         {originalImageSrc && (
           <motion.div

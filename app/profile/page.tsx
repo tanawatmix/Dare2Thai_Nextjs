@@ -17,7 +17,6 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
-// Cropper
 import ReactCrop, {
   type Crop,
   type PixelCrop,
@@ -46,8 +45,10 @@ type PostData = {
   image_url: string[] | string | null;
 };
 
-// Create cropped image file from canvas
-function getCroppedImg(image: HTMLImageElement, crop: PixelCrop): Promise<File> {
+function getCroppedImg(
+  image: HTMLImageElement,
+  crop: PixelCrop
+): Promise<File> {
   const canvas = document.createElement("canvas");
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
@@ -93,8 +94,11 @@ function getCroppedImg(image: HTMLImageElement, crop: PixelCrop): Promise<File> 
   });
 }
 
-// Centered square crop
-function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
+function centerAspectCrop(
+  mediaWidth: number,
+  mediaHeight: number,
+  aspect: number
+) {
   return centerCrop(
     makeAspectCrop(
       {
@@ -600,19 +604,11 @@ const InputField = ({
       value={value}
       onChange={onChange}
       readOnly={readOnly}
-      className={`w-full text-lg px-4 py-2 rounded-xl border-2 transition
-        ${
-          readOnly
-            ? "bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-            : "bg-white dark:bg-gray-700 text-black dark:text-white"
-        }
-        ${
-          darkMode
-            ? "border-pink-400 focus:border-pink-300"
-            : "border-blue-300 focus:border-blue-500"
-        }
-        focus:ring-2 ${darkMode ? "focus:ring-pink-300" : "focus:ring-blue-300"} focus:outline-none
-      `}
+      className={`w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 transition ${
+        darkMode
+          ? "bg-gray-700 border-gray-600 focus:ring-pink-500 focus:border-pink-500"
+          : "bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+      }`}
       autoComplete="off"
     />
   </div>

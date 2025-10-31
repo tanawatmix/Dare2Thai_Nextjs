@@ -6,13 +6,10 @@ import { ThemeContext } from "../ThemeContext";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-// 1. Import icons ที่จำเป็น
 import { FiMail, FiLock, FiSun, FiMoon } from "react-icons/fi";
 
-// Type สำหรับภาษา
 type Lang = "th" | "en";
 
-// Object สำหรับเก็บคำแปล
 const translations = {
   th: {
     title: "เข้าสู่ระบบ",
@@ -42,7 +39,6 @@ const translations = {
   },
 };
 
-// --- 2. คัดลอก InputField Component มาจากหน้า Register ---
 type InputFieldProps = {
   id: string;
   label: string;
@@ -87,18 +83,14 @@ const InputField: React.FC<InputFieldProps> = ({
   </motion.div>
 );
 
-// --- Main Login Component ---
 const Login: React.FC = () => {
   const router = useRouter();
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
   const [lang, setLang] = useState<Lang>("th");
   const t = translations[lang];
 
-  // --- States for form fields ---
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // --- States for UI feedback ---
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);

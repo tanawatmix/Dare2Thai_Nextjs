@@ -11,15 +11,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import dynamic from 'next/dynamic';
 
-// --- Lightbox Components ---
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Thumbnails from "yet-another-react-lightbox/plugins/thumbnails";
 import "yet-another-react-lightbox/plugins/thumbnails.css";
-
-// --- Icons ---
 import {
   FiArrowLeft,
   FiMessageSquare,
@@ -27,8 +24,6 @@ import {
   FiMapPin,
   FiCamera,
 } from "react-icons/fi";
-
-// --- Background Images ---
 import wp from "../../public/whiteWater.jpg";
 import bp from "../../public/bp.jpg";
 
@@ -70,7 +65,6 @@ const PostDetailsUI: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
@@ -88,7 +82,6 @@ const PostDetailsUI: React.FC = () => {
     visible: { opacity: 1, y: 0 },
   };
 
-  // --- ดึงข้อมูลโพสต์จาก Supabase ---
   useEffect(() => {
     const fetchPost = async () => {
       if (!postId) {
@@ -115,7 +108,6 @@ const PostDetailsUI: React.FC = () => {
             }
         };
         
-        // แปลงข้อมูล
         const parsedPost: Post = {
           id: data.id,
           title: data.title,
@@ -138,7 +130,6 @@ const PostDetailsUI: React.FC = () => {
     fetchPost();
   }, [postId]);
 
-  // --- Loading UI ---
   if (loading) {
     return (
       <div className={`min-h-screen flex items-center justify-center ${ darkMode ? "bg-gray-900 text-gray-100" : "bg-gradient-to-br from-blue-100 to-pink-100 text-black" }`}>
@@ -148,7 +139,6 @@ const PostDetailsUI: React.FC = () => {
     );
   }
 
-  // --- No Post Found UI ---
   if (!post) {
     return (
       <motion.div
