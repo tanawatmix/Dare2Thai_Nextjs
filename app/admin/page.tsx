@@ -885,7 +885,7 @@ export default function AdminPage() {
       .select("id, username, name, role")
       .single();
 
-    toast.promise(promise as Promise<any>, {
+    toast.promise(promise as unknown as Promise<any>, {
         loading: 'กำลังบันทึก...',
         success: (response) => {
         const { data, error } = response;
