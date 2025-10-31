@@ -23,6 +23,7 @@ import {
   FiEye,
   FiSliders,
   FiPlus,
+  FiImage,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
