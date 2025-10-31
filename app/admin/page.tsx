@@ -885,9 +885,9 @@ export default function AdminPage() {
       .select("id, username, name, role")
       .single();
 
-    toast.promise(promise, {
-      loading: "กำลังบันทึก...",
-      success: (response) => {
+    toast.promise(promise as Promise<any>, {
+        loading: 'กำลังบันทึก...',
+        success: (response) => {
         const { data, error } = response;
         if (error || !data) {
           throw new Error(error?.message || "ไม่สามารถบันทึกข้อมูลได้");
