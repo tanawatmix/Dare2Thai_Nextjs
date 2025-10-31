@@ -363,10 +363,7 @@ const Register: React.FC = () => {
               {t.title}
             </motion.h3>
 
-            <motion.div
-              whileHover={{ scale: 1.05, rotate: 2 }}
-              className="relative"
-            >
+           <motion.div whileHover={{ scale: 1.05, rotate: 2 }} className="relative">
               <img
                 src={avatarPreview || proDefault.src}
                 alt="Avatar Preview"
