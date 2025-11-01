@@ -63,9 +63,7 @@ type HeroSlide = {
   image_url: string | null;
   created_at: string;
 };
-// Combined type for user table
 type CombinedUser = SupabaseUser & Profile;
-// --- Animation Variants ---
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number = 1) => ({
@@ -82,7 +80,6 @@ const tableFade = {
   exit: { opacity: 0, transition: { duration: 0.3 } },
 };
 
-// --- Loading Spinner Component ---
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center p-10">
     <svg
@@ -152,7 +149,6 @@ const PaginationControls = ({
   );
 };
 
-// --- User Data Table Component ---
 const DataTable = ({
   users,
   editingUserId,

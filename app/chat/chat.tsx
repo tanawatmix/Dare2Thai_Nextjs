@@ -17,7 +17,6 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiImage, FiSend, FiX, FiDownload, FiArrowLeft } from "react-icons/fi";
 
-// --- Type Definitions (แก้ไข: เอารูปโปรไฟล์ออก) ---
 export interface ChatMessage {
   id: number;
   created_at: string;
@@ -95,7 +94,6 @@ const ChatUI = () => {
             .eq("id", user.id)
             .single(),
           supabase.from("posts").select("title").eq("id", postId).single(),
-          // แก้ไข: ดึงข้อมูลจาก 'chats' อย่างเดียว ไม่ต้อง JOIN 'profiles'
           supabase
             .from("chats")
             .select(`*`)
@@ -125,7 +123,6 @@ const ChatUI = () => {
   useEffect(() => {
     if (!postId) return;
 
-    // แก้ไข: Realtime ไม่ต้องดึงรูปโปรไฟล์แล้ว
     const channel = supabase
       .channel(`realtime-chats-${postId}`)
       .on<ChatMessage>(
@@ -158,7 +155,6 @@ const ChatUI = () => {
     }
   }, [messages]);
 
-  // (Event Handlers ทั้งหมดสามารถคงเดิมได้)
   const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -275,7 +271,6 @@ const ChatUI = () => {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.8, y: 20 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  // แก้ไข: Layout กลับมาเป็นแบบไม่มีรูปโปรไฟล์
                   className={`flex flex-col ${
                     msg.user_id === user.id ? "items-end" : "items-start"
                   }`}

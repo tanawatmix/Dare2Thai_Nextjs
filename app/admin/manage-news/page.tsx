@@ -1,11 +1,10 @@
 "use client";
 
-// ✅ 1. Import Suspense from React
 import React, { useState, useEffect, useContext, ChangeEvent, FormEvent, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ThemeContext } from "../../ThemeContext"; // Adjust path
-import Navbar from "../../components/navbar"; // Adjust path
-import Footer from "../../components/Footer"; // Adjust path
+import { ThemeContext } from "../../ThemeContext";
+import Navbar from "../../components/navbar";
+import Footer from "../../components/Footer";
 import { supabase } from "@/lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,16 +17,15 @@ import {
   FiImage,
   FiArrowLeft,
   FiLoader,
-  FiX, // Added FiX
+  FiX, 
 } from "react-icons/fi";
 import { User } from "@supabase/supabase-js";
-import dynamic from 'next/dynamic'; // For potential Markdown editor
-import Image from "next/image"; // Import Image
-
-// Simple Markdown Editor (can be replaced with a more robust one like react-markdown-editor-lite)
-const SimpleMarkdownEditor = dynamic(() => import('../../components/SimpleMarkdownEditor'), { // Assume you create this component
+import dynamic from 'next/dynamic';
+import Image from "next/image";
+ 
+const SimpleMarkdownEditor = dynamic(() => import('../../components/SimpleMarkdownEditor'), {
     ssr: false,
-    loading: () => <div className="w-full h-40 rounded-lg flex items-center justify-center"><p className="text-gray-500">Loading editor...</p></div> // Improved loading state
+    loading: () => <div className="w-full h-40 rounded-lg flex items-center justify-center"><p className="text-gray-500">Loading editor...</p></div>
 });
 
 
@@ -55,7 +53,7 @@ const LoadingComponent = ({ text }: { text: string }) => (
 const ManageNewsContent: React.FC = () => {
   const { darkMode } = useContext(ThemeContext);
   const router = useRouter();
-  const searchParams = useSearchParams(); // useSearchParams is safe here
+  const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
 
   const [newsList, setNewsList] = useState<NewsArticle[]>([]);
@@ -73,7 +71,6 @@ const ManageNewsContent: React.FC = () => {
 
   const imageInputRef = useRef<HTMLInputElement>(null);
 
-  // --- Auth Check and Initial Data Fetch ---
   useEffect(() => {
     let isMounted = true;
 
@@ -145,7 +142,6 @@ const ManageNewsContent: React.FC = () => {
   }, [editId, router, editingArticle]);
 
 
-  // --- Fetch News List Function ---
   const fetchNewsList = async () => {
     const { data, error } = await supabase
       .from("news")
@@ -159,7 +155,6 @@ const ManageNewsContent: React.FC = () => {
     }
   };
 
-   // --- Function to Reset Local Form States ---
    const localResetFormStates = () => {
         setEditingArticle(null);
         setTitle("");
@@ -171,7 +166,6 @@ const ManageNewsContent: React.FC = () => {
    };
 
 
-  // --- Form Handlers ---
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
      const file = e.target.files?.[0];
     if (file) {
@@ -196,7 +190,6 @@ const ManageNewsContent: React.FC = () => {
    };
 
 
-  // --- Submit (Create or Update) ---
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user || !isAdmin) return;
@@ -280,7 +273,6 @@ const ManageNewsContent: React.FC = () => {
     }
    };
 
-  // --- Delete News Article ---
   const handleDelete = async (articleId: string, articleTitle: string) => {
      if (!isAdmin) return;
      try {
@@ -339,7 +331,6 @@ const ManageNewsContent: React.FC = () => {
     }
    };
 
-  // --- Render Logic ---
   if (loading) return <LoadingComponent text="กำลังโหลด..." />;
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString("th-TH");
@@ -371,7 +362,6 @@ const ManageNewsContent: React.FC = () => {
               <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} required
                 className={`w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 transition ${ darkMode ? 'bg-gray-700 border-gray-600 focus:ring-pink-500 focus:border-pink-500' : 'bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500' }`} />
             </div>
-             {/* value={content} onChange={setContent} */}
             <div>
               <label htmlFor="content" className="block text-sm font-medium mb-1">เนื้อหา</label>
               <input type="text" id="content" value={content} onChange={(e) => setContent(e.target.value)} required
@@ -449,12 +439,11 @@ const ManageNewsContent: React.FC = () => {
 };
 
 export default function ManageNewsPageWrapper() {
-     const { darkMode } = useContext(ThemeContext); // Get darkMode for LoadingComponent theme
+     const { darkMode } = useContext(ThemeContext); 
 
     return (
         <div className={`min-h-screen flex flex-col transition-colors duration-300 ${ darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900" }`}>
              <Navbar />
-             {/* Wrap the client component using useSearchParams in Suspense */}
              <Suspense fallback={<LoadingComponent text="กำลังโหลดหน้าจัดการข่าว..." />}>
                  <ManageNewsContent />
              </Suspense>

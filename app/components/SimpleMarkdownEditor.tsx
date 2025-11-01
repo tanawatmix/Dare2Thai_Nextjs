@@ -26,7 +26,6 @@ const SimpleMarkdownEditor: React.FC<SimpleMarkdownEditorProps> = ({
       placeholder={placeholder}
       rows={rows}
       className="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 transition bg-white dark:bg-gray-700 text-black dark:text-white border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-pink-500 focus:border-blue-500 dark:focus:border-pink-500"
-      // Basic styling for a textarea, adjust as needed
     />
   );
 };

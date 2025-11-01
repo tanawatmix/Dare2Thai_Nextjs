@@ -33,7 +33,6 @@ const NewsCard: React.FC<NewsCardProps> = ({
       day: "numeric",
     });
 
-  // ใช้ dare2New.png เป็น default
   const imageSrc = article.image_url ?? "/dare2New.png";
 
   return (

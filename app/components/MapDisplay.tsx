@@ -5,7 +5,6 @@ import "leaflet/dist/leaflet.css";
 import { Icon, LatLngExpression } from "leaflet";
 import { useEffect, useState } from "react";
 
-// Icon ของ Marker
 const defaultIcon = new Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
@@ -13,9 +12,7 @@ const defaultIcon = new Icon({
   iconAnchor: [12, 41],
 });
 
-// Hack สำหรับ Next.js
 import L from "leaflet";
-// @ts-ignore
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -24,14 +21,12 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-// Props
 interface MapDisplayProps {
   latitude?: number;
   longitude?: number;
   postTitle?: string;
 }
 
-// Component สำหรับเลื่อน map ไปตำแหน่งใหม่
 interface RecenterMapProps {
   position: [number, number];
 }
@@ -50,7 +45,6 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
     latitude && longitude ? [latitude, longitude] : null
   );
 
-  // ใช้ Geolocation หากไม่มีพิกัด
   useEffect(() => {
     if (!position && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(

@@ -37,8 +37,11 @@ type Post = {
   user_id: string;
   created_at: string;
   isFav?: boolean;
+  like_count: number; 
+  isLiked?: boolean; 
 };
 
+// --- Constant Data ---
 const placeTypes = [
   "ร้านอาหาร",
   "สถานที่ท่องเที่ยว",
@@ -116,6 +119,26 @@ const PostPage = () => {
           if (favError) throw favError;
           favIds = favData?.map((f: any) => f.post_id) || [];
         }
+        
+        let likedPostIds: string[] = [];
+        if (currentUserId) {
+          const { data: likeData } = await supabase
+            .from("post_likes")
+            .select("post_id")
+            .eq("user_id", currentUserId);
+          likedPostIds = likeData?.map((l: any) => l.post_id) || [];
+        }
+
+        const { data: allLikesData, error: allLikesError } = await supabase
+          .from("post_likes")
+          .select("post_id");
+
+        if (allLikesError) throw allLikesError;
+
+        const likeCountsMap = allLikesData.reduce((acc, like) => {
+          acc.set(like.post_id, (acc.get(like.post_id) || 0) + 1);
+          return acc;
+        }, new Map<string, number>());
 
         const safeParseImages = (imgField: any): string[] => {
           if (!imgField) return [];
@@ -138,6 +161,8 @@ const PostPage = () => {
           user_id: p.user_id,
           created_at: p.created_at,
           isFav: favIds.includes(p.id),
+          like_count: likeCountsMap.get(p.id) || 0,  
+          isLiked: likedPostIds.includes(p.id),    
         }));
 
         setPosts(postsWithFav);
@@ -150,6 +175,7 @@ const PostPage = () => {
     fetchPosts();
   }, [currentUserId]);
 
+  // --- Filter & Sort Logic ---
   useEffect(() => {
     if (!loading) {
       let filtered = posts.filter((p) => {
@@ -193,10 +219,13 @@ const PostPage = () => {
     }
   }, [searchName, selectedType, posts, sortBy, loading]);
 
+  // --- Effect for managing Sticky Bar ---
   useEffect(() => {
     if (loading) return;
+
     const container = stickyContainerRef.current;
     const filterBar = filterBarRef.current;
+
     if (!container || !filterBar) return;
 
     const calculateInitialPosition = () => {
@@ -237,6 +266,7 @@ const PostPage = () => {
     };
   }, [loading, stickyOffsetTop]);
 
+  // --- Function to handle tag selection and scroll ---
   const handleSelectType = (tag: string) => {
     const newType = tag === "ทั้งหมด" ? "" : tag;
     setSelectedType(newType);
@@ -267,6 +297,7 @@ const PostPage = () => {
     }, 0);
   };
 
+  // --- Pagination ---
   const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
   const indexOfLastPost = currentPage * postsPerPage;
   const indexOfFirstPost = indexOfLastPost - postsPerPage;
@@ -286,6 +317,7 @@ const PostPage = () => {
     }
   };
 
+  // --- Favorite ---
   const handleFavPost = async (postId: string) => {
     if (!currentUserId) {
       toast.error("กรุณาล็อกอินเพื่อกดถูกใจโพสต์");
@@ -323,12 +355,71 @@ const PostPage = () => {
     }
   };
 
-  const handleDeletePost = async (postId: string) => {
-    if (!currentUserId) return toast.error("ไม่พบผู้ใช้");
+  // --- Like ---
+  const handleLikePost = async (
+    postId: string,
+    newLiked: boolean
+  ): Promise<number> => {
+    if (!currentUserId) {
+      toast.error("กรุณาล็อกอินเพื่อกดไลค์โพสต์");
+      router.push("/login");
+      throw new Error("User not logged in"); 
+    }
+
+    let newLikeCount = 0;
+    const postIndex = posts.findIndex((p) => p.id === postId);
+    if (postIndex === -1) throw new Error("Post not found");
+    const post = posts[postIndex];
+    
+    try {
+      if (newLiked) {
+        await supabase
+          .from("post_likes")
+          .insert({ post_id: postId, user_id: currentUserId });
+      } else {
+        await supabase
+          .from("post_likes")
+          .delete()
+          .eq("post_id", postId)
+          .eq("user_id", currentUserId);
+      }
+
+      const { count, error: countError } = await supabase
+        .from("post_likes")
+        .select("*", { count: "exact", head: true })
+        .eq("post_id", postId);
+
+      if (countError) throw countError;
+      newLikeCount = count || 0;
+
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, isLiked: newLiked, like_count: newLikeCount }
+            : p
+        )
+      );
+      return newLikeCount; 
+    } catch (err: any) {
+      toast.error("เกิดข้อผิดพลาด: " + err.message);
+      throw err; 
+    }
+  };
+
+  // --- Delete ---
+  const handleDeletePost = async (postId: string): Promise<void> => {
+    if (!currentUserId) { 
+        toast.error("ไม่พบผู้ใช้");
+        return; 
+    }
     const post = posts.find((p) => p.id === postId);
-    if (!post) return toast.error("ไม่พบโพสต์");
+    if (!post) {
+        toast.error("ไม่พบโพสต์");
+        return;
+    }
     if (post.user_id !== currentUserId) {
-      return toast.error("คุณไม่สามารถลบโพสต์นี้ได้");
+      toast.error("คุณไม่สามารถลบโพสต์นี้ได้");
+      return;
     }
 
     const result: void | Error = await toast.promise(
@@ -351,7 +442,7 @@ const PostPage = () => {
               reject(new Error("User cancelled"));
             }
           })
-          .catch(reject); 
+          .catch(reject);
       }),
       {
         loading: "กำลังลบ...",
@@ -363,12 +454,13 @@ const PostPage = () => {
       }
     );
 
-    if (typeof result === "object" && result !== null && "message" in result) {
+    // แก้ไข: ตรวจสอบว่า result เป็น Error object ที่มี 'message' หรือไม่
+    if (typeof result === 'object' && result !== null && 'message' in result) {
       console.log(
         "Deletion cancelled or pre-promise error:",
         (result as Error).message
       );
-      return;
+      return; 
     }
 
     try {
@@ -376,7 +468,7 @@ const PostPage = () => {
       if (error) {
         throw error;
       }
-      setPosts(posts.filter((p) => p.id !== postId)); 
+      setPosts(posts.filter((p) => p.id !== postId));
     } catch (error: any) {
       toast.error(`ลบโพสต์ไม่สำเร็จ: ${error.message}`);
     }
@@ -393,11 +485,11 @@ const PostPage = () => {
       <Toaster position="top-right" />
       <Navbar />
       <div className="max-w-8xl mx-auto px-0 sm:px-0 lg:px-0 pt-[64px] h-64 sm:h-80 md:h-96 lg:h-[500px] overflow-hidden">
-        <Hero />
+        <Hero/>
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-15 min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 min-h-screen">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -415,7 +507,7 @@ const PostPage = () => {
                  : "bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600"
              }`}
           >
-            <FaPlus /> แชร์การเดินทางของคุณ
+            <FaPlus /> สร้างโพสต์ใหม่
           </motion.button>
           <Link
             href="/Favorites"
@@ -429,6 +521,7 @@ const PostPage = () => {
             <FiHeart /> ดูรายการโปรด
           </Link>
         </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -456,6 +549,7 @@ const PostPage = () => {
             />
           </div>
         </motion.div>
+
         <div
           ref={stickyContainerRef}
           style={{ height: isSticky ? `${filterBarHeight}px` : "auto" }}
@@ -477,6 +571,7 @@ const PostPage = () => {
             }`}
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+              {/* Filter Tags */}
               <div className="flex flex-wrap gap-3">
                 {filterTags.map((tag) => {
                   const isActive =
@@ -488,20 +583,20 @@ const PostPage = () => {
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleSelectType(tag)}
                       className={`px-4 py-2 rounded-full font-semibold transition-all duration-300 text-sm sm:text-base
-                          ${
-                            isActive
-                              ? `${
-                                  darkMode
-                                    ? "bg-pink-500 text-white"
-                                    : "bg-blue-500 text-white"
-                                } shadow-md`
-                              : `${
-                                  darkMode
-                                    ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                                    : "bg-white text-gray-700 hover:bg-gray-100"
-                                } border border-gray-300 dark:border-gray-600 hover:scale-105`
-                          }
-                        `}
+                        ${
+                          isActive
+                            ? `${
+                                darkMode
+                                  ? "bg-pink-500 text-white"
+                                  : "bg-blue-500 text-white"
+                              } shadow-md`
+                            : `${
+                                darkMode
+                                  ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                  : "bg-white text-gray-700 hover:bg-gray-100"
+                              } border border-gray-300 dark:border-gray-600 hover:scale-105`
+                        }
+                      `}
                     >
                       {tag}
                     </motion.button>
@@ -515,12 +610,12 @@ const PostPage = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowSortMenu(!showSortMenu)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 text-sm sm:text-base border hover:scale-105
-                      ${
-                        darkMode
-                          ? "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
-                          : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                      }
-                    `}
+                    ${
+                      darkMode
+                        ? "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                    }
+                  `}
                 >
                   <FiFilter size={16} />
                   <span>
@@ -545,20 +640,20 @@ const PostPage = () => {
                           key={opt.id}
                           onClick={() => handleSortChange(opt.id)}
                           className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors duration-200
-                              ${
-                                sortBy === opt.id
-                                  ? `${
-                                      darkMode
-                                        ? "text-pink-400 bg-gray-700"
-                                        : "text-blue-500 bg-gray-100"
-                                    } font-bold`
-                                  : `${
-                                      darkMode
-                                        ? "text-gray-300 hover:bg-gray-700"
-                                        : "text-gray-700 hover:bg-gray-100"
-                                    }`
-                              }
-                            `}
+                            ${
+                              sortBy === opt.id
+                                ? `${
+                                    darkMode
+                                      ? "text-pink-400 bg-gray-700"
+                                      : "text-blue-500 bg-gray-100"
+                                  } font-bold`
+                                : `${
+                                    darkMode
+                                      ? "text-gray-300 hover:bg-gray-700"
+                                      : "text-gray-700 hover:bg-gray-100"
+                                  }`
+                            }
+                          `}
                         >
                           {opt.icon}
                           <span>{opt.name}</span>
@@ -571,6 +666,7 @@ const PostPage = () => {
             </div>
           </motion.div>
         </div>
+
         {/* --- Posts Grid --- */}
         <AnimatePresence mode="wait">
           {loading ? (
@@ -631,9 +727,12 @@ const PostPage = () => {
                       images={post.image_url}
                       onDelete={handleDeletePost}
                       onFav={handleFavPost}
+                      onLike={handleLikePost}
                       currentUserId={currentUserId || undefined}
                       ownerId={post.user_id}
                       isFav={post.isFav}
+                      isLiked={post.isLiked}
+                      likeCount={post.like_count || 0}
                     />
                   ))}
                 </motion.div>
@@ -738,3 +837,4 @@ const PostPage = () => {
 };
 
 export default PostPage;
+

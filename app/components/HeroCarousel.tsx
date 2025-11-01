@@ -2,31 +2,27 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiChevronLeft, FiChevronRight, FiLoader } from "react-icons/fi"; // เพิ่ม FiLoader
-import { supabase } from "@/lib/supabaseClient"; // เพิ่ม supabase
+import { FiChevronLeft, FiChevronRight, FiLoader } from "react-icons/fi";
+import { supabase } from "@/lib/supabaseClient"; 
 
-// --- 1. Define the Slide type (used by both) ---
 type Slide = {
   image: string;
   title?: string;
   subtitle?: string;
 };
 
-// --- 2. Define Fetched Slide type ---
 type FetchedSlide = {
-  image_url: string; // Not null
+  image_url: string; 
   title: string | null;
   subtitle: string | null;
 };
 
-// --- 3. The Original Display Component (Renamed) ---
 type HeroCarouselDisplayProps = {
   slides: Slide[];
   autoPlay?: boolean;
   interval?: number;
 };
 
-// ✅ RENAMED: from HeroCarousel to HeroCarouselDisplay
 const HeroCarouselDisplay = ({
   slides,
   autoPlay = true,
@@ -34,9 +30,8 @@ const HeroCarouselDisplay = ({
 }: HeroCarouselDisplayProps) => {
   const [current, setCurrent] = useState(0);
 
-  // --- AutoPlay ---
   useEffect(() => {
-    if (!autoPlay || slides.length <= 1) return; // Don't autoplay if 1 or 0 slides
+    if (!autoPlay || slides.length <= 1) return;
     const timer = setInterval(() => {
       setCurrent((prev) => (prev + 1) % slides.length);
     }, interval);
@@ -48,20 +43,18 @@ const HeroCarouselDisplay = ({
   const nextSlide = () => setCurrent((prev) => (prev + 1) % slides.length);
 
   if (slides.length === 0) {
-     return <CarouselSkeleton />; // Show skeleton if no slides
+    return <CarouselSkeleton />; 
   }
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden shadow-lg">
-      {/* Slides */}
-      {/* ✅ UPDATED: Use key on AnimatePresence and mode="wait" for cleaner transitions */}
       <AnimatePresence initial={false} mode="wait">
         <motion.div
-          key={current} // Key the motion component to the current slide index
+          key={current}
           className="absolute top-0 left-0 w-full h-full"
-          initial={{ opacity: 0.5, x: 300 }} // Slide in from right
+          initial={{ opacity: 0.5, x: 300 }} 
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0.5, x: -300 }} // Slide out to left
+          exit={{ opacity: 0.5, x: -300 }} 
           transition={{ duration: 0.5, ease: "easeInOut" }}
         >
           <img
@@ -69,7 +62,6 @@ const HeroCarouselDisplay = ({
             alt={`Slide ${current + 1}`}
             className="w-full h-full object-cover"
           />
-          {/* Overlay สีดำโปร่งแสง */}
           <div className="absolute inset-0 bg-black/30"></div>
 
           {/* Text Overlay */}
@@ -88,7 +80,6 @@ const HeroCarouselDisplay = ({
         </motion.div>
       </AnimatePresence>
 
-      {/* Buttons (Only show if more than 1 slide) */}
       {slides.length > 1 && (
         <>
           <button
@@ -104,7 +95,6 @@ const HeroCarouselDisplay = ({
             <FiChevronRight size={24} />
           </button>
 
-          {/* Indicators */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
             {slides.map((_, i) => (
               <button
@@ -122,7 +112,6 @@ const HeroCarouselDisplay = ({
   );
 };
 
-// --- 4. Loading Skeleton ---
 const CarouselSkeleton = () => (
   <div className="relative w-full h-full rounded-lg overflow-hidden shadow-lg bg-gray-200 dark:bg-gray-700 animate-pulse">
     <div className="absolute inset-0 flex items-center justify-center">
@@ -141,18 +130,21 @@ const HeroCarousel = () => {
       const { data, error } = await supabase
         .from("hero_slides")
         .select("image_url, title, subtitle")
-        .order("created_at", { ascending: false }); // Fetch newest first
+        .order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching hero slides:", error);
-        // Set fallback slides in case of error
         setSlides([
-          { image: "/f1.jpg", title: "เกิดข้อผิดพลาด", subtitle: "ไม่สามารถโหลดสไลด์ได้" }
+          {
+            image: "/f1.jpg",
+            title: "เกิดข้อผิดพลาด",
+            subtitle: "ไม่สามารถโหลดสไลด์ได้",
+          },
         ]);
       } else if (data) {
         const formattedSlides = data.map((item: FetchedSlide) => ({
           image: item.image_url,
-          title: item.title || undefined, 
+          title: item.title || undefined,
           subtitle: item.subtitle || undefined,
         }));
         setSlides(formattedSlides);
@@ -167,9 +159,9 @@ const HeroCarousel = () => {
     return <CarouselSkeleton />;
   }
 
-  // Render the display component with the fetched data
-  return <HeroCarouselDisplay slides={slides} autoPlay={true} interval={5000} />;
+  return (
+    <HeroCarouselDisplay slides={slides} autoPlay={true} interval={5000} />
+  );
 };
 
 export default HeroCarousel;
-

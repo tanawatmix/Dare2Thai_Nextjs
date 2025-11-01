@@ -116,9 +116,7 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Right: Actions */}
         <div className="flex items-center gap-3 md:gap-4">
-          {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
             {user ? (
               <>
@@ -160,7 +158,6 @@ const Navbar = () => {
               </>
             )}
 
-            {/* Language */}
             <select
               value={language}
               onChange={(e) => changeLanguage(e.target.value)}
@@ -174,7 +171,6 @@ const Navbar = () => {
               <option value="en">EN</option>
             </select>
 
-            {/* Theme */}
             <button
               onClick={toggleDarkMode}
               className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 transition"
@@ -183,14 +179,12 @@ const Navbar = () => {
             </button>
           </div>
 
-          {/* Mobile Hamburger */}
           <button className="md:hidden p-2" onClick={toggleMenu}>
             {isOpen ? <FiX size={28} /> : <FiMenu size={28} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -270,7 +264,6 @@ const Navbar = () => {
               </>
             )}
 
-            {/* Language + Theme */}
             <div className="flex items-center justify-between mt-2">
               <select
                 value={language}

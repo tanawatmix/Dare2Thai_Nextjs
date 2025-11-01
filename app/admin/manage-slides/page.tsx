@@ -40,7 +40,6 @@ type Slide = {
   author_id?: string;
 };
 
-// --- Loading Component ---
 const LoadingComponent = ({ text }: { text: string }) => (
   <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--background)]">
     <svg
@@ -89,7 +88,6 @@ const ManageSlidesContent: React.FC = () => {
 
   const imageInputRef = useRef<HTMLInputElement>(null);
 
-  // --- Auth Check and Initial Data Fetch ---
   useEffect(() => {
     let isMounted = true;
 
@@ -372,7 +370,7 @@ const ManageSlidesContent: React.FC = () => {
               <motion.button
                 type="button"
                 whileTap={{ scale: 0.98 }}
-                onClick={resetFormAndGoBack} // Use the function that navigates back
+                onClick={resetFormAndGoBack}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-semibold shadow transition duration-200 ${darkMode ? 'bg-gray-600 hover:bg-gray-500 text-gray-100' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
               >
                 <FiXCircle /> {editingSlide?.id ? "ยกเลิกการแก้ไข" : "ยกเลิก"}

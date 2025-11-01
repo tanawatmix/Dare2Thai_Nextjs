@@ -15,14 +15,12 @@ import { useState, useEffect, useRef } from "react";
 import { GeoSearchControl, OpenStreetMapProvider } from "leaflet-geosearch";
 import "leaflet-geosearch/dist/geosearch.css";
 
-// --- Custom Marker Icon ---
 const customIcon = new Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
   iconSize: [35, 45],
   iconAnchor: [17, 45],
 });
 
-// --- Draggable Marker ---
 function DraggableMarker({
   position,
   onPositionChange,
@@ -59,7 +57,6 @@ function DraggableMarker({
   );
 }
 
-// --- Update Map View ---
 function MapViewUpdater({
   center,
   zoom,
@@ -74,7 +71,6 @@ function MapViewUpdater({
   return null;
 }
 
-// --- Search Box ---
 const SearchField = ({
   onLocationFound,
 }: {
@@ -104,8 +100,6 @@ const SearchField = ({
 
   return null;
 };
-
-// --- Locate Me Button ---
 const LocateButton = ({
   onLocate,
 }: {
@@ -156,7 +150,6 @@ const LocateButton = ({
   return null;
 };
 
-// --- Main MapPicker Component ---
 interface MapPickerProps {
   onLocationChange: (lat: number, lng: number) => void;
   center: LatLngExpression;
