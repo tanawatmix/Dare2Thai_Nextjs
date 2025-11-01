@@ -6,17 +6,23 @@ import React, {
   useContext,
   useEffect,
   ChangeEvent,
+  FormEvent,
 } from "react";
 import { ThemeContext } from "../ThemeContext";
 import Navbar from "../components/navbar";
 import Footer from "../components/Footer";
-import { supabase } from "@/lib/supabaseClient";
-import PostCard from "../components/PostCard";
-import Swal from "sweetalert2";
+import { FiUploadCloud, FiX } from "react-icons/fi";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
+import toast, { Toaster } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { User } from "@supabase/supabase-js";
 import Image from "next/image";
+import Link from "next/link";
+import Swal from "sweetalert2";
+import PostCard from "../components/PostCard"; // Import PostCard
 
+// Crop Imports
 import ReactCrop, {
   type Crop,
   type PixelCrop,
@@ -25,7 +31,7 @@ import ReactCrop, {
 } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 
-const defaultAvatar = "/D2T2.png";
+const defaultAvatar = "/dare2New.png";
 
 type ProfileData = {
   id: string;
@@ -43,8 +49,13 @@ type PostData = {
   place_type: string;
   province: string;
   image_url: string[] | string | null;
+  created_at: string;
+  isFav?: boolean;
+  isLiked?: boolean;
+  like_count: number;
 };
 
+// --- Crop Helper Functions ---
 function getCroppedImg(
   image: HTMLImageElement,
   crop: PixelCrop
@@ -55,64 +66,41 @@ function getCroppedImg(
   canvas.width = crop.width;
   canvas.height = crop.height;
   const ctx = canvas.getContext("2d");
-
-  if (!ctx) {
-    return Promise.reject(new Error("Failed to get canvas context"));
-  }
+  if (!ctx) return Promise.reject(new Error("Failed to get canvas context"));
 
   const pixelRatio = window.devicePixelRatio || 1;
   canvas.width = crop.width * pixelRatio;
   canvas.height = crop.height * pixelRatio;
   ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   ctx.imageSmoothingQuality = "high";
-
   ctx.drawImage(
     image,
-    crop.x * scaleX,
-    crop.y * scaleY,
-    crop.width * scaleX,
-    crop.height * scaleY,
-    0,
-    0,
-    crop.width,
-    crop.height
+    crop.x * scaleX, crop.y * scaleY,
+    crop.width * scaleX, crop.height * scaleY,
+    0, 0,
+    crop.width, crop.height
   );
 
   return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          reject(new Error("Canvas is empty"));
-          return;
-        }
-        const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
-        resolve(file);
-      },
-      "image/jpeg",
-      0.95
-    );
+    canvas.toBlob((blob) => {
+      if (!blob) { reject(new Error("Canvas is empty")); return; }
+      const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+      resolve(file);
+    }, "image/jpeg", 0.95);
   });
 }
-
 function centerAspectCrop(
   mediaWidth: number,
   mediaHeight: number,
   aspect: number
 ) {
   return centerCrop(
-    makeAspectCrop(
-      {
-        unit: "%",
-        width: 90,
-      },
-      aspect,
-      mediaWidth,
-      mediaHeight
-    ),
-    mediaWidth,
-    mediaHeight
+    makeAspectCrop({ unit: "%", width: 90 }, aspect, mediaWidth, mediaHeight),
+    mediaWidth, mediaHeight
   );
 }
+// --- End Crop Helper Functions ---
+
 
 const ProfilePage = () => {
   const router = useRouter();
@@ -120,28 +108,34 @@ const ProfilePage = () => {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string>(defaultAvatar);
   const [posts, setPosts] = useState<PostData[]>([]);
 
+  // --- States for Cropper ---
   const [originalImageSrc, setOriginalImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null); 
+
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
 
   useEffect(() => {
     const fetchData = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push("/login");
         return;
       }
       setUser(user);
+      setCurrentUserId(user.id);
 
+      // --- Fetch Profile ---
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -150,30 +144,73 @@ const ProfilePage = () => {
       setProfile(profileData || null);
       setAvatarPreview(profileData?.profile_image || defaultAvatar);
 
-      const { data: postData, error } = await supabase
+      // --- Fetch Posts ---
+      const { data: postData, error: postsError } = await supabase
         .from("posts")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error(error);
+      if (postsError) {
+        console.error(postsError);
         Swal.fire("Error", "โหลดโพสต์ไม่สำเร็จ", "error");
-      } else if (postData) {
+        setLoading(false);
+        return;
+      }
+      
+      if (postData) {
+         // --- Fetch Fav, Likes, and Like Counts (copied from post_pages) ---
+        let favIds: string[] = [];
+        const { data: favData } = await supabase
+            .from("favorites")
+            .select("post_id")
+            .eq("user_id", user.id);
+        favIds = favData?.map((f: any) => f.post_id) || [];
+
+        let likedPostIds: string[] = [];
+        const { data: likeData } = await supabase
+            .from("post_likes")
+            .select("post_id")
+            .eq("user_id", user.id);
+        likedPostIds = likeData?.map((l: any) => l.post_id) || [];
+
+        // Get all likes for the posts fetched
+        const postIds = postData.map(p => p.id);
+        
+        let likeCountsMap = new Map<string, number>();
+        if (postIds.length > 0) {
+            const { data: allLikesData, error: allLikesError } = await supabase
+              .from("post_likes")
+              .select("post_id")
+              .in("post_id", postIds);
+
+            if (allLikesError) {
+                console.error(allLikesError);
+                toast.error("Error fetching like counts");
+            } else if (allLikesData) {
+                likeCountsMap = allLikesData.reduce((acc, like) => {
+                  acc.set(like.post_id, (acc.get(like.post_id) || 0) + 1);
+                  return acc;
+                }, new Map<string, number>());
+            }
+        }
+        // --- End of Added section ---
+
+        // Format posts
         const formatted = postData.map((p) => ({
           ...p,
           image_url:
             typeof p.image_url === "string"
               ? (() => {
-                  try {
-                    return JSON.parse(p.image_url);
-                  } catch {
-                    return [p.image_url];
-                  }
+                  try { return JSON.parse(p.image_url); }
+                  catch { return [p.image_url]; }
                 })()
               : p.image_url || [],
+          isFav: favIds.includes(p.id),
+          isLiked: likedPostIds.includes(p.id),
+          like_count: likeCountsMap.get(p.id) || 0,
         }));
-        setPosts(formatted);
+        setPosts(formatted as PostData[]);
       }
 
       setLoading(false);
@@ -187,122 +224,235 @@ const ProfilePage = () => {
     }
   };
 
+  // --- Image & Crop Handlers ---
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatarFile(null);
-      setCrop(undefined);
-      setCompletedCrop(null);
-
+      setCrop(undefined); // Reset crop
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setOriginalImageSrc(reader.result as string);
-      };
+      reader.onloadend = () => setOriginalImageSrc(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
+  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
-    setCrop(centerAspectCrop(width, height, 1 / 1));
-  }
-
-  const handleCropConfirm = async () => {
-    if (!completedCrop || !imgRef.current) {
-      Swal.fire("Error", "กรุณาเลือกพื้นที่ก่อน", "error");
-      return;
-    }
-
-    try {
-      const croppedFile = await getCroppedImg(imgRef.current, completedCrop);
-      setAvatarFile(croppedFile);
-      setAvatarPreview(URL.createObjectURL(croppedFile));
-      setOriginalImageSrc(null);
-    } catch (e) {
-      console.error(e);
-      Swal.fire("Error", "เกิดข้อผิดพลาดขณะตัดรูป", "error");
-    }
+    setCrop(centerAspectCrop(width, height, 1 / 1)); // 1:1 Aspect Ratio
   };
 
   const handleCropCancel = () => {
     setOriginalImageSrc(null);
+    setImageFile(null);
+    if(imageInputRef.current) imageInputRef.current.value = "";
   };
+
+  const handleCropConfirm = async () => {
+    if (!completedCrop || !imgRef.current) {
+         Swal.fire("Error", "กรุณาเลือกพื้นที่ก่อน", "error"); // Use Swal
+         return;
+    }
+    try {
+      const croppedFile = await getCroppedImg(imgRef.current, completedCrop);
+      setAvatarFile(croppedFile);
+      setAvatarPreview(URL.createObjectURL(croppedFile)); // Set preview to cropped image
+      setOriginalImageSrc(null); // Close modal
+    } catch (e: any) {
+      console.error("Crop error:", e);
+      toast.error("เกิดข้อผิดพลาดขณะตัดรูป"); // Use toast
+    }
+  };
+  // --- End Image & Crop Handlers ---
+
 
   const handleSave = async () => {
     if (!user || !profile) return;
     setSaving(true);
-
     let avatarUrl = profile.profile_image;
 
-    if (avatarFile) {
-      if (profile.profile_image) {
-        const oldFileName = profile.profile_image.split("/").pop();
-        if (oldFileName) {
-          const oldFilePath = `public/${profile.id}/${oldFileName}`;
-          await supabase.storage.from("avatars").remove([oldFilePath]);
+    try {
+      if (avatarFile) { // If a new (cropped) file exists
+        if (profile.profile_image) {
+          const oldFileName = profile.profile_image.split("/").pop();
+          if (oldFileName && !oldFileName.includes(defaultAvatar)) { // Don't delete default avatar
+            const oldFilePath = `public/${profile.id}/${oldFileName}`;
+            await supabase.storage.from("avatars").remove([oldFilePath]);
+          }
         }
+        const newFileName = `${Date.now()}_${avatarFile.name}`;
+        const newFilePath = `public/${user.id}/${newFileName}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(newFilePath, avatarFile); // Upload the cropped file
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(uploadData.path);
+        avatarUrl = urlData.publicUrl;
       }
 
-      const newFileName = `${Date.now()}_${avatarFile.name}`;
-      const newFilePath = `public/${user.id}/${newFileName}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(newFilePath, avatarFile);
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          name: profile.name,
+          username: profile.username,
+          profile_image: avatarUrl,
+        })
+        .eq("id", user.id);
 
-      if (uploadError) {
-        console.error(uploadError);
-        setSaving(false);
-        return;
-      }
+      if (updateError) throw updateError;
 
-      const { data: urlData } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(uploadData.path);
-      avatarUrl = urlData.publicUrl;
-    }
-
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({
-        name: profile.name,
-        username: profile.username,
-        profile_image: avatarUrl,
-      })
-      .eq("id", user.id);
-
-    if (updateError) {
-      console.error(updateError);
-    } else {
       Swal.fire("บันทึกสำเร็จ", "ข้อมูลโปรไฟล์ได้รับการอัปเดตแล้ว", "success");
+      setProfile({ ...profile, profile_image: avatarUrl }); // Update local profile
+      setAvatarFile(null); // Clear the file state
+    } catch (error: any) {
+       console.error("Save profile error:", error);
+       Swal.fire("Error", error.message || "ไม่สามารถบันทึกข้อมูล", "error");
+    } finally {
+       setSaving(false);
     }
-
-    setSaving(false);
   };
 
   const handleDeletePost = async (postId: string) => {
-    const confirm = await Swal.fire({
-      title: "ลบโพสต์นี้?",
-      text: "การลบไม่สามารถย้อนกลับได้",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "ใช่, ลบเลย",
-    });
+     try {
+        const result: void | Error = await toast.promise(
+            new Promise<void>((resolve, reject) => {
+                import('sweetalert2').then(async (Swal) => { // Import sweetalert2
+                    const confirmResult = await Swal.default.fire({ // Use Swal.default
+                        title: "ต้องการลบโพสต์นี้?",
+                        text: "การกระทำนี้ไม่สามารถย้อนกลับได้!",
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonColor: "#d33",
+                        cancelButtonColor: "#3085d6",
+                        confirmButtonText: "ใช่, ลบเลย!",
+                        cancelButtonText: "ยกเลิก"
+                    });
+                    if (confirmResult.isConfirmed) {
+                        resolve();
+                    } else {
+                        reject(new Error("User cancelled"));
+                    }
+                });
+            }),
+            {
+                loading: 'กำลังลบ...',
+                success: 'ลบโพสต์สำเร็จ!',
+                error: (err) => err.message === "User cancelled" ? 'ยกเลิกการลบ' : 'เกิดข้อผิดพลาด',
+            }
+        );
 
-    if (!confirm.isConfirmed) return;
+        if (typeof result === 'object' && result !== null && 'message' in result) {
+             console.log("Deletion cancelled:", (result as Error).message);
+             return;
+        }
 
-    const { error } = await supabase.from("posts").delete().eq("id", postId);
-
-    if (error) {
-      Swal.fire("Error", "ลบโพสต์ไม่สำเร็จ", "error");
-    } else {
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
-      Swal.fire("Deleted!", "โพสต์ถูกลบแล้ว", "success");
+        const { error } = await supabase.from("posts").delete().eq("id", postId);
+        if (error) throw new Error(`ลบโพสต์: ${error.message}`);
+        
+        setPosts(posts.filter((p) => p.id !== postId));
+        
+    } catch (error: any) {
+        if (error.message !== "User cancelled") {
+             toast.error(error.message || "เกิดข้อผิดพลาดในการลบ");
+        }
     }
   };
 
-  const handleChangePassword = async () => {
-    if (!user) return;
+  const handleFavPost = async (postId: string): Promise<void> => {
+    if (!currentUserId) {
+      toast.error("กรุณาล็อกอินเพื่อกดถูกใจโพสต์");
+      router.push("/login");
+      return;
+    }
+    const postIndex = posts.findIndex((p) => p.id === postId);
+    if (postIndex === -1) return;
 
+    const post = posts[postIndex];
+    const isFav = post.isFav;
+
+    try {
+      if (isFav) {
+        const { error } = await supabase.from("favorites").delete()
+          .eq("user_id", currentUserId)
+          .eq("post_id", postId);
+        if (error) throw error;
+        setPosts((prev) =>
+          prev.map((p) => (p.id === postId ? { ...p, isFav: false } : p))
+        );
+        toast.success("ลบโพสต์ออกจากรายการโปรดแล้ว");
+      } else {
+        const { error } = await supabase.from("favorites").insert({ user_id: currentUserId, post_id: postId });
+        if (error) throw error;
+        setPosts((prev) =>
+          prev.map((p) => (p.id === postId ? { ...p, isFav: true } : p))
+        );
+        toast.success("เพิ่มโพสต์เข้าในรายการโปรดแล้ว");
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+      // Revert optimistic UI
+      setPosts((prev) =>
+        prev.map((p) => (p.id === postId ? { ...p, isFav: !isFav } : p))
+      );
+    }
+  };
+  
+  const handleLikePost = async (postId: string, newLikedState: boolean): Promise<number> => {
+      if (!currentUserId) {
+        toast.error("กรุณาล็อกอินเพื่อกดไลค์");
+        router.push("/login");
+        throw new Error("User not logged in");
+      }
+
+      const postIndex = posts.findIndex((p) => p.id === postId);
+      if (postIndex === -1) throw new Error("Post not found");
+
+      const post = posts[postIndex];
+      let newLikeCount = post.like_count;
+
+      try {
+          if (newLikedState) {
+              const { error } = await supabase.from("post_likes").insert({
+                  user_id: currentUserId,
+                  post_id: postId,
+              });
+              if (error) throw error;
+              newLikeCount = post.like_count + 1;
+          } else {
+              const { error } = await supabase.from("post_likes").delete()
+                  .eq("user_id", currentUserId)
+                  .eq("post_id", postId);
+              if (error) throw error;
+              newLikeCount = Math.max(0, post.like_count - 1);
+          }
+
+          setPosts((prevPosts) =>
+              prevPosts.map((p) =>
+                  p.id === postId
+                      ? { ...p, isLiked: newLikedState, like_count: newLikeCount }
+                      : p
+              )
+          );
+          
+          return newLikeCount; 
+
+      } catch (err: any) {
+          toast.error(err.message || "เกิดข้อผิดพลาดในการไลค์");
+          setPosts((prevPosts) =>
+              prevPosts.map((p) =>
+                  p.id === postId
+                      ? { ...p, isLiked: !newLikedState, like_count: post.like_count } // Revert
+                      : p
+              )
+          );
+          throw err; 
+      }
+  };
+
+  const handleChangePassword = async () => {
+     if (!user) return;
     const { value: formValues } = await Swal.fire({
       title: "เปลี่ยนรหัสผ่าน",
       html:
@@ -311,6 +461,7 @@ const ProfilePage = () => {
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: "ยืนยัน",
+      cancelButtonText: "ยกเลิก", // Added cancel text
       preConfirm: () => {
         const current = (
           document.getElementById("current-password") as HTMLInputElement
@@ -318,48 +469,46 @@ const ProfilePage = () => {
         const newPass = (
           document.getElementById("new-password") as HTMLInputElement
         ).value;
-        if (!current || !newPass) {
-          Swal.showValidationMessage("กรุณากรอกทั้งรหัสปัจจุบันและใหม่");
+        // Note: Supabase updateUser doesn't require the *current* password,
+        // but you might want to verify it against your own logic if needed.
+        // For now, we just check if newPass is provided and meets criteria.
+        if (!newPass) {
+          Swal.showValidationMessage("กรุณากรอกรหัสผ่านใหม่");
           return null;
         }
-        return { current, newPass };
+         if (newPass.length < 6) {
+           Swal.showValidationMessage("รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร");
+           return null;
+         }
+        // We don't actually need to return 'current' for supabase.auth.updateUser
+        return { newPass };
       },
     });
 
     if (!formValues) return;
-
-    const confirm = await Swal.fire({
-      title: "ยืนยันการเปลี่ยนรหัสผ่าน?",
-      text: "รหัสผ่านใหม่จะเปลี่ยนทันที",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "ใช่, เปลี่ยนเลย",
-    });
-
-    if (!confirm.isConfirmed) return;
-
+    
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: formValues.newPass,
-      });
-      if (error) {
-        Swal.fire("Error", error.message, "error");
-      } else {
-        Swal.fire({
-          title: "เปลี่ยนรหัสผ่านสำเร็จ",
-          html: `รหัสผ่านใหม่ของคุณคือ: <strong>${formValues.newPass}</strong>`,
-          icon: "success",
+        const { error } = await supabase.auth.updateUser({
+            password: formValues.newPass,
         });
-      }
+        if (error) {
+            Swal.fire("Error", error.message, "error");
+        } else {
+            Swal.fire({
+                title: "เปลี่ยนรหัสผ่านสำเร็จ",
+                text: "โปรดใช้รหัสผ่านใหม่ในการล็อกอินครั้งถัดไป",
+                icon: "success",
+            });
+        }
     } catch (err: any) {
-      Swal.fire("Error", err.message || "เกิดข้อผิดพลาด", "error");
+        Swal.fire("Error", err.message || "เกิดข้อผิดพลาด", "error");
     }
-  };
+   };
 
   if (loading)
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
+      <div className="flex justify-center items-center min-h-screen bg-[var(--background)]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 dark:border-pink-400"></div>
       </div>
     );
 
@@ -369,8 +518,10 @@ const ProfilePage = () => {
         darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
       }`}
     >
+      <Toaster position="top-right" />
       <Navbar />
       <main className="flex flex-1 mt-14 flex-col items-center py-8 px-4">
+        {/* Profile Form */}
         <motion.div
           className={`w-full max-w-2xl p-8 rounded-3xl shadow-2xl border-2 ${
             darkMode
@@ -423,6 +574,7 @@ const ProfilePage = () => {
                 accept="image/*"
                 className="hidden"
                 onChange={handleImageChange}
+                ref={imageInputRef} // Assign ref
               />
             </motion.div>
           </div>
@@ -459,10 +611,9 @@ const ProfilePage = () => {
           >
             เปลี่ยนรหัสผ่าน
           </motion.button>
-
+          
           <div className="flex flex-col sm:flex-row gap-4 mt-8">
-            <motion.button
-              type="button"
+             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => router.back()}
               className={`flex-1 w-full sm:w-auto font-semibold py-3 rounded-xl transition text-lg ${
@@ -471,9 +622,8 @@ const ProfilePage = () => {
                   : "bg-gray-200 text-gray-800 hover:bg-gray-300"
               }`}
             >
-              กลับ
+              ย้อนกลับ
             </motion.button>
-
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleSave}
@@ -489,6 +639,7 @@ const ProfilePage = () => {
           </div>
         </motion.div>
 
+        {/* Posts */}
         <div className="mt-12 w-full max-w-3xl">
           <h2 className="text-2xl font-bold mb-4 text-center text-[var(--foreground)]">
             โพสต์ของฉัน
@@ -509,10 +660,13 @@ const ProfilePage = () => {
                       province={post.province || "-"}
                       images={post.image_url as string[]}
                       onDelete={handleDeletePost}
-                      onFav={async (postId: string) => {
-                        // TODO: Implement favorite functionality
-                      }}
+                      onFav={handleFavPost}
+                      onLike={handleLikePost}
                       ownerId={post.user_id}
+                      currentUserId={user?.id}
+                      isFav={post.isFav}
+                      isLiked={post.isLiked}
+                      likeCount={post.like_count || 0}
                     />
                   )
               )}
@@ -520,38 +674,40 @@ const ProfilePage = () => {
           )}
         </div>
       </main>
-
       <Footer />
 
+       {/* --- Crop Modal --- */}
       <AnimatePresence>
         {originalImageSrc && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+            onClick={handleCropCancel} // Close on overlay click
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className={`p-6 rounded-2xl shadow-xl w-full max-w-md ${
-                darkMode ? "bg-gray-800" : "bg-white"
+                darkMode ? "bg-gray-900 border border-pink-400" : "bg-white" // Themed modal
               }`}
+               onClick={(e) => e.stopPropagation()} // Prevent closing when clicking modal
             >
-              <h3 className="text-2xl font-bold text-center mb-4">
+              <h3 className="text-2xl font-bold text-center mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400">
                 ตัดรูปโปรไฟล์
               </h3>
               <ReactCrop
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
                 onComplete={(c) => setCompletedCrop(c)}
-                aspect={1}
+                aspect={1} // 1:1 Aspect Ratio
                 className="w-full"
               >
                 <img
                   ref={imgRef}
-                  alt="Crop me"
+                  alt="Crop preview"
                   src={originalImageSrc}
                   onLoad={onImageLoad}
                   className="max-h-[60vh] object-contain"
@@ -561,7 +717,11 @@ const ProfilePage = () => {
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={handleCropCancel}
-                  className="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 py-3 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-500 transition"
+                  className={`flex-1 py-3 rounded-lg font-semibold transition ${
+                    darkMode
+                      ? "bg-gray-600 text-gray-100 hover:bg-gray-500"
+                      : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                  }`}
                 >
                   ยกเลิก
                 </motion.button>
@@ -570,7 +730,7 @@ const ProfilePage = () => {
                   onClick={handleCropConfirm}
                   className="flex-1 bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition"
                 >
-                  ยืนยันการตัด
+                  ยืนยัน
                 </motion.button>
               </div>
             </motion.div>
@@ -581,6 +741,7 @@ const ProfilePage = () => {
   );
 };
 
+// --- InputField Sub-component (แก้ไข) ---
 const InputField = ({
   label,
   name,
@@ -607,7 +768,7 @@ const InputField = ({
       readOnly={readOnly}
       className={`w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 transition ${
         darkMode
-          ? "bg-gray-700 border-gray-600 focus:ring-pink-500 focus:border-pink-500"
+          ? "bg-gray-700 border-gray-600 text-white focus:ring-pink-500 focus:border-pink-500"
           : "bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500"
       }`}
       autoComplete="off"
@@ -616,3 +777,4 @@ const InputField = ({
 );
 
 export default ProfilePage;
+
