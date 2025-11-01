@@ -13,8 +13,10 @@ const defaultIcon = new Icon({
   iconAnchor: [12, 41],
 });
 
+// Hack สำหรับ Next.js
 import L from "leaflet";
-delete L.Icon.Default.prototype._getIconUrl;
+// @ts-ignore // ✅ FIX: Use @ts-ignore or cast to 'any'
+delete L.Icon.Default.prototype._getIconUrl; // This line causes the TypeScript error
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
