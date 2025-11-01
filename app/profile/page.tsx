@@ -14,7 +14,7 @@ import Footer from "../components/Footer";
 import { FiUploadCloud, FiX } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import toast, { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast"; // Import toast
 import { motion, AnimatePresence } from "framer-motion";
 import { User } from "@supabase/supabase-js";
 import Image from "next/image";
@@ -41,6 +41,7 @@ type ProfileData = {
   role?: string;
 };
 
+// --- FIX: Updated PostData type ---
 type PostData = {
   id: string;
   user_id: string;
@@ -49,7 +50,7 @@ type PostData = {
   place_type: string;
   province: string;
   image_url: string[] | string | null;
-  created_at: string;
+  created_at: string; 
   isFav?: boolean;
   isLiked?: boolean;
   like_count: number;
@@ -159,6 +160,7 @@ const ProfilePage = () => {
       }
       
       if (postData) { 
+         // --- Fetch Fav, Likes, and Like Counts ---
         let favIds: string[] = [];
         const { data: favData } = await supabase
             .from("favorites")
@@ -172,7 +174,7 @@ const ProfilePage = () => {
             .select("post_id")
             .eq("user_id", user.id);
         likedPostIds = likeData?.map((l: any) => l.post_id) || [];
- 
+
         const postIds = postData.map(p => p.id);
         
         let likeCountsMap = new Map<string, number>();
@@ -191,7 +193,10 @@ const ProfilePage = () => {
                   return acc;
                 }, new Map<string, number>());
             }
-        } 
+        }
+        // --- End of Fetch ---
+
+        // Format posts
         const formatted = postData.map((p) => ({
           ...p,
           image_url:
@@ -232,7 +237,7 @@ const ProfilePage = () => {
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
-    setCrop(centerAspectCrop(width, height, 1 / 1));  
+    setCrop(centerAspectCrop(width, height, 1 / 1)); 
   };
 
   const handleCropCancel = () => {
@@ -243,7 +248,7 @@ const ProfilePage = () => {
 
   const handleCropConfirm = async () => {
     if (!completedCrop || !imgRef.current) {
-         Swal.fire("Error", "กรุณาเลือกพื้นที่ก่อน", "error");  
+         Swal.fire("Error", "กรุณาเลือกพื้นที่ก่อน", "error"); 
          return;
     }
     try {
@@ -265,7 +270,7 @@ const ProfilePage = () => {
     let avatarUrl = profile.profile_image;
 
     try {
-      if (avatarFile) {  
+      if (avatarFile) { 
         if (profile.profile_image) {
           const oldFileName = profile.profile_image.split("/").pop();
           if (oldFileName && !oldFileName.includes(defaultAvatar)) { 
@@ -277,7 +282,7 @@ const ProfilePage = () => {
         const newFilePath = `public/${user.id}/${newFileName}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("avatars")
-          .upload(newFilePath, avatarFile);  
+          .upload(newFilePath, avatarFile); 
 
         if (uploadError) throw uploadError;
 
@@ -299,8 +304,8 @@ const ProfilePage = () => {
       if (updateError) throw updateError;
 
       Swal.fire("บันทึกสำเร็จ", "ข้อมูลโปรไฟล์ได้รับการอัปเดตแล้ว", "success");
-      setProfile({ ...profile, profile_image: avatarUrl });  
-      setAvatarFile(null);  
+      setProfile({ ...profile, profile_image: avatarUrl }); 
+      setAvatarFile(null); 
     } catch (error: any) {
        console.error("Save profile error:", error);
        Swal.fire("Error", error.message || "ไม่สามารถบันทึกข้อมูล", "error");
@@ -313,8 +318,8 @@ const ProfilePage = () => {
      try {
         const result: void | Error = await toast.promise(
             new Promise<void>((resolve, reject) => {
-                import('sweetalert2').then(async (Swal) => {  
-                    const confirmResult = await Swal.fire({
+                import('sweetalert2').then(async (Swal) => { 
+                    const confirmResult = await Swal.default.fire({
                         title: "ต้องการลบโพสต์นี้?",
                         text: "การกระทำนี้ไม่สามารถย้อนกลับได้!",
                         icon: "warning",
@@ -438,7 +443,7 @@ const ProfilePage = () => {
           setPosts((prevPosts) =>
               prevPosts.map((p) =>
                   p.id === postId
-                      ? { ...p, isLiked: !newLikedState, like_count: post.like_count } 
+                      ? { ...p, isLiked: !newLikedState, like_count: post.like_count } // Revert
                       : p
               )
           );
@@ -448,52 +453,55 @@ const ProfilePage = () => {
 
   const handleChangePassword = async () => {
      if (!user) return;
-    const { value: formValues } = await Swal.fire({
-      title: "เปลี่ยนรหัสผ่าน",
-      html:
-        '<input id="current-password" type="password" class="swal2-input" placeholder="รหัสผ่านปัจจุบัน">' +
-        '<input id="new-password" type="password" class="swal2-input" placeholder="รหัสผ่านใหม่">',
-      focusConfirm: false,
-      showCancelButton: true,
-      confirmButtonText: "ยืนยัน",
-      cancelButtonText: "ยกเลิก", 
-      preConfirm: () => {
-        const current = (
-          document.getElementById("current-password") as HTMLInputElement
-        ).value;
-        const newPass = (
-          document.getElementById("new-password") as HTMLInputElement
-        ).value; 
-        if (!newPass) {
-          Swal.showValidationMessage("กรุณากรอกรหัสผ่านใหม่");
-          return null;
-        }
-         if (newPass.length < 6) {
-           Swal.showValidationMessage("รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร");
-           return null;
-         } 
-        return { newPass };
-      },
-    });
 
-    if (!formValues) return;
-    
-    try {
-        const { error } = await supabase.auth.updateUser({
-            password: formValues.newPass,
+     import("sweetalert2").then(async (Swal) => {
+        const { value: formValues } = await Swal.default.fire({
+          title: "เปลี่ยนรหัสผ่าน",
+          html:
+            '<input id="current-password" type="password" class="swal2-input" placeholder="รหัสผ่านปัจจุบัน">' +
+            '<input id="new-password" type="password" class="swal2-input" placeholder="รหัสผ่านใหม่">',
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: "ยืนยัน",
+          cancelButtonText: "ยกเลิก", 
+          preConfirm: () => {
+            const current = (
+              document.getElementById("current-password") as HTMLInputElement
+            ).value;
+            const newPass = (
+              document.getElementById("new-password") as HTMLInputElement
+            ).value; 
+            if (!newPass) {
+              Swal.default.showValidationMessage("กรุณากรอกรหัสผ่านใหม่");
+              return null;
+            }
+             if (newPass.length < 6) {
+               Swal.default.showValidationMessage("รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร");
+               return null;
+             }
+            return { current, newPass };
+          },
         });
-        if (error) {
-            Swal.fire("Error", error.message, "error");
-        } else {
-            Swal.fire({
-                title: "เปลี่ยนรหัสผ่านสำเร็จ",
-                text: "โปรดใช้รหัสผ่านใหม่ในการล็อกอินครั้งถัดไป",
-                icon: "success",
+
+        if (!formValues) return;
+        
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: formValues.newPass,
             });
+            if (error) {
+                Swal.default.fire("Error", error.message, "error");
+            } else {
+                Swal.default.fire({
+                    title: "เปลี่ยนรหัสผ่านสำเร็จ",
+                    text: "โปรดใช้รหัสผ่านใหม่ในการล็อกอินครั้งถัดไป",
+                    icon: "success",
+                });
+            }
+        } catch (err: any) {
+            Swal.default.fire("Error", err.message || "เกิดข้อผิดพลาด", "error");
         }
-    } catch (err: any) {
-        Swal.fire("Error", err.message || "เกิดข้อผิดพลาด", "error");
-    }
+     });
    };
 
   if (loading)
@@ -565,7 +573,7 @@ const ProfilePage = () => {
                 accept="image/*"
                 className="hidden"
                 onChange={handleImageChange}
-                ref={imageInputRef} 
+                ref={imageInputRef}
               />
             </motion.div>
           </div>
@@ -675,7 +683,7 @@ const ProfilePage = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-            onClick={handleCropCancel}  
+            onClick={handleCropCancel} 
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -684,7 +692,7 @@ const ProfilePage = () => {
               className={`p-6 rounded-2xl shadow-xl w-full max-w-md ${
                 darkMode ? "bg-gray-900 border border-pink-400" : "bg-white" 
               }`}
-               onClick={(e) => e.stopPropagation()}  
+               onClick={(e) => e.stopPropagation()} 
             >
               <h3 className="text-2xl font-bold text-center mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400">
                 ตัดรูปโปรไฟล์
@@ -693,7 +701,7 @@ const ProfilePage = () => {
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
                 onComplete={(c) => setCompletedCrop(c)}
-                aspect={1}  
+                aspect={1} 
                 className="w-full"
               >
                 <img
@@ -757,11 +765,16 @@ const InputField = ({
       value={value}
       onChange={onChange}
       readOnly={readOnly}
-      className={`w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 transition ${
+      className={`w-full text-lg px-4 py-2 rounded-xl border-2 transition
+        ${
         darkMode
           ? "bg-gray-700 border-gray-600 text-white focus:ring-pink-500 focus:border-pink-500"
-          : "bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-      }`}
+          : "bg-white dark:bg-gray-700 border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+      }
+        focus:ring-2 ${
+          darkMode ? "focus:ring-pink-300" : "focus:ring-blue-300"
+        } focus:outline-none
+      `}
       autoComplete="off"
     />
   </div>
