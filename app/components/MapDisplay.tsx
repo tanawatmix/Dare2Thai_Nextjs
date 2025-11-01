@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import { Icon, LatLngExpression } from "leaflet";
 import { useEffect, useState } from "react";
 
+// Icon ของ Marker
 const defaultIcon = new Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
@@ -14,6 +15,7 @@ const defaultIcon = new Icon({
 
 import L from "leaflet";
 delete L.Icon.Default.prototype._getIconUrl;
+
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -32,7 +34,9 @@ interface RecenterMapProps {
 }
 const RecenterMap: React.FC<RecenterMapProps> = ({ position }) => {
   const map = useMap();
-  map.setView(position, map.getZoom());
+  useEffect(() => { 
+    map.setView(position, map.getZoom());
+  }, [map, position]);
   return null;
 };
 
@@ -44,42 +48,49 @@ const MapDisplay: React.FC<MapDisplayProps> = ({
   const [position, setPosition] = useState<[number, number] | null>(
     latitude && longitude ? [latitude, longitude] : null
   );
+  
+  const defaultPosition: [number, number] = [13.7563, 100.5018];
 
   useEffect(() => {
-    if (!position && navigator.geolocation) {
+    if (!latitude && !longitude && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           setPosition([pos.coords.latitude, pos.coords.longitude]);
         },
         (err) => {
           console.error("ไม่สามารถเข้าถึงตำแหน่งปัจจุบัน:", err);
+          setPosition(defaultPosition); 
         }
       );
+    } else if (latitude && longitude) {
+        setPosition([latitude, longitude]);
+    } else {
+        setPosition(defaultPosition); 
     }
-  }, [position]);
+  }, [latitude, longitude]); 
 
   if (!position) {
     return (
-      <div className="text-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
-        กำลังหาตำแหน่งปัจจุบัน...
+      <div className="text-center p-4 h-[300px] w-full flex items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg">
+        กำลังโหลดแผนที่...
       </div>
     );
   }
 
   const [lat, lng] = position;
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`; 
 
   return (
     <MapContainer
       center={position as LatLngExpression}
       zoom={15}
-      style={{ height: "300px", width: "100%", borderRadius: "1rem" }}
+      style={{ height: "300px", width: "100%", borderRadius: "1rem", zIndex: 0 }} 
       scrollWheelZoom={false}
       touchZoom={false}
       dragging={false}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <RecenterMap position={position} />
