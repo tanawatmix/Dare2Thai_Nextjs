@@ -509,9 +509,10 @@ const ProfilePage = () => {
                       province={post.province || "-"}
                       images={post.image_url as string[]}
                       onDelete={handleDeletePost}
-                      onFav={() => {}}
+                      onFav={async (postId: string) => {
+                        // TODO: Implement favorite functionality
+                      }}
                       ownerId={post.user_id}
-                      currentUserId={user?.id}
                     />
                   )
               )}
