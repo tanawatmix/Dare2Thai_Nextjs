@@ -20,7 +20,7 @@ import { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import Link from "next/link";
 import Swal from "sweetalert2";
-import PostCard from "../components/PostCard"; // Import PostCard
+import PostCard from "../components/PostCard"; 
 
 // Crop Imports
 import ReactCrop, {
@@ -158,8 +158,7 @@ const ProfilePage = () => {
         return;
       }
       
-      if (postData) {
-         // --- Fetch Fav, Likes, and Like Counts (copied from post_pages) ---
+      if (postData) { 
         let favIds: string[] = [];
         const { data: favData } = await supabase
             .from("favorites")
@@ -173,8 +172,7 @@ const ProfilePage = () => {
             .select("post_id")
             .eq("user_id", user.id);
         likedPostIds = likeData?.map((l: any) => l.post_id) || [];
-
-        // Get all likes for the posts fetched
+ 
         const postIds = postData.map(p => p.id);
         
         let likeCountsMap = new Map<string, number>();
@@ -193,10 +191,7 @@ const ProfilePage = () => {
                   return acc;
                 }, new Map<string, number>());
             }
-        }
-        // --- End of Added section ---
-
-        // Format posts
+        } 
         const formatted = postData.map((p) => ({
           ...p,
           image_url:
@@ -237,28 +232,28 @@ const ProfilePage = () => {
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
-    setCrop(centerAspectCrop(width, height, 1 / 1)); // 1:1 Aspect Ratio
+    setCrop(centerAspectCrop(width, height, 1 / 1));  
   };
 
   const handleCropCancel = () => {
     setOriginalImageSrc(null);
-    setImageFile(null);
+    setAvatarFile(null);
     if(imageInputRef.current) imageInputRef.current.value = "";
   };
 
   const handleCropConfirm = async () => {
     if (!completedCrop || !imgRef.current) {
-         Swal.fire("Error", "กรุณาเลือกพื้นที่ก่อน", "error"); // Use Swal
+         Swal.fire("Error", "กรุณาเลือกพื้นที่ก่อน", "error");  
          return;
     }
     try {
       const croppedFile = await getCroppedImg(imgRef.current, completedCrop);
       setAvatarFile(croppedFile);
-      setAvatarPreview(URL.createObjectURL(croppedFile)); // Set preview to cropped image
-      setOriginalImageSrc(null); // Close modal
+      setAvatarPreview(URL.createObjectURL(croppedFile)); 
+      setOriginalImageSrc(null); 
     } catch (e: any) {
       console.error("Crop error:", e);
-      toast.error("เกิดข้อผิดพลาดขณะตัดรูป"); // Use toast
+      toast.error("เกิดข้อผิดพลาดขณะตัดรูป"); 
     }
   };
   // --- End Image & Crop Handlers ---
@@ -270,10 +265,10 @@ const ProfilePage = () => {
     let avatarUrl = profile.profile_image;
 
     try {
-      if (avatarFile) { // If a new (cropped) file exists
+      if (avatarFile) {  
         if (profile.profile_image) {
           const oldFileName = profile.profile_image.split("/").pop();
-          if (oldFileName && !oldFileName.includes(defaultAvatar)) { // Don't delete default avatar
+          if (oldFileName && !oldFileName.includes(defaultAvatar)) { 
             const oldFilePath = `public/${profile.id}/${oldFileName}`;
             await supabase.storage.from("avatars").remove([oldFilePath]);
           }
@@ -282,7 +277,7 @@ const ProfilePage = () => {
         const newFilePath = `public/${user.id}/${newFileName}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("avatars")
-          .upload(newFilePath, avatarFile); // Upload the cropped file
+          .upload(newFilePath, avatarFile);  
 
         if (uploadError) throw uploadError;
 
@@ -304,8 +299,8 @@ const ProfilePage = () => {
       if (updateError) throw updateError;
 
       Swal.fire("บันทึกสำเร็จ", "ข้อมูลโปรไฟล์ได้รับการอัปเดตแล้ว", "success");
-      setProfile({ ...profile, profile_image: avatarUrl }); // Update local profile
-      setAvatarFile(null); // Clear the file state
+      setProfile({ ...profile, profile_image: avatarUrl });  
+      setAvatarFile(null);  
     } catch (error: any) {
        console.error("Save profile error:", error);
        Swal.fire("Error", error.message || "ไม่สามารถบันทึกข้อมูล", "error");
@@ -318,8 +313,8 @@ const ProfilePage = () => {
      try {
         const result: void | Error = await toast.promise(
             new Promise<void>((resolve, reject) => {
-                import('sweetalert2').then(async (Swal) => { // Import sweetalert2
-                    const confirmResult = await Swal.default.fire({ // Use Swal.default
+                import('sweetalert2').then(async (Swal) => {  
+                    const confirmResult = await Swal.fire({
                         title: "ต้องการลบโพสต์นี้?",
                         text: "การกระทำนี้ไม่สามารถย้อนกลับได้!",
                         icon: "warning",
@@ -443,7 +438,7 @@ const ProfilePage = () => {
           setPosts((prevPosts) =>
               prevPosts.map((p) =>
                   p.id === postId
-                      ? { ...p, isLiked: !newLikedState, like_count: post.like_count } // Revert
+                      ? { ...p, isLiked: !newLikedState, like_count: post.like_count } 
                       : p
               )
           );
@@ -461,17 +456,14 @@ const ProfilePage = () => {
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: "ยืนยัน",
-      cancelButtonText: "ยกเลิก", // Added cancel text
+      cancelButtonText: "ยกเลิก", 
       preConfirm: () => {
         const current = (
           document.getElementById("current-password") as HTMLInputElement
         ).value;
         const newPass = (
           document.getElementById("new-password") as HTMLInputElement
-        ).value;
-        // Note: Supabase updateUser doesn't require the *current* password,
-        // but you might want to verify it against your own logic if needed.
-        // For now, we just check if newPass is provided and meets criteria.
+        ).value; 
         if (!newPass) {
           Swal.showValidationMessage("กรุณากรอกรหัสผ่านใหม่");
           return null;
@@ -479,8 +471,7 @@ const ProfilePage = () => {
          if (newPass.length < 6) {
            Swal.showValidationMessage("รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร");
            return null;
-         }
-        // We don't actually need to return 'current' for supabase.auth.updateUser
+         } 
         return { newPass };
       },
     });
@@ -574,7 +565,7 @@ const ProfilePage = () => {
                 accept="image/*"
                 className="hidden"
                 onChange={handleImageChange}
-                ref={imageInputRef} // Assign ref
+                ref={imageInputRef} 
               />
             </motion.div>
           </div>
@@ -684,16 +675,16 @@ const ProfilePage = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-            onClick={handleCropCancel} // Close on overlay click
+            onClick={handleCropCancel}  
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className={`p-6 rounded-2xl shadow-xl w-full max-w-md ${
-                darkMode ? "bg-gray-900 border border-pink-400" : "bg-white" // Themed modal
+                darkMode ? "bg-gray-900 border border-pink-400" : "bg-white" 
               }`}
-               onClick={(e) => e.stopPropagation()} // Prevent closing when clicking modal
+               onClick={(e) => e.stopPropagation()}  
             >
               <h3 className="text-2xl font-bold text-center mb-4 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-pink-400">
                 ตัดรูปโปรไฟล์
@@ -702,7 +693,7 @@ const ProfilePage = () => {
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
                 onComplete={(c) => setCompletedCrop(c)}
-                aspect={1} // 1:1 Aspect Ratio
+                aspect={1}  
                 className="w-full"
               >
                 <img
