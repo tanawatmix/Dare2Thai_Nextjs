@@ -9,6 +9,7 @@ import { ThemeContext } from "../../ThemeContext";
 import Navbar from "../../components/navbar";
 import Footer from "../../components/Footer";
 import { supabase } from "@/lib/supabaseClient";
+import { useTranslation } from "react-i18next";
 import toast, { Toaster } from "react-hot-toast";
 import { FiEdit, FiCalendar, FiArrowLeft } from "react-icons/fi";
 import { User } from "@supabase/supabase-js";
@@ -56,6 +57,7 @@ const LoadingSpinner = () => (
 );
 
 const NewsDetailPage: React.FC = () => {
+  const { t } = useTranslation();
   const { darkMode } = useContext(ThemeContext);
   const router = useRouter();
   const params = useParams();
@@ -70,7 +72,6 @@ const NewsDetailPage: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
 
-      // User session
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -143,7 +144,7 @@ const NewsDetailPage: React.FC = () => {
               : "hover:text-blue-600"
           }`}
         >
-          <FiArrowLeft /> กลับไปหน้ารวมข่าวสาร
+          <FiArrowLeft /> {t("backtonews")}
         </motion.button>
 
         <AnimatePresence mode="wait">
@@ -188,7 +189,7 @@ const NewsDetailPage: React.FC = () => {
                       router.push(`/admin/manage-news?edit=${article.id}`)
                     }
                   >
-                    <FiEdit size={14} /> แก้ไขข่าวนี้
+                    <FiEdit size={14} /> {t("EditNews")}
                   </motion.button>
                 )}
               </div>

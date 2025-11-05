@@ -19,9 +19,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { User } from "@supabase/supabase-js";
 import dynamic from "next/dynamic";
 import { LatLngExpression, LatLngTuple } from "leaflet";
+import { useTranslation } from "react-i18next";
 import { FaLocationArrow, FaExternalLinkAlt } from "react-icons/fa";
 
-// Import MapPicker (which is now Google Maps)
 const MapPicker = dynamic(() => import("../components/MapPicker"), {
   ssr: false,
   loading: () => (
@@ -31,109 +31,86 @@ const MapPicker = dynamic(() => import("../components/MapPicker"), {
   ),
 });
 
-// --- Data ---
-const placeTypes = ["ร้านอาหาร", "สถานที่ท่องเที่ยว", "โรงแรม", "คาเฟ่", "ร้านขายของฝาก", "วัด"];
-const provinces = [
-    "กรุงเทพมหานคร", "กระบี่", "กาญจนบุรี", "กาฬสินธุ์", "กำแพงเพชร",
-    "ขอนแก่น", "จันทบุรี", "ฉะเชิงเทรา", "ชลบุรี", "ชัยนาท",
-    "ชัยภูมิ", "ชุมพร", "เชียงราย", "เชียงใหม่", "ตรัง",
-    "ตราด", "ตาก", "นครนายก", "นครปฐม", "นครพนม",
-    "นครราชสีมา", "นครศรีธรรมราช", "นครสวรรค์", "นนทบุรี", "นราธิวาส",
-    "น่าน", "บึงกาฬ", "บุรีรัมย์", "ปทุมธานี", "ประจวบคีรีขันธ์",
-    "ปราจีนบุรี", "ปัตตานี", "พระนครศรีอยุธยา", "พะเยา", "พังงา",
-    "พัทลุง", "พิจิตร", "พิษณุโลก", "เพชรบุรี", "เพชรบูรณ์",
-    "แพร่", "ภูเก็ต", "มหาสารคาม", "มุกดาหาร", "แม่ฮ่องสอน",
-    "ยโสธร", "ยะลา", "ร้อยเอ็ด", "ระนอง", "ระยอง",
-    "ราชบุรี", "ลพบุรี", "ลำปาง", "ลำพูน", "เลย",
-    "ศรีสะเกษ", "สกลนคร", "สงขลา", "สตูล", "สมุทรปราการ",
-    "สมุทรสงคราม", "สมุทรสาคร", "สระแก้ว", "สระบุรี", "สิงห์บุรี",
-    "สุโขทัย", "สุพรรณบุรี", "สุราษฎร์ธานี", "สุรินทร์", "หนองคาย",
-    "หนองบัวลำภู", "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์",
-    "อุทัยธานี", "อุบลราชธานี"
-];
-
-// ✅ Updated: Added approximate coordinates for all provinces
 const PROVINCE_COORDS: { [key: string]: LatLngExpression } = {
-    "กรุงเทพมหานคร": [13.7563, 100.5018],
-    "กระบี่": [8.0833, 98.9063],
-    "กาญจนบุรี": [14.0167, 99.5333],
-    "กาฬสินธุ์": [16.4322, 103.5037],
-    "กำแพงเพชร": [16.4828, 99.5229],
-    "ขอนแก่น": [16.4383, 102.8333],
-    "จันทบุรี": [12.6108, 102.1039],
-    "ฉะเชิงเทรา": [13.6881, 101.0722],
-    "ชลบุรี": [13.3611, 100.9847],
-    "ชัยนาท": [15.1856, 100.1245],
-    "ชัยภูมิ": [15.8089, 102.0333],
-    "ชุมพร": [10.4939, 99.1800],
-    "เชียงราย": [19.9095, 99.8325],
-    "เชียงใหม่": [18.7883, 98.9853],
-    "ตรัง": [7.5583, 99.6108],
-    "ตราด": [12.2431, 102.5161],
-    "ตาก": [16.8833, 99.1167],
-    "นครนายก": [14.2078, 101.2117],
-    "นครปฐม": [13.8167, 100.0625],
-    "นครพนม": [17.4069, 104.7817],
-    "นครราชสีมา": [14.9708, 102.1122],
-    "นครศรีธรรมราช": [8.4358, 99.9628],
-    "นครสวรรค์": [15.6961, 100.1189],
-    "นนทบุรี": [13.8592, 100.5217],
-    "นราธิวาส": [6.4258, 101.8256],
-    "น่าน": [18.7778, 100.7786],
-    "บึงกาฬ": [18.3617, 103.6528], // Approximate
-    "บุรีรัมย์": [14.9950, 103.1017],
-    "ปทุมธานี": [14.0208, 100.5283],
-    "ประจวบคีรีขันธ์": [11.8081, 99.7961],
-    "ปราจีนบุรี": [14.0494, 101.3717],
-    "ปัตตานี": [6.8667, 101.2500],
-    "พระนครศรีอยุธยา": [14.3547, 100.5667],
-    "พะเยา": [19.1625, 99.9083],
-    "พังงา": [8.4503, 98.5250],
-    "พัทลุง": [7.6167, 100.0833],
-    "พิจิตร": [16.4439, 100.3497],
-    "พิษณุโลก": [16.8194, 100.2583],
-    "เพชรบุรี": [13.1111, 99.9486],
-    "เพชรบูรณ์": [16.4167, 101.1556],
-    "แพร่": [18.1444, 100.1403],
-    "ภูเก็ต": [7.9519, 98.3364],
-    "มหาสารคาม": [16.1833, 103.3000],
-    "มุกดาหาร": [16.5450, 104.7239],
-    "แม่ฮ่องสอน": [19.3019, 97.9650],
-    "ยโสธร": [15.7958, 104.1436],
-    "ยะลา": [6.5417, 101.2806],
-    "ร้อยเอ็ด": [16.0544, 103.6539],
-    "ระนอง": [9.9658, 98.6347],
-    "ระยอง": [12.6739, 101.2789],
-    "ราชบุรี": [13.5417, 99.8167],
-    "ลพบุรี": [14.7986, 100.6539],
-    "ลำปาง": [18.2917, 99.4928],
-    "ลำพูน": [18.5750, 99.0083],
-    "เลย": [17.4858, 101.7297],
-    "ศรีสะเกษ": [15.1194, 104.3236],
-    "สกลนคร": [17.1583, 104.1444],
-    "สงขลา": [7.1881, 100.5956],
-    "สตูล": [6.6217, 100.0669],
-    "สมุทรปราการ": [13.5992, 100.5967],
-    "สมุทรสงคราม": [13.4125, 100.0019],
-    "สมุทรสาคร": [13.5500, 100.2750],
-    "สระแก้ว": [13.8206, 102.0700],
-    "สระบุรี": [14.5306, 100.9111],
-    "สิงห์บุรี": [14.8906, 100.4039],
-    "สุโขทัย": [17.0047, 99.8261],
-    "สุพรรณบุรี": [14.4719, 100.1181],
-    "สุราษฎร์ธานี": [9.1389, 99.3289],
-    "สุรินทร์": [14.8833, 103.4917],
-    "หนองคาย": [17.8806, 102.7444],
-    "หนองบัวลำภู": [17.2069, 102.4403],
-    "อ่างทอง": [14.5878, 100.4550],
-    "อำนาจเจริญ": [15.8600, 104.6269],
-    "อุดรธานี": [17.4139, 102.7900],
-    "อุตรดิตถ์": [17.6256, 100.0939],
-    "อุทัยธานี": [15.3731, 100.0256],
-    "อุบลราชธานี": [15.2289, 104.8567],
+  กรุงเทพมหานคร: [13.7563, 100.5018],
+  กระบี่: [8.0833, 98.9063],
+  กาญจนบุรี: [14.0167, 99.5333],
+  กาฬสินธุ์: [16.4322, 103.5037],
+  กำแพงเพชร: [16.4828, 99.5229],
+  ขอนแก่น: [16.4383, 102.8333],
+  จันทบุรี: [12.6108, 102.1039],
+  ฉะเชิงเทรา: [13.6881, 101.0722],
+  ชลบุรี: [13.3611, 100.9847],
+  ชัยนาท: [15.1856, 100.1245],
+  ชัยภูมิ: [15.8089, 102.0333],
+  ชุมพร: [10.4939, 99.18],
+  เชียงราย: [19.9095, 99.8325],
+  เชียงใหม่: [18.7883, 98.9853],
+  ตรัง: [7.5583, 99.6108],
+  ตราด: [12.2431, 102.5161],
+  ตาก: [16.8833, 99.1167],
+  นครนายก: [14.2078, 101.2117],
+  นครปฐม: [13.8167, 100.0625],
+  นครพนม: [17.4069, 104.7817],
+  นครราชสีมา: [14.9708, 102.1122],
+  นครศรีธรรมราช: [8.4358, 99.9628],
+  นครสวรรค์: [15.6961, 100.1189],
+  นนทบุรี: [13.8592, 100.5217],
+  นราธิวาส: [6.4258, 101.8256],
+  น่าน: [18.7778, 100.7786],
+  บึงกาฬ: [18.3617, 103.6528], // Approximate
+  บุรีรัมย์: [14.995, 103.1017],
+  ปทุมธานี: [14.0208, 100.5283],
+  ประจวบคีรีขันธ์: [11.8081, 99.7961],
+  ปราจีนบุรี: [14.0494, 101.3717],
+  ปัตตานี: [6.8667, 101.25],
+  พระนครศรีอยุธยา: [14.3547, 100.5667],
+  พะเยา: [19.1625, 99.9083],
+  พังงา: [8.4503, 98.525],
+  พัทลุง: [7.6167, 100.0833],
+  พิจิตร: [16.4439, 100.3497],
+  พิษณุโลก: [16.8194, 100.2583],
+  เพชรบุรี: [13.1111, 99.9486],
+  เพชรบูรณ์: [16.4167, 101.1556],
+  แพร่: [18.1444, 100.1403],
+  ภูเก็ต: [7.9519, 98.3364],
+  มหาสารคาม: [16.1833, 103.3],
+  มุกดาหาร: [16.545, 104.7239],
+  แม่ฮ่องสอน: [19.3019, 97.965],
+  ยโสธร: [15.7958, 104.1436],
+  ยะลา: [6.5417, 101.2806],
+  ร้อยเอ็ด: [16.0544, 103.6539],
+  ระนอง: [9.9658, 98.6347],
+  ระยอง: [12.6739, 101.2789],
+  ราชบุรี: [13.5417, 99.8167],
+  ลพบุรี: [14.7986, 100.6539],
+  ลำปาง: [18.2917, 99.4928],
+  ลำพูน: [18.575, 99.0083],
+  เลย: [17.4858, 101.7297],
+  ศรีสะเกษ: [15.1194, 104.3236],
+  สกลนคร: [17.1583, 104.1444],
+  สงขลา: [7.1881, 100.5956],
+  สตูล: [6.6217, 100.0669],
+  สมุทรปราการ: [13.5992, 100.5967],
+  สมุทรสงคราม: [13.4125, 100.0019],
+  สมุทรสาคร: [13.55, 100.275],
+  สระแก้ว: [13.8206, 102.07],
+  สระบุรี: [14.5306, 100.9111],
+  สิงห์บุรี: [14.8906, 100.4039],
+  สุโขทัย: [17.0047, 99.8261],
+  สุพรรณบุรี: [14.4719, 100.1181],
+  สุราษฎร์ธานี: [9.1389, 99.3289],
+  สุรินทร์: [14.8833, 103.4917],
+  หนองคาย: [17.8806, 102.7444],
+  หนองบัวลำภู: [17.2069, 102.4403],
+  อ่างทอง: [14.5878, 100.455],
+  อำนาจเจริญ: [15.86, 104.6269],
+  อุดรธานี: [17.4139, 102.79],
+  อุตรดิตถ์: [17.6256, 100.0939],
+  อุทัยธานี: [15.3731, 100.0256],
+  อุบลราชธานี: [15.2289, 104.8567],
 };
 
-// --- Type Definitions for Sub-components ---
 type FormInputProps = {
   label: string;
   value: string;
@@ -155,8 +132,6 @@ type FormSelectProps = {
   options: string[];
   [key: string]: any;
 };
-
-// --- Sub-components for Form Fields ---
 
 const FormInput = ({ label, ...props }: FormInputProps) => (
   <div>
@@ -233,10 +208,10 @@ const ImageGridItem = ({
 
 // --- Main Component ---
 const CreatePost: React.FC = () => {
+  const { t } = useTranslation();
   const { darkMode } = useContext(ThemeContext) || { darkMode: false };
   const router = useRouter();
 
-  // Form States
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [images, setImages] = useState<File[]>([]);
@@ -248,7 +223,95 @@ const CreatePost: React.FC = () => {
   const [mapCenter, setMapCenter] = useState<LatLngExpression>([
     13.7563, 100.5018,
   ]);
-
+  // --- Data ---
+  const placeTypes = [
+    t("restaurant"),
+    t("tourist_place"),
+    t("hotel"),
+    t("cafe"),
+    t("souvenir_shop"),
+    t("temple"),
+    t("club"),
+    t("market"),
+  ];
+  const provinces = [
+    t("bangkok"),
+    t("krabi"),
+    t("kanchanaburi"),
+    t("kalasin"),
+    t("kamphaeng_phet"),
+    t("khon_kaen"),
+    t("chanthaburi"),
+    t("chachoengsao"),
+    t("chon_buri"),
+    t("chai_nat"),
+    t("chaiyaphum"),
+    t("chumphon"),
+    t("chiang_rai"),
+    t("chiang_mai"),
+    t("trang"),
+    t("trat"),
+    t("tak"),
+    t("nakhon_nayok"),
+    t("nakhon_pathom"),
+    t("nakhon_phanom"),
+    t("nakhon_ratchasima"),
+    t("nakhon_si_thammarat"),
+    t("nakhon_sawan"),
+    t("nonthaburi"),
+    t("narathiwat"),
+    t("nan"),
+    t("bueng_kan"),
+    t("buriram"),
+    t("pathum_thani"),
+    t("prachuap_khiri_khan"),
+    t("prachinburi"),
+    t("pattani"),
+    t("phra_nakhon_si_ayutthaya"),
+    t("phayao"),
+    t("phang_nga"),
+    t("phatthalung"),
+    t("phichit"),
+    t("phitsanulok"),
+    t("phetchaburi"),
+    t("phetchabun"),
+    t("phrae"),
+    t("phuket"),
+    t("maha_sarakham"),
+    t("mae_hong_son"),
+    t("yasothon"),
+    t("yala"),
+    t("roi_et"),
+    t("ranong"),
+    t("rayong"),
+    t("ratchaburi"),
+    t("lopburi"),
+    t("lampang"),
+    t("lamphun"),
+    t("loei"),
+    t("si_sa_ket"),
+    t("sakon_nakhon"),
+    t("songkhla"),
+    t("satun"),
+    t("samut_prakan"),
+    t("samut_songkhram"),
+    t("samut_sakhon"),
+    t("sa_kaeo"),
+    t("saraburi"),
+    t("sing_buri"),
+    t("sukhothai"),
+    t("suphan_buri"),
+    t("surat_thani"),
+    t("surin"),
+    t("nong_khai"),
+    t("nong_bua_lamphu"),
+    t("ang_thong"),
+    t("amnat_charoen"),
+    t("udon_thani"),
+    t("uttaradit"),
+    t("uthai_thani"),
+    t("ubon_ratchathani"),
+  ];
   // UI States
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -259,7 +322,6 @@ const CreatePost: React.FC = () => {
   // ตรวจสอบการล็อกอินและดึงตำแหน่งปัจจุบัน
   useEffect(() => {
     const initializePage = async () => {
-      // 1. ตรวจสอบผู้ใช้ก่อน
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -270,7 +332,6 @@ const CreatePost: React.FC = () => {
       }
       setUser(user);
 
-      // 2. ถ้ามีผู้ใช้, พยายามดึงตำแหน่งปัจจุบัน
       if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -282,7 +343,7 @@ const CreatePost: React.FC = () => {
           },
           (error) => {
             console.warn(`Geolocation error (${error.code}): ${error.message}`);
-            setLoading(false); 
+            setLoading(false);
           }
         );
       } else {
@@ -294,7 +355,6 @@ const CreatePost: React.FC = () => {
     initializePage();
   }, [router]);
 
-  // ฟังก์ชันสำหรับปุ่ม "ใช้ตำแหน่งปัจจุบัน"
   const handleGetCurrentLocation = () => {
     if ("geolocation" in navigator) {
       const locationToast = toast.loading("กำลังค้นหาตำแหน่งของคุณ...");
@@ -317,13 +377,11 @@ const CreatePost: React.FC = () => {
     }
   };
 
-  // ✅ แก้ไข: อัปเดตเฉพาะ Place Type state, ไม่ยุ่งกับ Title state
   const handlePlaceTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value;
     setPlaceType(newType);
   };
 
-  // 7. ฟังก์ชันใหม่สำหรับ Handle จังหวัด (คงเดิม)
   const handleProvinceChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newProvince = e.target.value;
     setProvince(newProvince);
@@ -335,14 +393,12 @@ const CreatePost: React.FC = () => {
     setLongitude(newCenter[1]);
   };
 
-  // 8. ฟังก์ชันสำหรับอัปเดตพิกัด (จากการลากหมุด หรือ ค้นหา) (คงเดิม)
   const handleMapUpdate = (lat: number, lng: number) => {
     setLatitude(lat);
     setLongitude(lng);
     setMapCenter([lat, lng]);
   };
 
-  // Image Handlers (คงเดิม)
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -471,19 +527,19 @@ const CreatePost: React.FC = () => {
           className="relative border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-10 max-w-lg w-full backdrop-blur-lg"
         >
           <h2 className="text-3xl font-extrabold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-pink-500 tracking-tight">
-            แชร์การเดินทางของคุณ
+            {t("journey")}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <FormSelect
-                label="ประเภท"
+                label={t("type")}
                 value={placeType}
                 onChange={handlePlaceTypeChange}
                 options={placeTypes}
                 required
               />
               <FormSelect
-                label="จังหวัด"
+                label={t("province")}
                 value={province}
                 onChange={handleProvinceChange}
                 options={provinces}
@@ -492,7 +548,7 @@ const CreatePost: React.FC = () => {
             </div>
 
             <FormInput
-              label="ชื่อร้าน / โพสต์"
+              label={t("post_title")}
               placeholder={
                 placeType
                   ? `เช่น: (${placeType}) ชื่อสถานที่...`
@@ -504,8 +560,8 @@ const CreatePost: React.FC = () => {
             />
 
             <FormTextArea
-              label="รายละเอียด"
-              placeholder="บอกเล่าประสบการณ์ของคุณ..."
+              label={t("description")}
+              placeholder={t("tellUrStory")}
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
               required
@@ -514,9 +570,8 @@ const CreatePost: React.FC = () => {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-sm font-semibold text-white">
-                  ปักหมุดตำแหน่ง (คลิก, ลาก, หรือค้นหา)
+                  {t("place_marker")}
                 </label>
-                
               </div>
               <div className="rounded-lg overflow-hidden border-2 border-gray-300 dark:border-gray-600">
                 <MapPicker
@@ -527,17 +582,13 @@ const CreatePost: React.FC = () => {
               </div>
               {latitude && (
                 <div className="flex justify-between items-center mt-1">
-                  <p className="text-xs text-white">
-                    ปักหมุดแล้ว: Lat: {latitude.toFixed(4)}, Lng:{" "}
-                    {longitude.toFixed(4)}
-                  </p>
                   <a
                     href={`https://www.google.com/maps?q=${latitude},${longitude}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-xs font-medium text-green-500 hover:underline"
                   >
-                    เปิดใน Google Maps
+                    {t("open_in_maps")}
                     <FaExternalLinkAlt size={10} />
                   </a>
                 </div>
@@ -546,7 +597,7 @@ const CreatePost: React.FC = () => {
 
             <div>
               <label className="block mb-2 text-sm font-semibold text-white">
-                รูปภาพ (สูงสุด 5 รูป)
+                {t("images")}
               </label>
               <button
                 type="button"
@@ -554,7 +605,7 @@ const CreatePost: React.FC = () => {
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-400 dark:hover:border-pink-400 transition"
               >
                 <FiUploadCloud className="text-xl" />
-                คลิกเพื่ออัปโหลดรูปภาพ
+                {t("clickToUpload")}
               </button>
               <input
                 ref={imageInputRef}
@@ -585,7 +636,7 @@ const CreatePost: React.FC = () => {
                 onClick={() => router.back()}
                 className="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 py-3 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-500 transition"
               >
-                ยกเลิก
+                {t("cancel")}
               </motion.button>
               <motion.button
                 type="submit"
@@ -593,7 +644,7 @@ const CreatePost: React.FC = () => {
                 whileTap={{ scale: 0.95 }}
                 className="flex-1 bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "กำลังโพสต์..." : "โพสต์"}
+                {isSubmitting ? t("loading") : t("post")}
               </motion.button>
             </div>
           </form>

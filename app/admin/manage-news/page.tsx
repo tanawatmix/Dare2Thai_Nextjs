@@ -7,6 +7,7 @@ import Navbar from "../../components/navbar";
 import Footer from "../../components/Footer";
 import { supabase } from "@/lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiSave,
@@ -51,6 +52,7 @@ const LoadingComponent = ({ text }: { text: string }) => (
 );
  
 const ManageNewsContent: React.FC = () => {
+  const { t } = useTranslation();
   const { darkMode } = useContext(ThemeContext);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -345,7 +347,7 @@ const ManageNewsContent: React.FC = () => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className={`flex items-center gap-1.5 mb-6 text-sm font-medium transition-colors ${ darkMode ? 'text-gray-400 hover:text-pink-400' : 'text-gray-600 hover:text-blue-600'}`}>
-             <FiArrowLeft /> กลับไปหน้าNEWS
+             <FiArrowLeft /> {t("backtonews")}
          </motion.button>
 
         <motion.div
@@ -354,25 +356,25 @@ const ManageNewsContent: React.FC = () => {
             transition={{ duration: 0.5 }}
             className={`p-6 sm:p-8 rounded-2xl shadow-lg border mb-12 ${ darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200" }`}>
           <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-pink-500">
-            {editingArticle?.id ? "แก้ไขข่าวสาร" : "สร้างข่าวสารใหม่"}
+            {editingArticle?.id ? t("editNews") : t("createNews")}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium mb-1">หัวข้อข่าว</label>
+              <label htmlFor="title" className="block text-sm font-medium mb-1">{t("HeaderNews")}</label>
               <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} required
                 className={`w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 transition ${ darkMode ? 'bg-gray-700 border-gray-600 focus:ring-pink-500 focus:border-pink-500' : 'bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500' }`} />
             </div>
             <div>
-              <label htmlFor="content" className="block text-sm font-medium mb-1">เนื้อหา</label>
+              <label htmlFor="content" className="block text-sm font-medium mb-1">{t("detailNews")}</label>
               <input type="text" id="content" value={content} onChange={(e) => setContent(e.target.value)} required
                 className={`w-full p-15 border rounded-lg focus:outline-none focus:ring-2 transition ${ darkMode ? 'bg-gray-700 border-gray-600 focus:ring-pink-500 focus:border-pink-500' : 'bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500' }`} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">รูปภาพประกอบ (Optional)</label>
+              <label className="block text-sm font-medium mb-1">{t("newsphoto")} (Optional)</label>
               <div className="flex flex-col sm:flex-row items-center gap-4">
                  <button type="button" onClick={() => imageInputRef.current?.click()}
                     className={`flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg transition hover:border-opacity-70 ${ darkMode ? 'border-gray-600 text-gray-400 hover:border-pink-400' : 'border-gray-300 text-gray-500 hover:border-blue-400' }`}>
-                    <FiImage /> {imagePreview ? "เปลี่ยนรูปภาพ" : "เลือกรูปภาพ"}
+                    <FiImage /> {imagePreview ? t("changephoto") : t("choosefile")}
                   </button>
                 <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                  {imagePreview && (
@@ -391,23 +393,23 @@ const ManageNewsContent: React.FC = () => {
               <motion.button type="submit" disabled={isSubmitting} whileTap={{ scale: 0.98 }}
                 className={`flex-1 flex items-center justify-center gap-2 text-white py-2.5 px-4 rounded-lg font-semibold shadow transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${ darkMode ? "bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-600 hover:to-blue-600" : "bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600" }`}>
                 {isSubmitting ? <FiLoader className="animate-spin" /> : <FiSave />}
-                {editingArticle?.id ? (isSubmitting ? "กำลังอัปเดต..." : "บันทึกการแก้ไข") : (isSubmitting ? "กำลังสร้าง..." : "สร้างข่าว")}
+                {editingArticle?.id ? (isSubmitting ? t("doing") : t("editNews")) : (isSubmitting ? t("doing") : t("createNews"))}
               </motion.button>
               {editingArticle?.id && (
                  <motion.button type="button" whileTap={{ scale: 0.98 }} onClick={resetForm}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-semibold shadow transition duration-200 ${ darkMode ? 'bg-gray-600 hover:bg-gray-500 text-gray-100' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}>
-                   <FiXCircle /> ยกเลิกการแก้ไข
+                   <FiXCircle /> {t("canc")}
                   </motion.button>
               )}
             </div>
           </form>
         </motion.div>
 
-        <h2 className="text-xl font-semibold mb-4 mt-10">รายการข่าวทั้งหมด</h2>
+        <h2 className="text-xl font-semibold mb-4 mt-10">{t("allNews")}</h2>
         <div className={`rounded-lg shadow-md border overflow-hidden ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
             <ul className={`divide-y ${ darkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
                 {newsList.length === 0 && !loading ? (
-                    <li className="p-4 text-center text-gray-500">ไม่มีข่าวสาร</li>
+                    <li className="p-4 text-center text-gray-500">{t("NoNewsYet")}</li>
                 ) : (
                     newsList.map(news => (
                         <li key={news.id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
@@ -421,11 +423,11 @@ const ManageNewsContent: React.FC = () => {
                                 <motion.button whileTap={{ scale: 0.95 }}
                                     onClick={() => router.push(`/admin/manage-news?edit=${news.id}`)}
                                     className="flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium shadow transition">
-                                    <FiEdit size={12}/> แก้ไข
+                                    <FiEdit size={12}/> {t("editNews")}
                                 </motion.button>
                                 <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleDelete(news.id, news.title)}
                                      className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-medium shadow transition">
-                                    <FiTrash2 size={12}/> ลบ
+                                    <FiTrash2 size={12}/> {t("delete")}
                                  </motion.button>
                             </div>
                         </li>

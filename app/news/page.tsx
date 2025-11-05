@@ -11,6 +11,7 @@ import { FiPlus } from "react-icons/fi";
 import { User } from "@supabase/supabase-js";
 import toast, { Toaster } from "react-hot-toast";
 import NewsCard, { NewsArticle } from "../components/NewsCard";
+import { useTranslation } from "react-i18next";
 import Masonry from "react-masonry-css";
 
 type Profile = {
@@ -46,6 +47,7 @@ const LoadingSpinner = () => (
 );
 
 const NewsListPage: React.FC = () => {
+  const { t } = useTranslation();
   const { darkMode } = useContext(ThemeContext);
   const router = useRouter();
   const [newsList, setNewsList] = useState<NewsArticle[]>([]);
@@ -115,7 +117,7 @@ const NewsListPage: React.FC = () => {
           className="flex flex-col sm:flex-row justify-between items-center mb-10 gap-4"
         >
           <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-pink-500">
-            ข่าวสารและประกาศ
+            {t("News")}
           </h1>
           {isAdmin && (
             <motion.button
@@ -129,7 +131,7 @@ const NewsListPage: React.FC = () => {
                    : "bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600"
                }`}
             >
-              <FiPlus /> จัดการข่าวสาร (Admin)
+              <FiPlus /> {t("AddNews")} (Admin)
             </motion.button>
           )}
         </motion.div>
@@ -146,7 +148,7 @@ const NewsListPage: React.FC = () => {
             </motion.div>
           ) : newsList.length === 0 ? (
             <p className="text-center text-gray-500 dark:text-gray-400 py-10">
-              ยังไม่มีข่าวสารในขณะนี้
+              {t("NoNewsYet")}
             </p>
           ) : (
             <Masonry

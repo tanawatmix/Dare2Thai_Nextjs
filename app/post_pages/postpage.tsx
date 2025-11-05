@@ -9,6 +9,7 @@ import PostCard from "../components/PostCard";
 import { supabase } from "@/lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import { FaPlus } from "react-icons/fa";
+import { useTranslation } from "react-i18next";
 import {
   FiSearch,
   FiHeart,
@@ -25,7 +26,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { User } from "@supabase/supabase-js";
-import Hero from "../components/HeroCarousel"; 
+import Hero from "../components/HeroCarousel";
 
 type Post = {
   id: string;
@@ -37,34 +38,12 @@ type Post = {
   user_id: string;
   created_at: string;
   isFav?: boolean;
-  like_count: number; 
-  isLiked?: boolean; 
+  like_count: number;
+  isLiked?: boolean;
 };
 
-// --- Constant Data ---
-const placeTypes = [
-  "ร้านอาหาร",
-  "สถานที่ท่องเที่ยว",
-  "โรงแรม",
-  "คาเฟ่",
-  "ร้านขายของฝาก",
-  "วัด",
-  "คลับ",
-];
-const filterTags = ["ทั้งหมด", ...placeTypes];
-const sortOptions = [
-  {
-    id: "newest",
-    name: "ใหม่สุด",
-    icon: <FiClock className="transform scale-x-[-1]" />,
-  },
-  { id: "oldest", name: "เก่าสุด", icon: <FiClock /> },
-  { id: "az", name: "A-Z", icon: <FiArrowDown size={16} /> },
-  { id: "za", name: "Z-A", icon: <FiArrowUp size={16} /> },
-  { id: "province_az", name: "จังหวัด ก-ฮ", icon: <FiMapPin size={16} /> },
-];
-
 const PostPage = () => {
+  const { t } = useTranslation();
   const { darkMode } = useContext(ThemeContext);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -82,13 +61,62 @@ const PostPage = () => {
   const [showSortMenu, setShowSortMenu] = useState(false);
 
   const [isSticky, setIsSticky] = useState(false);
-  const stickyContainerRef = useRef<HTMLDivElement>(null); 
-  const filterBarRef = useRef<HTMLDivElement>(null); 
+  const stickyContainerRef = useRef<HTMLDivElement>(null);
+  const filterBarRef = useRef<HTMLDivElement>(null);
   const [filterBarHeight, setFilterBarHeight] = useState(0);
-  const [stickyOffsetTop, setStickyOffsetTop] = useState(0); 
+  const [stickyOffsetTop, setStickyOffsetTop] = useState(0);
 
-  const NAVBAR_HEIGHT = 64; 
+  const NAVBAR_HEIGHT = 64;
   const postsPerPage = 12;
+
+  const placeTypes = [
+    t("restaurant"),
+    t("tourist_place"),
+    t("hotel"),
+    t("cafe"),
+    t("souvenir_shop"),
+    t("temple"),
+    t("club"),
+    t("market"),
+  ];
+
+  const filterTags = [t("all"), ...placeTypes];
+
+  const sortOptions = [
+    {
+      id: "newest",
+      name: t("sort_newest"),
+      icon: <FiClock className="transform scale-x-[-1]" />,
+    },
+    { id: "oldest", name: t("sort_oldest"), icon: <FiClock /> },
+    { id: "az", name: t("sort_az"), icon: <FiArrowDown size={16} /> },
+    { id: "za", name: t("sort_za"), icon: <FiArrowUp size={16} /> },
+    {
+      id: "province_az",
+      name: t("sort_province"),
+      icon: <FiMapPin size={16} />,
+    },
+    {
+      id: "most_liked",
+      name: t("sort_most_liked"),
+      icon: <FiHeart size={16} />,
+    },
+  ];
+
+  // If user selects "most_liked", apply sorting by like_count here (overrides the other sort effect).
+  useEffect(() => {
+    if (loading) return;
+    if (sortBy !== "most_liked") return;
+
+    const filtered = posts.filter((p) => {
+      const matchName = p.title.toLowerCase().includes(searchName.toLowerCase());
+      const matchType = !selectedType || p.place_type === selectedType;
+      return matchName && matchType;
+    });
+
+    const sorted = filtered.slice().sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
+    setFilteredPosts(sorted);
+  }, [searchName, selectedType, posts, sortBy, loading]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -101,7 +129,7 @@ const PostPage = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
-      setPosts([]); 
+      setPosts([]);
       setFilteredPosts([]);
       try {
         const { data: postsData, error: postsError } = await supabase
@@ -119,7 +147,7 @@ const PostPage = () => {
           if (favError) throw favError;
           favIds = favData?.map((f: any) => f.post_id) || [];
         }
-        
+
         let likedPostIds: string[] = [];
         if (currentUserId) {
           const { data: likeData } = await supabase
@@ -161,8 +189,8 @@ const PostPage = () => {
           user_id: p.user_id,
           created_at: p.created_at,
           isFav: favIds.includes(p.id),
-          like_count: likeCountsMap.get(p.id) || 0,  
-          isLiked: likedPostIds.includes(p.id),    
+          like_count: likeCountsMap.get(p.id) || 0,
+          isLiked: likedPostIds.includes(p.id),
         }));
 
         setPosts(postsWithFav);
@@ -258,7 +286,7 @@ const PostPage = () => {
     calculateInitialPosition();
     window.addEventListener("resize", calculateInitialPosition);
     window.addEventListener("scroll", handleScroll);
-    handleScroll(); 
+    handleScroll();
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
@@ -320,7 +348,7 @@ const PostPage = () => {
   // --- Favorite ---
   const handleFavPost = async (postId: string) => {
     if (!currentUserId) {
-      toast.error("กรุณาล็อกอินเพื่อกดถูกใจโพสต์");
+      toast.error(t("please_login_to_fav"));
       router.push("/login");
       return;
     }
@@ -339,7 +367,7 @@ const PostPage = () => {
         setPosts((prev) =>
           prev.map((p) => (p.id === postId ? { ...p, isFav: false } : p))
         );
-        toast.success("ลบโพสต์ออกจากรายการโปรดแล้ว");
+        toast.success(t("fav_removed"));
       } else {
         const { error } = await supabase
           .from("favorites")
@@ -348,7 +376,7 @@ const PostPage = () => {
         setPosts((prev) =>
           prev.map((p) => (p.id === postId ? { ...p, isFav: true } : p))
         );
-        toast.success("เพิ่มโพสต์เข้าในรายการโปรดแล้ว");
+        toast.success(t("fav_added"));
       }
     } catch (err: any) {
       toast.error(err.message);
@@ -361,16 +389,16 @@ const PostPage = () => {
     newLiked: boolean
   ): Promise<number> => {
     if (!currentUserId) {
-      toast.error("กรุณาล็อกอินเพื่อกดไลค์โพสต์");
+      toast.error(t("please_login_to_like"));
       router.push("/login");
-      throw new Error("User not logged in"); 
+      throw new Error("User not logged in");
     }
 
     let newLikeCount = 0;
     const postIndex = posts.findIndex((p) => p.id === postId);
     if (postIndex === -1) throw new Error("Post not found");
     const post = posts[postIndex];
-    
+
     try {
       if (newLiked) {
         await supabase
@@ -399,68 +427,69 @@ const PostPage = () => {
             : p
         )
       );
-      return newLikeCount; 
+      return newLikeCount;
     } catch (err: any) {
       toast.error("เกิดข้อผิดพลาด: " + err.message);
-      throw err; 
+      throw err;
     }
   };
 
   // --- Delete ---
   const handleDeletePost = async (postId: string): Promise<void> => {
-    if (!currentUserId) { 
-        toast.error("ไม่พบผู้ใช้");
-        return; 
+    if (!currentUserId) {
+      toast.error("ไม่พบผู้ใช้");
+      return;
     }
     const post = posts.find((p) => p.id === postId);
     if (!post) {
-        toast.error("ไม่พบโพสต์");
-        return;
+      toast.error("ไม่พบโพสต์");
+      return;
     }
     if (post.user_id !== currentUserId) {
       toast.error("คุณไม่สามารถลบโพสต์นี้ได้");
       return;
     }
 
-    const result: void | Error = await toast.promise(
-      new Promise<void>((resolve, reject) => {
-        import("sweetalert2")
-          .then(async (Swal) => {
-            const confirmResult = await Swal.default.fire({
-              title: "ต้องการลบโพสต์นี้?",
-              text: "การกระทำนี้ไม่สามารถย้อนกลับได้!",
-              icon: "warning",
-              showCancelButton: true,
-              confirmButtonColor: "#d33",
-              cancelButtonColor: "#3085d6",
-              confirmButtonText: "ใช่, ลบเลย!",
-              cancelButtonText: "ยกเลิก",
-            });
-            if (confirmResult.isConfirmed) {
-              resolve();
-            } else {
-              reject(new Error("User cancelled"));
-            }
-          })
-          .catch(reject);
-      }),
-      {
-        loading: "กำลังลบ...",
-        success: "ลบโพสต์สำเร็จ!",
-        error: (err) =>
-          err.message === "User cancelled"
-            ? "ยกเลิกการลบ"
-            : "เกิดข้อผิดพลาดในการลบ",
-      }
-    );
-
-    // แก้ไข: ตรวจสอบว่า result เป็น Error object ที่มี 'message' หรือไม่
-    if (typeof result === 'object' && result !== null && 'message' in result) {
-      console.log(
-        "Deletion cancelled or pre-promise error:",
-        (result as Error).message
+    try {
+      await toast.promise(
+        new Promise<void>((resolve, reject) => {
+          import("sweetalert2")
+            .then(async (Swal) => {
+              const confirmResult = await Swal.default.fire({
+                title: t("delete_confirm_title"),
+                text: t("delete_confirm_text"),
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: t("delete_confirm_yes"),
+                cancelButtonText: t("delete_confirm_cancel"),
+              });
+              if (confirmResult.isConfirmed) {
+                resolve();
+              } else {
+                reject(new Error("User cancelled"));
+              }
+            })
+            .catch(reject);
+        }),
+        {
+          loading: "กำลังลบ...",
+          success: "ลบโพสต์สำเร็จ!",
+          error: (err: any) =>
+            err && err.message === "User cancelled"
+              ? t("delete_cancelled")
+              : t("delete_failed"),
+        }
       );
-      return; 
+    } catch (err: any) {
+      // User cancelled the confirmation dialog or an error occurred during the confirm flow.
+      if (err && err.message === "User cancelled") {
+        console.log("Deletion cancelled by user");
+        return;
+      }
+      toast.error(err?.message || "เกิดข้อผิดพลาด");
+      return;
     }
 
     try {
@@ -485,7 +514,7 @@ const PostPage = () => {
       <Toaster position="top-right" />
       <Navbar />
       <div className="max-w-8xl mx-auto px-0 sm:px-0 lg:px-0 pt-[64px] h-64 sm:h-80 md:h-96 lg:h-[500px] overflow-hidden">
-        <Hero/>
+        <Hero />
       </div>
 
       {/* Main Content Area */}
@@ -507,7 +536,7 @@ const PostPage = () => {
                  : "bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600"
              }`}
           >
-            <FaPlus /> สร้างโพสต์ใหม่
+            <FaPlus /> {t("share_your_journey")}
           </motion.button>
           <Link
             href="/Favorites"
@@ -518,7 +547,7 @@ const PostPage = () => {
                  : "text-blue-600 hover:text-blue-800"
              }`}
           >
-            <FiHeart /> ดูรายการโปรด
+            <FiHeart /> {t("fav")}
           </Link>
         </motion.div>
 
@@ -738,7 +767,7 @@ const PostPage = () => {
                 </motion.div>
               ) : (
                 <p className="text-center text-gray-500 dark:text-gray-400 py-10">
-                  ไม่พบโพสต์ที่ตรงกับเงื่อนไขการค้นหาของคุณ
+                  {t("no_posts_found")}
                 </p>
               )}
 
@@ -837,4 +866,3 @@ const PostPage = () => {
 };
 
 export default PostPage;
-

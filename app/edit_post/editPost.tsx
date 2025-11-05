@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { User } from "@supabase/supabase-js";
 import dynamic from "next/dynamic";
 import { LatLngExpression, LatLngTuple } from "leaflet";
+import { useTranslation } from "react-i18next";
 import { FaLocationArrow, FaExternalLinkAlt } from "react-icons/fa"; 
 
 const MapPicker = dynamic(() => import("../components/MapPicker"), {
@@ -48,8 +49,7 @@ const provinces = [
     "หนองบัวลำภู", "อ่างทอง", "อำนาจเจริญ", "อุดรธานี", "อุตรดิตถ์",
     "อุทัยธานี", "อุบลราชธานี"
 ];
-
-// ✅ Updated: Added approximate coordinates for all provinces
+ 
 const PROVINCE_COORDS: { [key: string]: LatLngExpression } = {
     "กรุงเทพมหานคร": [13.7563, 100.5018],
     "กระบี่": [8.0833, 98.9063],
@@ -234,6 +234,7 @@ const ImageGridItem = ({
 
 // --- Main Component ---
 const EditPost: React.FC = () => {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const postId = searchParams.get("id");
@@ -474,7 +475,7 @@ const EditPost: React.FC = () => {
     return (
       <div className="flex justify-center items-center min-h-screen bg-[var(--background)]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
-        <span className="ml-4 text-[var(--foreground)]">กำลังโหลดการเดินทางของคุณ...</span>
+        <span className="ml-4 text-[var(--foreground)]">{t("loading_post")}</span>
       </div>
     );
 
@@ -494,19 +495,19 @@ const EditPost: React.FC = () => {
           className="relative border-2 bg-black/70 border-blue-400 dark:border-pink-400 rounded-3xl shadow-2xl p-10 max-w-lg w-full backdrop-blur-lg"
         >
           <h2 className="text-3xl font-extrabold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-pink-500 tracking-tight">
-            แก้ไขการเดินทางของคุณ
+            {t("edit_post")}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <FormSelect
-                label="ประเภท"
+                label={t("type")}
                 value={placeType}
                 onChange={handlePlaceTypeChange}
                 options={placeTypes}
                 required
               />
               <FormSelect
-                label="จังหวัด"
+                label={t("province")}
                 value={province}
                 onChange={handleProvinceChange}
                 options={provinces}
@@ -515,16 +516,16 @@ const EditPost: React.FC = () => {
             </div>
 
             <FormInput
-              label="ชื่อร้าน / โพสต์"
-              placeholder="ชื่อร้าน / โพสต์"
+              label={t("post_title")}
+              placeholder={t("post_title")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
             />
 
             <FormTextArea
-              label="รายละเอียด"
-              placeholder="รายละเอียด"
+              label={t("description")}
+              placeholder={t("description")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
@@ -533,7 +534,7 @@ const EditPost: React.FC = () => {
             {/* 16. เพิ่ม MapPicker */}
             <div>
               <label className="block text-sm font-semibold text-white">
-                ปักหมุดตำแหน่ง (คลิก, ลาก, หรือค้นหา)
+                {t("place_marker")}
               </label>
               <div className="rounded-lg overflow-hidden border-2 border-gray-300 dark:border-gray-600">
                 <MapPicker
@@ -544,17 +545,14 @@ const EditPost: React.FC = () => {
               </div>
               {latitude && (
                 <div className="flex justify-between items-center mt-1">
-                  <p className="text-xs text-white">
-                    ปักหมุดแล้ว: Lat: {latitude.toFixed(4)}, Lng:{" "}
-                    {longitude.toFixed(4)}
-                  </p>
+                  
                   <a
                     href={`https://www.google.com/maps?q=${latitude},${longitude}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-xs font-medium text-green-500 hover:underline"
                   >
-                    เปิดใน Google Maps
+                    {t("open_in_maps")}
                     <FaExternalLinkAlt size={10} />
                   </a>
                 </div>
@@ -564,7 +562,7 @@ const EditPost: React.FC = () => {
             {/* ส่วนอัปโหลดรูปภาพ */}
             <div>
               <label className="block mb-2 text-sm font-semibold text-white">
-                รูปภาพ (สูงสุด 5 รูป)
+                {t("images")}
               </label>
               <button
                 type="button"
@@ -572,7 +570,7 @@ const EditPost: React.FC = () => {
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-blue-400 dark:hover:border-pink-400 transition"
               >
                 <FiUploadCloud className="text-xl" />
-                เพิ่มรูปภาพ
+                {t("add_image")}
               </button>
               <input
                 ref={imageInputRef}
@@ -610,7 +608,7 @@ const EditPost: React.FC = () => {
                 onClick={() => router.back()}
                 className="flex-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 py-3 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-500 transition"
               >
-                ยกเลิก
+                {t("cancel")}
               </motion.button>
               <motion.button
                 type="submit"
@@ -618,7 +616,7 @@ const EditPost: React.FC = () => {
                 whileTap={{ scale: 0.95 }}
                 className="flex-1 bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition disabled:opacity-50"
               >
-                {saving ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
+                {saving ? t("loading_post") : t("save_changes")}
               </motion.button>
             </div>
           </form>

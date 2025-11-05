@@ -6,7 +6,8 @@ import Link from "next/link";
 import Tilt from "react-parallax-tilt";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { FiHeart, FiEdit, FiTrash2, FiMessageSquare } from "react-icons/fi";
+import { useTranslation } from "react-i18next";
+import { FiHeart, FiEdit, FiTrash2, FiMessageSquare ,FiThumbsUp} from "react-icons/fi";
 
 type PostCardProps = {
   postId: string;
@@ -41,6 +42,7 @@ const PostCard: React.FC<PostCardProps> = ({
   isLiked = false,
   likeCount = 0,
 }) => {
+  const { t } = useTranslation();
   const router = useRouter();
   const imageSrc = images?.[0] || "/default-placeholder.png";
   const isOwner = currentUserId === ownerId;
@@ -121,7 +123,7 @@ const PostCard: React.FC<PostCardProps> = ({
 
           {isOwner && (
             <span className="absolute top-3 left-3 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md">
-              โพสต์ของคุณ
+              {t("MyPost")}
             </span>
           )}
 
@@ -168,7 +170,7 @@ const PostCard: React.FC<PostCardProps> = ({
               onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-2 text-sm text-blue-500 hover:underline"
             >
-              <FiMessageSquare /> <span>เข้าห้องแชท</span>
+              <FiMessageSquare /> <span>{t("joinchat")}</span>
             </Link>
 
             <div className="flex items-center gap-3">
@@ -176,12 +178,12 @@ const PostCard: React.FC<PostCardProps> = ({
                 whileTap={{ scale: 0.9 }}
                 onClick={handleLike}
                 disabled={updatingLike}
-                className="flex items-center gap-1 text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Like"
               >
-                <FiHeart
+                <FiThumbsUp
                   className={`w-4 h-4 transition-all ${
-                    liked ? "text-red-500 fill-current" : ""
+                    liked ? "text-blue-500 fill-current" : ""
                   }`}
                 />
                 <span className="text-sm font-medium">{likes}</span>
