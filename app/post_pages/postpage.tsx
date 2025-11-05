@@ -22,6 +22,7 @@ import {
   FiArrowUp,
   FiFilter,
   FiMapPin,
+  FiThumbsUp
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -99,25 +100,11 @@ const PostPage = () => {
     {
       id: "most_liked",
       name: t("sort_most_liked"),
-      icon: <FiHeart size={16} />,
+      icon: <FiThumbsUp size={16} />, // ใช้ FiThumbsUp ตามที่คุยกัน
     },
   ];
 
-  // If user selects "most_liked", apply sorting by like_count here (overrides the other sort effect).
-  useEffect(() => {
-    if (loading) return;
-    if (sortBy !== "most_liked") return;
-
-    const filtered = posts.filter((p) => {
-      const matchName = p.title.toLowerCase().includes(searchName.toLowerCase());
-      const matchType = !selectedType || p.place_type === selectedType;
-      return matchName && matchType;
-    });
-
-    const sorted = filtered.slice().sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
-    setFilteredPosts(sorted);
-  }, [searchName, selectedType, posts, sortBy, loading]);
-
+  // --- Get current user ---
   useEffect(() => {
     const getUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -126,6 +113,7 @@ const PostPage = () => {
     getUser();
   }, []);
 
+  // --- Fetch posts ---
   useEffect(() => {
     const fetchPosts = async () => {
       setLoading(true);
@@ -203,14 +191,14 @@ const PostPage = () => {
     fetchPosts();
   }, [currentUserId]);
 
-  // --- Filter & Sort Logic ---
+  // --- Filter & Sort Logic (รวมไว้ที่เดียว) ---
   useEffect(() => {
     if (!loading) {
       let filtered = posts.filter((p) => {
         const matchName = p.title
           .toLowerCase()
           .includes(searchName.toLowerCase());
-        const matchType = !selectedType || p.place_type === selectedType;
+        const matchType = !selectedType || selectedType === t('all') || p.place_type === selectedType; // แก้ไขให้รองรับ 'ทั้งหมด'
         return matchName && matchType;
       });
 
@@ -240,12 +228,17 @@ const PostPage = () => {
         case "province_az":
           sorted.sort((a, b) => a.province.localeCompare(b.province, "th"));
           break;
+        // --- ✅ เพิ่ม Case "most_liked" ที่นี่ ---
+        case "most_liked":
+          sorted.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
+          break;
+        // --- --------------------------- ---
         default:
           break;
       }
       setFilteredPosts(sorted);
     }
-  }, [searchName, selectedType, posts, sortBy, loading]);
+  }, [searchName, selectedType, posts, sortBy, loading, t]); // เพิ่ม t dependency
 
   // --- Effect for managing Sticky Bar ---
   useEffect(() => {
@@ -296,7 +289,7 @@ const PostPage = () => {
 
   // --- Function to handle tag selection and scroll ---
   const handleSelectType = (tag: string) => {
-    const newType = tag === "ทั้งหมด" ? "" : tag;
+    const newType = tag === t("all") ? "" : tag; // ใช้ t('all') ในการเปรียบเทียบ
     setSelectedType(newType);
     setCurrentPage(1);
     setTimeout(() => {
@@ -430,6 +423,14 @@ const PostPage = () => {
       return newLikeCount;
     } catch (err: any) {
       toast.error("เกิดข้อผิดพลาด: " + err.message);
+      // Revert state on error (PostCard will handle its own state reversal)
+       setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, isLiked: !newLiked, like_count: post.like_count }
+            : p
+        )
+      );
       throw err;
     }
   };
@@ -451,7 +452,7 @@ const PostPage = () => {
     }
 
     try {
-      await toast.promise(
+      const result: void | Error = await toast.promise(
         new Promise<void>((resolve, reject) => {
           import("sweetalert2")
             .then(async (Swal) => {
@@ -482,8 +483,15 @@ const PostPage = () => {
               : t("delete_failed"),
         }
       );
+
+      // Check if the promise rejected (e.g., user cancelled)
+      if (typeof result === 'object' && result !== null && 'message' in result) {
+         console.log("Deletion cancelled or pre-promise error:", (result as Error).message);
+         return;
+      }
+
     } catch (err: any) {
-      // User cancelled the confirmation dialog or an error occurred during the confirm flow.
+      // This catch block handles the rejection from Swal (User cancelled)
       if (err && err.message === "User cancelled") {
         console.log("Deletion cancelled by user");
         return;
@@ -492,6 +500,7 @@ const PostPage = () => {
       return;
     }
 
+    // Proceed with deletion only if toast.promise succeeded
     try {
       const { error } = await supabase.from("posts").delete().eq("id", postId);
       if (error) {
@@ -567,7 +576,7 @@ const PostPage = () => {
               type="text"
               value={searchName}
               onChange={(e) => setSearchName(e.target.value)}
-              placeholder="ค้นหาชื่อโพสต์..."
+              placeholder= "ค้นหาโพสต์"
               className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition duration-200
                 ${
                   darkMode
@@ -600,11 +609,10 @@ const PostPage = () => {
             }`}
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-              {/* Filter Tags */}
               <div className="flex flex-wrap gap-3">
                 {filterTags.map((tag) => {
                   const isActive =
-                    (tag === "ทั้งหมด" && !selectedType) ||
+                    (tag === t("all") && !selectedType) ||
                     tag === selectedType;
                   return (
                     <motion.button
@@ -633,7 +641,6 @@ const PostPage = () => {
                 })}
               </div>
 
-              {/* Sort Button & Dropdown */}
               <div className="relative">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
@@ -696,7 +703,6 @@ const PostPage = () => {
           </motion.div>
         </div>
 
-        {/* --- Posts Grid --- */}
         <AnimatePresence mode="wait">
           {loading ? (
             <motion.div
@@ -771,7 +777,6 @@ const PostPage = () => {
                 </p>
               )}
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <motion.div
                   initial={{ opacity: 0 }}
