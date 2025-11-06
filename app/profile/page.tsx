@@ -617,13 +617,6 @@ const ProfilePage = () => {
               darkMode={darkMode}
             />
             <InputField
-              label={t("Username")}
-              name="username"
-              value={profile?.username || ""}
-              onChange={handleChange}
-              darkMode={darkMode}
-            />
-            <InputField
               label={t("Email")}
               name="email"
               value={user?.email || ""}
