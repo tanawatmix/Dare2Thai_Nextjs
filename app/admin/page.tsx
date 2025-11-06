@@ -878,7 +878,7 @@ export default function AdminPage() {
         name: editUserData.name.trim(),
       })
       .eq("id", editingUserId)
-      .select("id, username, name, role")
+      .select("id, name, role")
       .single();
 
     toast.promise(promise as unknown as Promise<any>, {
@@ -1196,7 +1196,7 @@ export default function AdminPage() {
             <input
                 type="text"
                 placeholder={
-                    activeTab === 'users' ? "ค้นหา ชื่อผู้ใช้, ชื่อ, อีเมล..." :
+                    activeTab === 'users' ? "ค้นหา ชื่อ, อีเมล..." :
                     activeTab === 'posts' ? "ค้นหา หัวข้อโพสต์, ชื่อผู้ใช้..." :
                     activeTab === 'news' ? "ค้นหา หัวข้อข่าว..." :
                     "ค้นหา หัวข้อสไลด์..."
