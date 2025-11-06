@@ -22,12 +22,12 @@ export interface ChatMessage {
   created_at: string;
   post_id: string;
   user_id: string;
-  username: string;
+  name: string;
   message: string;
   image_url?: string;
 }
 type Profile = {
-  username: string;
+  name: string;
 };
 
 // --- Loading Component ---
@@ -90,7 +90,7 @@ const ChatUI = () => {
         const [profileRes, postRes, messagesRes] = await Promise.all([
           supabase
             .from("profiles")
-            .select("username")
+            .select("name")
             .eq("id", user.id)
             .single(),
           supabase.from("posts").select("title").eq("id", postId).single(),
@@ -172,7 +172,7 @@ const ChatUI = () => {
   const handleSendMessage = async () => {
     const messageText = input.trim();
     if (!messageText && !imageFile) return;
-    if (!user || !profile?.username) return;
+    if (!user || !profile?.name) return;
 
     setIsSending(true);
     let imageUrl: string | undefined = undefined;
@@ -198,7 +198,7 @@ const ChatUI = () => {
     await supabase.from("chats").insert({
       post_id: postId,
       user_id: user.id,
-      username: profile.username,
+      name: profile.name,
       message: messageText,
       image_url: imageUrl,
     });
@@ -287,7 +287,7 @@ const ChatUI = () => {
                           : "text-pink-500"
                       }`}
                     >
-                      {msg.username}
+                      {msg.name}
                     </strong>
                      <span className="text-xs text-gray-500 dark:text-gray-400">{new Date(msg.created_at.replace(' ', 'T') + 'Z').toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" })}</span>
                   </div>
