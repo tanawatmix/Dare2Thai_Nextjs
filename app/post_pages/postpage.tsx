@@ -130,6 +130,7 @@ const PostPage = () => {
   // --- (ลบ useEffect ที่เรียก getUser() ตัวเก่าออกไป) ---
 
   // --- useEffect ที่รวมการจัดการ User ทั้งหมด (แก้ลูป) ---
+  // --- useEffect ที่รวมการจัดการ User ทั้งหมด (แก้ลูป) ---
   useEffect(() => {
     // ฟังก์ชันสำหรับจัดการ Session ผู้ใช้
     const handleUserSession = async (session: any) => {
@@ -182,9 +183,10 @@ const PostPage = () => {
           console.error("ERROR updating user metadata:", error.message);
           setIsUpdatingUser(false); // --- ปลดล็อก ถ้าพลาด
         } else {
-          console.log("Database update SUCCESSFUL. Reloading page...");
-          // ใช้ window.location.reload() เพื่อบังคับโหลดข้อมูลใหม่ทั้งหมด
-          window.location.reload();
+          console.log("Database update SUCCESSFUL. Redirecting to /login...");
+          // ⭐️⭐️⭐️ นี่คือจุดที่แก้ไข ⭐️⭐️⭐️
+          // เปลี่ยนจาก window.location.reload() เป็น router.push('/login')
+          router.push("/login");
         }
       } else {
         // ถ้าข้อมูลครบถ้วน (เช่น ล็อกอินครั้งถัดๆ ไป) ก็ไม่ต้องทำอะไร
