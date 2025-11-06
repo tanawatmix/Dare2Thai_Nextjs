@@ -17,17 +17,21 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiImage, FiSend, FiX, FiDownload, FiArrowLeft } from "react-icons/fi";
 
+// --- Type Definitions ---
 export interface ChatMessage {
   id: number;
   created_at: string;
   post_id: string;
   user_id: string;
-  name: string;
+  username: string; // คอลัมน์นี้ใน DB จะใช้เก็บ "Name"
   message: string;
   image_url?: string;
 }
+
+// ✅ 1. อัปเดต Type Profile ให้มี name
 type Profile = {
-  name: string;
+  username: string;
+  name: string; // เพิ่ม name
 };
 
 // --- Loading Component ---
@@ -66,7 +70,7 @@ const ChatUI = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [user, setUser] = useState<{ id: string } | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null); // ✅ ใช้ Type Profile ที่อัปเดตแล้ว
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [postTitle, setPostTitle] = useState<string>("กำลังโหลด...");
   const [input, setInput] = useState("");
@@ -90,7 +94,8 @@ const ChatUI = () => {
         const [profileRes, postRes, messagesRes] = await Promise.all([
           supabase
             .from("profiles")
-            .select("name")
+            // ✅ 2. ดึง cả username และ name จากตาราง profiles
+            .select("username, name") 
             .eq("id", user.id)
             .single(),
           supabase.from("posts").select("title").eq("id", postId).single(),
@@ -101,7 +106,7 @@ const ChatUI = () => {
             .order("created_at", { ascending: true }),
         ]);
 
-        if (profileRes.data) setProfile(profileRes.data);
+        if (profileRes.data) setProfile(profileRes.data as Profile); // Cast เป็น Type Profile
         if (postRes.data) setPostTitle(postRes.data.title);
         else setPostTitle("ไม่พบโพสต์");
         if (messagesRes.data) setMessages(messagesRes.data as ChatMessage[]);
@@ -120,6 +125,7 @@ const ChatUI = () => {
     if (!isLoading && !user) router.push("/login");
   }, [isLoading, user, router]);
 
+  // (Realtime Effect ไม่ต้องแก้ไข เพราะ handleSendMessage จะส่ง "name" ที่ถูกต้องเข้าไป)
   useEffect(() => {
     if (!postId) return;
 
@@ -172,6 +178,7 @@ const ChatUI = () => {
   const handleSendMessage = async () => {
     const messageText = input.trim();
     if (!messageText && !imageFile) return;
+    // ✅ 3. ตรวจสอบว่ามี profile.name
     if (!user || !profile?.name) return;
 
     setIsSending(true);
@@ -198,7 +205,8 @@ const ChatUI = () => {
     await supabase.from("chats").insert({
       post_id: postId,
       user_id: user.id,
-      name: profile.name,
+      // ✅ 4. บันทึก "name" ลงในคอลัมน์ "username"
+      username: profile.name, 
       message: messageText,
       image_url: imageUrl,
     });
@@ -287,9 +295,10 @@ const ChatUI = () => {
                           : "text-pink-500"
                       }`}
                     >
-                      {msg.name}
+                      {/* ✅ 5. แสดงผล msg.username (ซึ่งตอนนี้คือ "name") */}
+                      {msg.username}
                     </strong>
-                     <span className="text-xs text-gray-500 dark:text-gray-400">{new Date(msg.created_at.replace(' ', 'T') + 'Z').toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" })}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{new Date(msg.created_at.replace(' ', 'T') + 'Z').toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" })}</span>
                   </div>
                   <div
                     className={`mt-1 max-w-xs md:max-w-md w-fit rounded-lg shadow-md ${
