@@ -15,7 +15,7 @@ import i18n from "../i18n";
 const Navbar = () => {
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
   const router = useRouter();
-  const { t } = useTranslation(); // ✅ ใช้ i18next แปลภาษา
+  const { t } = useTranslation(); 
 
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -130,7 +130,7 @@ const Navbar = () => {
                     unoptimized
                   />
                   <span className="font-medium">
-                    {profile?.username || user.email}
+                    {profile?.name || user.email}
                   </span>
                 </Link>
                 <button

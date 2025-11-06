@@ -226,23 +226,7 @@ const DataTable = ({
                 }`}
                 layout
               >
-                <td className="py-3 px-4 text-left whitespace-nowrap">
-                  {editingUserId === user.id ? (
-                    <input
-                      type="text"
-                      value={editUserData.username}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setEditUserData({
-                          ...editUserData,
-                          username: e.target.value,
-                        })
-                      }
-                      className="w-full p-1 rounded border bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-700 dark:text-gray-200"
-                    />
-                  ) : (
-                    user.username
-                  )}
-                </td>
+                
                 <td className="py-3 px-4 text-left whitespace-nowrap">
                   {editingUserId === user.id ? (
                     <input

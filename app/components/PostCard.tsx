@@ -7,7 +7,7 @@ import Tilt from "react-parallax-tilt";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { FiHeart, FiEdit, FiTrash2, FiMessageSquare ,FiThumbsUp} from "react-icons/fi";
+import { FiHeart, FiEdit, FiTrash2, FiMessageSquare, FiThumbsUp } from "react-icons/fi";
 
 type PostCardProps = {
   postId: string;
@@ -70,23 +70,22 @@ const PostCard: React.FC<PostCardProps> = ({
   const handleFav = (e: React.MouseEvent) => {
     e.stopPropagation();
     onFav(postId);
-    setFav((prev) => !prev); 
+    setFav((prev) => !prev);
   };
 
   const handleLike = async (e: React.MouseEvent) => {
-    e.stopPropagation(); 
-    if (updatingLike) return; 
+    e.stopPropagation();
+    if (updatingLike) return;
     setUpdatingLike(true);
     const newLikedState = !liked;
     setLiked(newLikedState);
     setLikes((prev) => (newLikedState ? prev + 1 : prev - 1));
 
-    try { 
+    try {
       const updatedLikeCount = await onLike(postId, newLikedState);
- 
       setLikes(updatedLikeCount);
     } catch (error) {
-      console.error("Failed to update like:", error); 
+      console.error("Failed to update like:", error);
       setLiked(!newLikedState);
       setLikes((prev) => (newLikedState ? prev - 1 : prev + 1));
     } finally {
@@ -95,12 +94,7 @@ const PostCard: React.FC<PostCardProps> = ({
   };
 
   return (
-    <Tilt
-      tiltMaxAngleX={8}
-      tiltMaxAngleY={8}
-      scale={1.03}
-      transitionSpeed={500}
-    >
+    <Tilt tiltMaxAngleX={8} tiltMaxAngleY={8} scale={1.03} transitionSpeed={500}>
       <motion.div
         layout
         initial={{ opacity: 0, scale: 0.95 }}
@@ -108,9 +102,10 @@ const PostCard: React.FC<PostCardProps> = ({
         exit={{ opacity: 0, scale: 0.9 }}
         transition={{ duration: 0.3 }}
         onClick={handleViewDetail}
-        className="cursor-pointer rounded-xl overflow-hidden border dark:border-gray-700 shadow-md bg-white dark:bg-gray-800 transition-all duration-300 hover:shadow-2xl hover:border-blue-500/50 dark:hover:border-pink-500/50 group"
+        className="w-full max-w-full cursor-pointer rounded-xl overflow-hidden border dark:border-gray-700 shadow-md bg-white dark:bg-gray-800 transition-all duration-300 hover:shadow-2xl hover:border-blue-500/50 dark:hover:border-pink-500/50 group"
       >
-        <div className="relative w-full h-48 overflow-hidden">
+        {/* Responsive image heights: mobile -> h-40, sm -> h-48, md -> h-56 */}
+        <div className="relative w-full h-40 sm:h-48 md:h-56 lg:h-48 overflow-hidden">
           <Image
             src={imageSrc}
             alt={title}
@@ -122,55 +117,57 @@ const PostCard: React.FC<PostCardProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
 
           {isOwner && (
-            <span className="absolute top-3 left-3 bg-green-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md">
+            <span className="absolute top-3 left-3 bg-green-500 text-white text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full shadow-md">
               {t("MyPost")}
             </span>
           )}
 
-          <div className="absolute top-3 right-3 flex flex-col gap-2">
+          {/* top controls: inline on xs, stacked on sm+ */}
+          <div className="absolute top-3 right-3 flex flex-row sm:flex-col gap-2">
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={handleFav}
               className="p-2 bg-white/20 backdrop-blur-sm rounded-full cursor-pointer hover:bg-white/30 transition-colors"
+              aria-label={fav ? "Unfavorite" : "Favorite"}
+              title={fav ? t("Unfavorite") : t("Favorite")}
             >
               <FiHeart
-                className={`w-5 h-5 transition-all ${
-                  fav ? "text-red-500 fill-current" : "text-white"
-                }`}
+                className={`w-5 h-5 sm:w-5 sm:h-5 transition-all ${fav ? "text-red-500 fill-current" : "text-white"}`}
               />
             </motion.button>
           </div>
         </div>
 
-        <div className="p-4 flex flex-col h-48 justify-between bg-gray-50 backdrop-blur-sm bg-opacity-10">
+        {/* Content area - responsive padding and height */}
+        <div className="p-3 sm:p-4 flex flex-col md:h-48 justify-between bg-gray-50 backdrop-blur-sm bg-opacity-10">
           <div>
             <div className="flex justify-between items-center mb-2">
-              <p className="text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 px-2 py-1 rounded-full">
+              <p className="text-[10px] sm:text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 px-2 py-1 rounded-full">
                 {type}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {province}
-              </p>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{province}</p>
             </div>
 
             <h3
-              className="font-bold text-lg text-gray-900 dark:text-white truncate"
+              className="font-bold text-base sm:text-lg md:text-xl text-gray-900 dark:text-white truncate"
               title={title}
             >
               {title}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 h-10 overflow-hidden text-ellipsis">
+
+            {/* Description: responsive max-height to keep cards uniform */}
+            <p className="text-sm sm:text-sm text-gray-600 dark:text-gray-400 mt-1 max-h-10 sm:max-h-12 md:max-h-16 overflow-hidden">
               {description}
             </p>
           </div>
 
-          <div className="flex justify-between items-center pt-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
             <Link
               href={`/chat?id=${postId}`}
               onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-2 text-sm text-blue-500 hover:underline"
             >
-              <FiMessageSquare /> <span>{t("joinchat")}</span>
+              <FiMessageSquare className="w-4 h-4 sm:w-5 sm:h-5" /> <span>{t("joinchat")}</span>
             </Link>
 
             <div className="flex items-center gap-3">
@@ -180,11 +177,10 @@ const PostCard: React.FC<PostCardProps> = ({
                 disabled={updatingLike}
                 className="flex items-center gap-1 text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Like"
+                aria-pressed={liked}
               >
                 <FiThumbsUp
-                  className={`w-4 h-4 transition-all ${
-                    liked ? "text-blue-500 fill-current" : ""
-                  }`}
+                  className={`w-4 h-4 sm:w-5 sm:h-5 transition-all ${liked ? "text-blue-500 fill-current" : ""}`}
                 />
                 <span className="text-sm font-medium">{likes}</span>
               </motion.button>
@@ -197,7 +193,7 @@ const PostCard: React.FC<PostCardProps> = ({
                     className="text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     title="Edit"
                   >
-                    <FiEdit />
+                    <FiEdit className="w-4 h-4 sm:w-5 sm:h-5" />
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.9 }}
@@ -205,7 +201,7 @@ const PostCard: React.FC<PostCardProps> = ({
                     className="text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors"
                     title="Delete"
                   >
-                    <FiTrash2 />
+                    <FiTrash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                   </motion.button>
                 </>
               )}
