@@ -22,7 +22,7 @@ import {
   FiArrowUp,
   FiFilter,
   FiMapPin,
-  FiThumbsUp
+  FiThumbsUp,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -100,11 +100,30 @@ const PostPage = () => {
     {
       id: "most_liked",
       name: t("sort_most_liked"),
-      icon: <FiThumbsUp size={16} />, // ใช้ FiThumbsUp ตามที่คุยกัน
+      icon: <FiThumbsUp size={16} />,
     },
   ];
 
-  // --- Get current user ---
+  function generateUsernameFromEmail(email: string): string {
+    if (!email) return `user_${Math.floor(1000 + Math.random() * 9000)}`;
+
+    let prefix = email.split("@")[0];
+    prefix = prefix
+      .replace(/[^a-zA-Z0-9]/g, "_")
+      .replace(/__+/g, "_")
+      .replace(/_+$/g, "");
+
+    if (prefix.length < 3) {
+      prefix = `user_${prefix}`;
+    }
+    if (prefix.length === 0) {
+      prefix = "user";
+    }
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+
+    return `${prefix}_${randomSuffix}`;
+  }
+
   useEffect(() => {
     const getUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -112,6 +131,72 @@ const PostPage = () => {
     };
     getUser();
   }, []);
+
+  // --- useEffect ที่เพิ่มเข้ามาสำหรับจัดการ Session และสร้าง Username ---
+  useEffect(() => {
+    // ฟังก์ชันสำหรับจัดการ Session ผู้ใช้
+    const handleUserSession = async (session: any) => {
+      if (!session?.user) return; // ถ้าไม่มี user ก็ไม่ต้องทำอะไร
+
+      const user = session.user;
+      const metadata = user.user_metadata || {};
+      let needsDBUpdate = false; // ตัวแปรติดตามว่าต้องอัปเดต DB หรือไม่
+      let updatedData = { ...metadata }; // เตรียมข้อมูลที่จะอัปเดต
+
+      // --- ส่วนที่ 1: ซิงค์ Name & Avatar (สำหรับ Google) ---
+      const needsNameSync = !metadata.name && metadata.full_name;
+      const needsAvatarSync = !metadata.profile_image && metadata.avatar_url;
+
+      if (needsNameSync) {
+        updatedData.name = metadata.full_name;
+        needsDBUpdate = true;
+      }
+      if (needsAvatarSync) {
+        updatedData.profile_image = metadata.avatar_url;
+        needsDBUpdate = true;
+      }
+
+      // --- ส่วนที่ 2: ตรวจสอบและสร้าง Username (อัตโนมัติ) ---
+      if (!metadata.username) {
+        // ถ้าไม่มี username, ให้สร้างใหม่เดี๋ยวนี้
+        const newUsername = generateUsernameFromEmail(user.email || "");
+        updatedData.username = newUsername;
+        needsDBUpdate = true;
+        console.log(`Generated new username: ${newUsername}`);
+      }
+
+      // --- ส่วนที่ 3: อัปเดตข้อมูลลง Supabase (ถ้าจำเป็น) ---
+      if (needsDBUpdate) {
+        console.log("Updating user metadata...", updatedData);
+        const { error } = await supabase.auth.updateUser({
+          data: updatedData,
+        });
+
+        if (error) {
+          console.error("Error updating user metadata:", error.message);
+        } else {
+          // สั่งให้ Next.js โหลดข้อมูล session ใหม่
+          router.refresh();
+        }
+      }
+    };
+
+    // Listener (เรียกใช้ INITIAL_SESSION)
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+          // "SIGNED_IN" -> ตอน redirect กลับมาจาก Google
+          // "INITIAL_SESSION" -> ตอนรีเฟรชหน้า หรือเปิดหน้าครั้งแรก
+          await handleUserSession(session);
+        }
+      }
+    );
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, [router]);
+  // --- สิ้นสุด useEffect ที่เพิ่มเข้ามา ---
 
   // --- Fetch posts ---
   useEffect(() => {
@@ -198,7 +283,10 @@ const PostPage = () => {
         const matchName = p.title
           .toLowerCase()
           .includes(searchName.toLowerCase());
-        const matchType = !selectedType || selectedType === t('all') || p.place_type === selectedType; // แก้ไขให้รองรับ 'ทั้งหมด'
+        const matchType =
+          !selectedType ||
+          selectedType === t("all") ||
+          p.place_type === selectedType; // แก้ไขให้รองรับ 'ทั้งหมด'
         return matchName && matchType;
       });
 
@@ -424,7 +512,7 @@ const PostPage = () => {
     } catch (err: any) {
       toast.error("เกิดข้อผิดพลาด: " + err.message);
       // Revert state on error (PostCard will handle its own state reversal)
-       setPosts((prev) =>
+      setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
             ? { ...p, isLiked: !newLiked, like_count: post.like_count }
@@ -485,11 +573,17 @@ const PostPage = () => {
       );
 
       // Check if the promise rejected (e.g., user cancelled)
-      if (typeof result === 'object' && result !== null && 'message' in result) {
-         console.log("Deletion cancelled or pre-promise error:", (result as Error).message);
-         return;
+      if (
+        typeof result === "object" &&
+        result !== null &&
+        "message" in result
+      ) {
+        console.log(
+          "Deletion cancelled or pre-promise error:",
+          (result as Error).message
+        );
+        return;
       }
-
     } catch (err: any) {
       // This catch block handles the rejection from Swal (User cancelled)
       if (err && err.message === "User cancelled") {
@@ -576,14 +670,14 @@ const PostPage = () => {
               type="text"
               value={searchName}
               onChange={(e) => setSearchName(e.target.value)}
-              placeholder= "ค้นหาโพสต์"
+              placeholder="ค้นหาโพสต์"
               className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition duration-200
-                ${
-                  darkMode
-                    ? "bg-gray-800 border-gray-600 focus:ring-pink-500 focus:border-pink-500 text-white"
-                    : "bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-black"
-                }
-              `}
+                 ${
+                   darkMode
+                     ? "bg-gray-800 border-gray-600 focus:ring-pink-500 focus:border-pink-500 text-white"
+                     : "bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-black"
+                 }
+               `}
             />
           </div>
         </motion.div>
@@ -612,28 +706,27 @@ const PostPage = () => {
               <div className="flex flex-wrap gap-3">
                 {filterTags.map((tag) => {
                   const isActive =
-                    (tag === t("all") && !selectedType) ||
-                    tag === selectedType;
+                    (tag === t("all") && !selectedType) || tag === selectedType;
                   return (
                     <motion.button
                       key={tag}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleSelectType(tag)}
                       className={`px-4 py-2 rounded-full font-semibold transition-all duration-300 text-sm sm:text-base
-                        ${
-                          isActive
-                            ? `${
-                                darkMode
-                                  ? "bg-pink-500 text-white"
-                                  : "bg-blue-500 text-white"
-                              } shadow-md`
-                            : `${
-                                darkMode
-                                  ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                                  : "bg-white text-gray-700 hover:bg-gray-100"
-                              } border border-gray-300 dark:border-gray-600 hover:scale-105`
-                        }
-                      `}
+                           ${
+                             isActive
+                               ? `${
+                                   darkMode
+                                     ? "bg-pink-500 text-white"
+                                     : "bg-blue-500 text-white"
+                                 } shadow-md`
+                               : `${
+                                   darkMode
+                                     ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                     : "bg-white text-gray-700 hover:bg-gray-100"
+                                 } border border-gray-300 dark:border-gray-600 hover:scale-105`
+                           }
+                         `}
                     >
                       {tag}
                     </motion.button>
@@ -646,12 +739,12 @@ const PostPage = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowSortMenu(!showSortMenu)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 text-sm sm:text-base border hover:scale-105
-                    ${
-                      darkMode
-                        ? "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                    }
-                  `}
+                     ${
+                       darkMode
+                         ? "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
+                         : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+                     }
+                   `}
                 >
                   <FiFilter size={16} />
                   <span>
@@ -676,20 +769,20 @@ const PostPage = () => {
                           key={opt.id}
                           onClick={() => handleSortChange(opt.id)}
                           className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors duration-200
-                            ${
-                              sortBy === opt.id
-                                ? `${
-                                    darkMode
-                                      ? "text-pink-400 bg-gray-700"
-                                      : "text-blue-500 bg-gray-100"
-                                  } font-bold`
-                                : `${
-                                    darkMode
-                                      ? "text-gray-300 hover:bg-gray-700"
-                                      : "text-gray-700 hover:bg-gray-100"
-                                  }`
-                            }
-                          `}
+                               ${
+                                 sortBy === opt.id
+                                   ? `${
+                                       darkMode
+                                         ? "text-pink-400 bg-gray-700"
+                                         : "text-blue-500 bg-gray-100"
+                                     } font-bold`
+                                   : `${
+                                       darkMode
+                                         ? "text-gray-300 hover:bg-gray-700"
+                                         : "text-gray-700 hover:bg-gray-100"
+                                     }`
+                               }
+                             `}
                         >
                           {opt.icon}
                           <span>{opt.name}</span>
@@ -816,20 +909,20 @@ const PostPage = () => {
                         key={pageNum}
                         onClick={() => handlePageChange(pageNum)}
                         className={`w-10 h-10 rounded-md font-semibold transition-all duration-200 border
-                                  ${
-                                    currentPage === pageNum
-                                      ? `${
-                                          darkMode
-                                            ? "bg-pink-500 text-white border-pink-500"
-                                            : "bg-blue-500 text-white border-blue-500"
-                                        } shadow-lg`
-                                      : `${
-                                          darkMode
-                                            ? "border-gray-600 hover:bg-gray-700"
-                                            : "border-gray-300 hover:bg-gray-100"
-                                        } hover:scale-105`
-                                  }
-                              `}
+                                 ${
+                                   currentPage === pageNum
+                                     ? `${
+                                         darkMode
+                                           ? "bg-pink-500 text-white border-pink-500"
+                                           : "bg-blue-500 text-white border-blue-500"
+                                       } shadow-lg`
+                                     : `${
+                                         darkMode
+                                           ? "border-gray-600 hover:bg-gray-700"
+                                           : "border-gray-300 hover:bg-gray-100"
+                                       } hover:scale-105`
+                                 }
+                               `}
                       >
                         {pageNum}
                       </motion.button>
