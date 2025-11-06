@@ -125,7 +125,7 @@ function getCroppedImg(
         resolve(file);
       },
       "image/jpeg",
-      0.95 // คุณภาพ 95%
+      0.95
     );
   });
 }
@@ -139,7 +139,7 @@ function centerAspectCrop(
     makeAspectCrop(
       {
         unit: "%",
-        width: 90, // เริ่มต้นที่ 90%
+        width: 90,
       },
       aspect,
       mediaWidth,
@@ -216,6 +216,7 @@ const Register: React.FC = () => {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
@@ -275,6 +276,9 @@ const Register: React.FC = () => {
 
   const handleCropCancel = () => {
     setOriginalImageSrc(null);
+    if (imageInputRef.current) {
+        imageInputRef.current.value = "";
+    }
   };
 
   const handleCropConfirm = async () => {
@@ -303,9 +307,10 @@ const Register: React.FC = () => {
     } catch (e: any) {
       setError(e.message || "เกิดข้อผิดพลาด");
     } finally {
-      setLoading(false); // หยุดหมุน
+      setLoading(false);
     }
   };
+
   const handleGoogleLogin = async () => {
    const redirectTo = `${window.location.origin}/post_pages`;
 
@@ -322,11 +327,6 @@ const Register: React.FC = () => {
     }
   };
 
-    if (error) {
-      console.error("Google login error:", error);
-      setError("ไม่สามารถเข้าสู่ระบบด้วย Google ได้");
-    }
-  };
   return (
     <div
       className={`relative min-h-screen transition duration-500 overflow-x-hidden font-sriracha ${
@@ -394,6 +394,7 @@ const Register: React.FC = () => {
               id="avatar-upload"
               className="hidden"
               onChange={handleImageSelect}
+              ref={imageInputRef}
             />
             <p className="text-xs text-pink-400">{t.Optional}</p>
             <p className="mt-6 text-sm text-center text-gray-300">
@@ -414,7 +415,7 @@ const Register: React.FC = () => {
               </Link>
             </div>
           </div>
-
+          
           {/* Right Form Section */}
           <form onSubmit={handleRegister} className="flex-1">
             <motion.div
@@ -498,9 +499,10 @@ const Register: React.FC = () => {
             {/* 🔹 ปุ่ม Google Login */}
             <div className="flex flex-col items-center justify-center w-full">
               <button
+                type="button"
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="flex items-center justify-center w-full bg-white text-gray-700 font-semibold py-3 px-5 rounded-lg shadow hover:shadow-lg"
+                className="flex items-center justify-center w-full bg-white text-gray-700 font-semibold py-3 px-5 rounded-lg shadow hover:shadow-lg transition-all hover:bg-gray-100"
               >
                 <FcGoogle className="mr-3 text-2xl" />
 
@@ -509,7 +511,6 @@ const Register: React.FC = () => {
                   : (lang === "th" ? "สมัครสมาชิกด้วย Google" : "Sign up with Google")}
               </button>
 
-              {error && <p className="text-red-500 mt-4">{error}</p>}
             </div>
           </form>
         </motion.div>
@@ -557,7 +558,7 @@ const Register: React.FC = () => {
                 crop={crop}
                 onChange={(_, percentCrop) => setCrop(percentCrop)}
                 onComplete={(c) => setCompletedCrop(c)}
-                aspect={1} // --- บังคับสี่เหลี่ยมจัตุรัส ---
+                aspect={1}
                 className="w-full"
               >
                 <img
