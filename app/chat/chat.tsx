@@ -28,7 +28,6 @@ export interface ChatMessage {
   image_url?: string;
 }
 
-// ✅ 1. อัปเดต Type Profile ให้มี name
 type Profile = {
   username: string;
   name: string; // เพิ่ม name
@@ -94,7 +93,6 @@ const ChatUI = () => {
         const [profileRes, postRes, messagesRes] = await Promise.all([
           supabase
             .from("profiles")
-            // ✅ 2. ดึง cả username และ name จากตาราง profiles
             .select("username, name") 
             .eq("id", user.id)
             .single(),
@@ -125,7 +123,6 @@ const ChatUI = () => {
     if (!isLoading && !user) router.push("/login");
   }, [isLoading, user, router]);
 
-  // (Realtime Effect ไม่ต้องแก้ไข เพราะ handleSendMessage จะส่ง "name" ที่ถูกต้องเข้าไป)
   useEffect(() => {
     if (!postId) return;
 

@@ -16,6 +16,7 @@ import { FiMail, FiLock, FiUser, FiSun, FiMoon } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import Link from "next/link";
 
+// 1. Import ReactCrop
 import ReactCrop, {
   type Crop,
   type PixelCrop,
@@ -24,13 +25,13 @@ import ReactCrop, {
 } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 
+// --- 2. ลบ Username ออกจาก Translations ---
 const translations = {
   th: {
     title: "ลงทะเบียน",
     email: "อีเมล",
     password: "รหัสผ่าน",
-    // username: "ชื่อผู้ใช้", // ลบออก
-    name: "ชื่อ-นามสกุล",
+    name: "ชื่อ-นามสกุล", // เปลี่ยนจาก "ชื่อ"
     conpassword: "ยืนยันรหัสผ่าน",
     login: "ลงทะเบียน",
     haveAccount: "มีบัญชีแล้ว?",
@@ -39,7 +40,6 @@ const translations = {
     success: "✅ ลงทะเบียนสำเร็จ!",
     fillAll: "กรุณากรอกข้อมูลให้ครบทุกช่อง",
     passMismatch: "รหัสผ่านไม่ตรงกัน",
-    // enUserN: "กรอกชื่อผู้ใช้", // ลบออก
     enPass: "กรอกรหัสผ่าน",
     enMail: "กรอกอีเมล",
     enConPass: "ยืนยันรหัสผ่านของคุณ",
@@ -51,12 +51,12 @@ const translations = {
     cropTitle: "ตัดรูปโปรไฟล์",
     cropConfirm: "ยืนยัน",
     cropCancel: "ยกเลิก",
+    enName: "กรอกชื่อ-นามสกุล", // เพิ่ม
   },
   en: {
     title: "Register",
     email: "Email",
     password: "Password",
-    // username: "Username", // ลบออก
     name: "Full Name",
     conpassword: "Confirm Password",
     login: "Register",
@@ -66,7 +66,6 @@ const translations = {
     success: "✅ Registration successful!",
     fillAll: "Please fill in all fields.",
     passMismatch: "Passwords do not match",
-    // enUserN: "Enter your username", // ลบออก
     enPass: "Enter your password",
     enMail: "Enter your email",
     enConPass: "Confirm your password",
@@ -78,9 +77,11 @@ const translations = {
     cropTitle: "Crop Profile Picture",
     cropConfirm: "Confirm",
     cropCancel: "Cancel",
+    enName: "Enter your name", // เพิ่ม
   },
 };
 
+// --- 3. ฟังก์ชันสร้าง Username อัตโนมัติ ---
 function generateUsernameFromEmail(email: string): string {
   if (!email) return `user_${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -100,6 +101,7 @@ function generateUsernameFromEmail(email: string): string {
   return `${prefix}_${randomSuffix}`;
 }
 
+// --- 4. ฟังก์ชันสำหรับ Crop รูปภาพ ---
 function getCroppedImg(
   image: HTMLImageElement,
   crop: PixelCrop
@@ -168,6 +170,8 @@ function centerAspectCrop(
     mediaHeight
   );
 }
+// --- (สิ้นสุดฟังก์ชัน Crop) ---
+
 
 // --- InputField Sub-component ---
 type InputFieldProps = {
@@ -214,28 +218,31 @@ const InputField: React.FC<InputFieldProps> = ({
   </motion.div>
 );
 
+// --- Main Register Component ---
 const Register: React.FC = () => {
   const router = useRouter();
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
   const [lang, setLang] = useState<"th" | "en">("th");
   const t = translations[lang];
 
+  // --- States for form fields ---
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  // const [username, setUsername] = useState(""); // ลบออก
   const [name, setName] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
+  // --- States for UI feedback ---
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // --- States for Cropping ---
   const [originalImageSrc, setOriginalImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
-  const imageInputRef = useRef<HTMLInputElement | null>(null); // เพิ่ม ref สำหรับ input file
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
@@ -258,8 +265,8 @@ const Register: React.FC = () => {
     const newUsername = generateUsernameFromEmail(email);
 
     const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
+      email: email,
+      password: password,
       options: {
         data: {
           name: name.trim(),
@@ -294,12 +301,11 @@ const Register: React.FC = () => {
 
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
-    setCrop(centerAspectCrop(width, height, 1 / 1));
+    setCrop(centerAspectCrop(width, height, 1 / 1)); // 1/1 = อัตราส่วน 1:1
   }
 
   const handleCropCancel = () => {
     setOriginalImageSrc(null);
-    // เคลียร์ค่าใน input file เพื่อให้เลือกไฟล์เดิมได้อีก
     if (imageInputRef.current) {
       imageInputRef.current.value = "";
     }
@@ -331,23 +337,20 @@ const Register: React.FC = () => {
     } catch (e: any) {
       setError(e.message || "เกิดข้อผิดพลาด");
     } finally {
-      setLoading(false); // หยุดหมุน
-      // เคลียร์ค่าใน input file
+      setLoading(false);
       if (imageInputRef.current) {
         imageInputRef.current.value = "";
       }
     }
   };
 
-  // ⭐️⭐️⭐️ แก้ไขส่วนนี้ ⭐️⭐️⭐️
   const handleGoogleLogin = async () => {
-    // ใช้วิธีนี้แทนเพื่อความยืดหยุ่น (ทำงานได้ทั้ง localhost, production, Vercel previews)
     const redirectTo = `${window.location.origin}/post_pages`;
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: redirectTo, // ใช้ URL ที่สร้างแบบ dynamic
+        redirectTo: redirectTo,
       },
     });
 
@@ -356,7 +359,6 @@ const Register: React.FC = () => {
       setError("ไม่สามารถเข้าสู่ระบบด้วย Google ได้");
     }
   };
-  // ⭐️⭐️⭐️ สิ้นสุดส่วนแก้ไข ⭐️⭐️⭐️
 
   return (
     <div
@@ -379,7 +381,7 @@ const Register: React.FC = () => {
               className="text-xs font-semibold py-1 px-2 rounded-full border border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 focus:outline-none"
             >
               <option value="th">🇹🇭 ไทย</option>
-              <option value="en">en ENGLISH</option>
+              <option value="en">🇬🇧 EN</option>
             </select>
             <motion.button
               whileHover={{ scale: 1.1 }}
@@ -461,14 +463,14 @@ const Register: React.FC = () => {
               <InputField
                 id="name"
                 label={t.name}
-                placeholder={t.name}
+                placeholder={t.enName}
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 icon={<FiUser />}
               />
               
-              {/* ⭐️⭐️⭐️ ลบ InputField ของ Username ออก ⭐️⭐️⭐️ */}
+              {/* --- InputField ของ Username ถูกลบออกจากส่วนนี้ --- */}
               
               <InputField
                 id="email"
@@ -509,12 +511,9 @@ const Register: React.FC = () => {
                 disabled={loading}
               >
                 {loading
-                  ? lang === "th"
-                    ? "กำลังดำเนินการ..."
-                    : "Loading..."
-                  : lang === "th"
-                  ? "สมัครสมาชิก"
-                  : "Sign up"}
+                  ? (lang === "th" ? "กำลังดำเนินการ..." : "Loading...")
+                  : (lang === "th" ? "สมัครสมาชิก" : "Sign up")
+                }
               </motion.button>
             </motion.div>
 
@@ -525,34 +524,25 @@ const Register: React.FC = () => {
               <hr className="flex-1 border-gray-400" />
             </div>
 
-            {/* 🔹 ปุ่ม Google Login */}
+            {/* ปุ่ม Google Login */}
             <div className="flex flex-col items-center justify-center w-full">
               <button
-                type="button" // ⭐️ เพิ่ม type="button" กันฟอร์ม submit
+                type="button"
                 onClick={handleGoogleLogin}
                 disabled={loading}
                 className="flex items-center justify-center w-full bg-white text-gray-700 font-semibold py-3 px-5 rounded-lg shadow hover:shadow-lg transition-all"
               >
                 <FcGoogle className="mr-3 text-2xl" />
-
                 {loading
-                  ? lang === "th"
-                    ? "กำลังดำเนินการ..."
-                    : "Loading..."
-                  : lang === "th"
-                  ? "สมัครสมาชิกด้วย Google"
-                  : "Sign up with Google"}
+                  ? (lang === "th" ? "กำลังดำเนินการ..." : "Loading...")
+                  : (lang === "th" ? "สมัครสมาชิกด้วย Google" : "Sign up with Google")
+                }
               </button>
-
-              {/* ⭐️ ย้าย error มาไว้ด้านล่างปุ่ม Google
-                  (แต่ error state นี้จะถูกแชร์กัน,
-                  ซึ่ง handleGoogleLogin จะ set error ถ้ามีปัญหา)
-              */}
-              
             </div>
           </form>
         </motion.div>
 
+        {/* Success message */}
         <AnimatePresence>
           {showSuccess && (
             <motion.div
@@ -573,6 +563,7 @@ const Register: React.FC = () => {
         </AnimatePresence>
       </div>
 
+      {/* Crop Modal */}
       <AnimatePresence>
         {originalImageSrc && (
           <motion.div
