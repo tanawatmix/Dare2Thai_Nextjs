@@ -193,7 +193,6 @@ const DataTable = ({
               isDark ? "bg-gray-700 text-gray-200" : "bg-gray-100 text-gray-600"
             } uppercase text-sm leading-normal`}
           >
-            <th className="py-3 px-4 text-left">ชื่อผู้ใช้ (@)</th>
             <th className="py-3 px-4 text-left">ชื่อที่แสดง</th>
             <th className="py-3 px-4 text-left">อีเมล</th>
             <th className="py-3 px-4 text-center">จัดการ</th>
