@@ -136,24 +136,32 @@ const PostPage = () => {
   useEffect(() => {
     // ฟังก์ชันสำหรับจัดการ Session ผู้ใช้
     const handleUserSession = async (session: any) => {
-      if (!session?.user) return; // ถ้าไม่มี user ก็ไม่ต้องทำอะไร
+      if (!session?.user) {
+        console.log("handleUserSession: No user in session.");
+        return;
+      }
 
       const user = session.user;
       const metadata = user.user_metadata || {};
+      console.log("handleUserSession: Checking metadata...", metadata);
+
       let needsDBUpdate = false; // ตัวแปรติดตามว่าต้องอัปเดต DB หรือไม่
       let updatedData = { ...metadata }; // เตรียมข้อมูลที่จะอัปเดต
 
       // --- ส่วนที่ 1: ซิงค์ Name & Avatar (สำหรับ Google) ---
       const needsNameSync = !metadata.name && metadata.full_name;
-      const needsAvatarSync = !metadata.profile_image && metadata.avatar_url;
+      const needsAvatarSync =
+        !metadata.profile_image && metadata.avatar_url;
 
       if (needsNameSync) {
         updatedData.name = metadata.full_name;
         needsDBUpdate = true;
+        console.log("handleUserSession: Syncing 'name'.");
       }
       if (needsAvatarSync) {
         updatedData.profile_image = metadata.avatar_url;
         needsDBUpdate = true;
+        console.log("handleUserSession: Syncing 'profile_image'.");
       }
 
       // --- ส่วนที่ 2: ตรวจสอบและสร้าง Username (อัตโนมัติ) ---
@@ -162,37 +170,54 @@ const PostPage = () => {
         const newUsername = generateUsernameFromEmail(user.email || "");
         updatedData.username = newUsername;
         needsDBUpdate = true;
-        console.log(`Generated new username: ${newUsername}`);
+        console.log(
+          `handleUserSession: 'username' is missing. Generated new one: ${newUsername}`
+        );
+      } else {
+        console.log(
+          "handleUserSession: 'username' already exists:",
+          metadata.username
+        );
       }
 
       // --- ส่วนที่ 3: อัปเดตข้อมูลลง Supabase (ถ้าจำเป็น) ---
       if (needsDBUpdate) {
-        console.log("Updating user metadata...", updatedData);
+        console.log(
+          "handleUserSession: Attempting to update database...",
+          updatedData
+        );
         const { error } = await supabase.auth.updateUser({
           data: updatedData,
         });
 
         if (error) {
-          console.error("Error updating user metadata:", error.message);
+          console.error(
+            "handleUserSession: ERROR updating user metadata:",
+            error.message
+          );
         } else {
-          // สั่งให้ Next.js โหลดข้อมูล session ใหม่
+          console.log(
+            "handleUserSession: Database update SUCCESSFUL. Refreshing page..."
+          );
           router.refresh();
         }
+      } else {
+        console.log("handleUserSession: No database update needed.");
       }
     };
 
     // Listener (เรียกใช้ INITIAL_SESSION)
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log(`onAuthStateChange: Event triggered: ${event}`);
         if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-          // "SIGNED_IN" -> ตอน redirect กลับมาจาก Google
-          // "INITIAL_SESSION" -> ตอนรีเฟรชหน้า หรือเปิดหน้าครั้งแรก
           await handleUserSession(session);
         }
       }
     );
 
     return () => {
+      console.log("onAuthStateChange: Unsubscribing from auth listener.");
       authListener?.subscription.unsubscribe();
     };
   }, [router]);
