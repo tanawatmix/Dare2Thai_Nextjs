@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FiMail, FiLock, FiSun, FiMoon } from "react-icons/fi";
+import { FcGoogle } from "react-icons/fc";
 
 type Lang = "th" | "en";
 
@@ -125,6 +126,25 @@ const Login: React.FC = () => {
     setLoading(false);
   };
 
+  const handleGoogleLogin = async () => {
+    const redirectUrl =
+      process.env.NODE_ENV === "development"
+        ? "http://localhost:3000/post_pages"
+        : "https://dare2thainextjs.vercel.app/post_pages";
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: redirectUrl,
+      },
+    });
+
+    if (error) {
+      console.error("Google login error:", error);
+      setError("ไม่สามารถเข้าสู่ระบบด้วย Google ได้");
+    }
+  };
+
   return (
     <div
       className={`relative min-h-screen transition duration-500 overflow-x-hidden ${
@@ -207,6 +227,29 @@ const Login: React.FC = () => {
               {loading ? "กำลังเข้าสู่ระบบ..." : t.login}
             </motion.button>
           </form>
+           {/* Divider */}
+          <div className="flex items-center my-6">
+            <hr className="flex-1 border-gray-400" />
+            <span className="mx-3 text-gray-400 text-sm">or</span>
+            <hr className="flex-1 border-gray-400" />
+          </div>
+
+          {/* 🔹 ปุ่ม Google Login */}
+          <div className="flex flex-col items-center justify-center w-full">
+            <button
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="flex items-center justify-center w-full bg-white text-gray-700 font-semibold py-3 px-5 rounded-lg shadow hover:shadow-lg"
+            >
+              <FcGoogle className="mr-3 text-2xl" />
+              {loading
+                ? (lang === "th" ? "กำลังดำเนินการ..." : "Loading...")
+                : (lang === "th" ? "เข้าสู่ระบบด้วย Google" : "Log in with Google")}
+            </button>
+
+            {error && <p className="text-red-500 mt-4">{error}</p>}
+          </div>
+
           <p className="mt-6 text-sm text-center text-gray-300">
             {t.noAccount}{" "}
             <span

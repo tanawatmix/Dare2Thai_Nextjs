@@ -216,7 +216,10 @@
   "uthai_thani": "Uthai Thani",
   "ubon_ratchathani": "Ubon Ratchathani",
   "sort_most_liked": "Most Liked",
-  "joinchat": "Join Chat Room"
+  "joinchat": "Join Chat Room",
+  "register_google": "Register with Google",
+  "login_google": "Login with Google",
+  "loading_login": "Logging in..."
 }
 
 

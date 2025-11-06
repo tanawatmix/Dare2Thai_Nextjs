@@ -2,7 +2,7 @@
 
 import React, {
   useState,
-  useRef, // 1. Import useRef
+  useRef,
   useContext,
   ChangeEvent,
   FormEvent,
@@ -13,18 +13,17 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import proDefault from "../../public/dare2New.png";
 import { FiMail, FiLock, FiUser, FiSun, FiMoon } from "react-icons/fi";
-import Link from "next/link"; // Import Link
+import { FcGoogle } from "react-icons/fc";
+import Link from "next/link";
 
-// --- 2. Import สิ่งที่จำเป็นสำหรับ Cropper ---
 import ReactCrop, {
   type Crop,
   type PixelCrop,
   centerCrop,
   makeAspectCrop,
 } from "react-image-crop";
-import "react-image-crop/dist/ReactCrop.css"; // Import CSS ของ cropper
+import "react-image-crop/dist/ReactCrop.css";
 
-// (Translations object คงเดิม)
 const translations = {
   th: {
     title: "ลงทะเบียน",
@@ -82,7 +81,6 @@ const translations = {
   },
 };
 
-// --- 3. ฟังก์ชัน Helper สำหรับสร้าง Canvas (อยู่ข้างนอก Component) ---
 function getCroppedImg(
   image: HTMLImageElement,
   crop: PixelCrop
@@ -132,7 +130,6 @@ function getCroppedImg(
   });
 }
 
-// --- 4. ฟังก์ชัน Helper สำหรับคำนวณ Crop เริ่มต้น ---
 function centerAspectCrop(
   mediaWidth: number,
   mediaHeight: number,
@@ -198,7 +195,6 @@ const InputField: React.FC<InputFieldProps> = ({
   </motion.div>
 );
 
-// --- Main Register Component ---
 const Register: React.FC = () => {
   const router = useRouter();
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
@@ -216,7 +212,6 @@ const Register: React.FC = () => {
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // --- 5. เพิ่ม State สำหรับ Cropper ---
   const [originalImageSrc, setOriginalImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
@@ -259,7 +254,6 @@ const Register: React.FC = () => {
     setLoading(false);
   };
 
-  // --- 6. แก้ไข handleImageSelect ให้อ่านไฟล์และเปิด Modal ---
   const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -274,18 +268,15 @@ const Register: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  // --- 7. ฟังก์ชันเมื่อรูปใน Cropper โหลด ---
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
     setCrop(centerAspectCrop(width, height, 1 / 1));
   }
 
-  // --- 8. ฟังก์ชันเมื่อยกเลิกการ Crop ---
   const handleCropCancel = () => {
     setOriginalImageSrc(null);
   };
 
-  // --- 9. ฟังก์ชันเมื่อยืนยันการ Crop (ตัด -> อัปโหลด -> ตั้งค่า Preview) ---
   const handleCropConfirm = async () => {
     if (!completedCrop || !imgRef.current) {
       setError("กรุณาเลือกพื้นที่ก่อน");
@@ -297,16 +288,17 @@ const Register: React.FC = () => {
       setLoading(true);
       setOriginalImageSrc(null);
 
-      const { data, error } = await supabase.storage.from("avatars").upload(
-        `public/${Date.now()}_${croppedFile.name}`,
-        croppedFile
-      );
+      const { data, error } = await supabase.storage
+        .from("avatars")
+        .upload(`public/${Date.now()}_${croppedFile.name}`, croppedFile);
 
       if (error) {
         throw new Error("เกิดข้อผิดพลาดในการอัปโหลดรูป");
       }
 
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(data.path);
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(data.path);
       setAvatarPreview(urlData.publicUrl);
     } catch (e: any) {
       setError(e.message || "เกิดข้อผิดพลาด");
@@ -314,7 +306,24 @@ const Register: React.FC = () => {
       setLoading(false); // หยุดหมุน
     }
   };
+  const handleGoogleLogin = async () => {
+    const redirectUrl =
+      process.env.NODE_ENV === "development"
+        ? "http://localhost:3000/post_pages"
+        : "https://dare2thainextjs.vercel.app/post_pages";
 
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: redirectUrl,
+      },
+    });
+
+    if (error) {
+      console.error("Google login error:", error);
+      setError("ไม่สามารถเข้าสู่ระบบด้วย Google ได้");
+    }
+  };
   return (
     <div
       className={`relative min-h-screen transition duration-500 overflow-x-hidden font-sriracha ${
@@ -383,7 +392,24 @@ const Register: React.FC = () => {
               className="hidden"
               onChange={handleImageSelect}
             />
-            <p className="text-xs text-gray-400">{t.Optional}</p>
+            <p className="text-xs text-pink-400">{t.Optional}</p>
+            <p className="mt-6 text-sm text-center text-gray-300">
+              {t.haveAccount}{" "}
+              <span
+                className="text-pink-400 font-bold cursor-pointer hover:text-orange-300 transition"
+                onClick={() => router.push("/login")}
+              >
+                {t.register}
+              </span>
+            </p>
+            <div className="flex justify-center mt-1">
+              <Link
+                href="/post_pages"
+                className="text-xl font-semibold py-1 px-5 rounded-full border hover:scale-105 transition duration-200 border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 focus:outline-none inline-flex items-center justify-center"
+              >
+                {t.home}
+              </Link>
+            </div>
           </div>
 
           {/* Right Form Section */}
@@ -453,27 +479,35 @@ const Register: React.FC = () => {
                 type="submit"
                 disabled={loading}
               >
-                {loading ? "กำลังดำเนินการ..." : t.login}
+                {loading
+                  ? (lang === "th" ? "กำลังดำเนินการ..." : "Loading...")
+                  : (lang === "th" ? "สมัครสมาชิก" : "Sign up")}
               </motion.button>
             </motion.div>
-            <p className="mt-6 text-sm text-center text-gray-300">
-              {t.haveAccount}{" "}
-              <span
-                className="text-pink-400 font-bold cursor-pointer hover:text-orange-300 transition"
-                onClick={() => router.push("/login")}
+
+            {/* Divider */}
+            <div className="flex items-center my-2">
+              <hr className="flex-1 border-gray-400" />
+              <span className="mx-3 text-gray-400 text-sm">or</span>
+              <hr className="flex-1 border-gray-400" />
+            </div>
+
+            {/* 🔹 ปุ่ม Google Login */}
+            <div className="flex flex-col items-center justify-center w-full">
+              <button
+                onClick={handleGoogleLogin}
+                disabled={loading}
+                className="flex items-center justify-center w-full bg-white text-gray-700 font-semibold py-3 px-5 rounded-lg shadow hover:shadow-lg"
               >
-                {t.register}
-              </span>
-            </p>
-            {/* ✅ FIX: Added Link component import and wrapped button */}
-            <div className="flex justify-center mt-1">
-            <Link
-              href="/post_pages"
-              className="text-xl font-semibold py-1 px-5 rounded-full border hover:scale-105 transition duration-200 border-blue-400 dark:border-pink-400 bg-white/80 dark:bg-gray-800/80 text-blue-600 dark:text-pink-400 focus:outline-none inline-flex items-center justify-center"
-            >
-              {t.home}
-            </Link>
-          </div>
+                <FcGoogle className="mr-3 text-2xl" />
+
+                {loading
+                  ? (lang === "th" ? "กำลังดำเนินการ..." : "Loading...")
+                  : (lang === "th" ? "สมัครสมาชิกด้วย Google" : "Sign up with Google")}
+              </button>
+
+              {error && <p className="text-red-500 mt-4">{error}</p>}
+            </div>
           </form>
         </motion.div>
 
@@ -560,4 +594,3 @@ const Register: React.FC = () => {
 };
 
 export default Register;
-

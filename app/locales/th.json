@@ -217,5 +217,8 @@
   "uthai_thani": "อุทัยธานี",
   "ubon_ratchathani": "อุบลราชธานี",
   "sort_most_liked": "ยอดนิยม",
-  "joinchat": "เข้าร่วมแชท"
+  "joinchat": "เข้าร่วมแชท",
+  "register_google": "สมัครสมาชิกด้วย Google",
+  "login_google": "เข้าสู่ระบบด้วย Google",
+  "loading_login": "กำลังเข้าสู่ระบบ..."
 }
