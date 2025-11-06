@@ -80,7 +80,33 @@ const translations = {
     cropCancel: "Cancel",
   },
 };
+function generateUsernameFromEmail(email: string): string {
+  // ถ้าอีเมลไม่มี (กรณีแปลกๆ) ให้สร้างชื่อสุ่ม
+  if (!email) return `user_${Math.floor(1000 + Math.random() * 9000)}`;
 
+  // 1. เอาส่วนหน้าของอีเมล: "somchai.j@gmail.com" -> "somchai.j"
+  let prefix = email.split('@')[0];
+
+  // 2. ทำความสะอาด:
+  // - เปลี่ยนตัวอักษรพิเศษ (เช่น . -) ให้เป็น _
+  // - ลบ _ ที่ซ้ำซ้อนกัน หรือ _ ที่อยู่ท้ายสุด
+  prefix = prefix.replace(/[^a-zA-Z0-9]/g, '_')
+                 .replace(/__+/g, '_')
+                 .replace(/_+$/g, '');
+
+  // 3. ถ้าชื่อสั้นไป หรือว่างเปล่า ให้เติม 'user'
+  if (prefix.length < 3) {
+    prefix = `user_${prefix}`;
+  }
+  if (prefix.length === 0) {
+    prefix = 'user';
+  }
+
+  // 4. ต่อท้ายด้วยเลขสุ่ม 4 หลัก
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  
+  return `${prefix}_${randomSuffix}`;
+}
 function getCroppedImg(
   image: HTMLImageElement,
   crop: PixelCrop
