@@ -127,7 +127,7 @@ const PostPage = () => {
     return `${prefix}_${randomSuffix}`;
   }
 
-  // --- (ลบ useEffect ที่เรียก getUser() ออกไป) ---
+  // --- (ลบ useEffect ที่เรียก getUser() ตัวเก่าออกไป) ---
 
   // --- useEffect ที่รวมการจัดการ User ทั้งหมด (แก้ลูป) ---
   useEffect(() => {
@@ -149,7 +149,8 @@ const PostPage = () => {
 
       // 2. ซิงค์ Name & Avatar (สำหรับ Google)
       const needsNameSync = !metadata.name && metadata.full_name;
-      const needsAvatarSync = !metadata.profile_image && metadata.avatar_url;
+      const needsAvatarSync =
+        !metadata.profile_image && metadata.avatar_url;
 
       if (needsNameSync) {
         updatedData.name = metadata.full_name;
@@ -179,17 +180,12 @@ const PostPage = () => {
 
         if (error) {
           console.error("ERROR updating user metadata:", error.message);
+          setIsUpdatingUser(false); // --- ปลดล็อก ถ้าพลาด
         } else {
-          console.log("Database update SUCCESSFUL. Refreshing page...");
-          router.refresh();
+          console.log("Database update SUCCESSFUL. Reloading page...");
+          // ใช้ window.location.reload() เพื่อบังคับโหลดข้อมูลใหม่ทั้งหมด
+          window.location.reload();
         }
-
-        // ใช้ setTimeout เพื่อหน่วงเวลาปลดล็อกเล็กน้อย
-        // ให้ router.refresh() มีเวลาทำงาน
-        setTimeout(() => {
-          setIsUpdatingUser(false); // --- ปลดล็อก ---
-          console.log("Update lock released.");
-        }, 1000);
       } else {
         // ถ้าข้อมูลครบถ้วน (เช่น ล็อกอินครั้งถัดๆ ไป) ก็ไม่ต้องทำอะไร
         console.log("User metadata is complete. No update needed.");
@@ -221,10 +217,15 @@ const PostPage = () => {
     // โค้ดนี้จะทำงาน "หลังจาก" ที่ useEffect ข้างบน
     // ทำการ setCureentUserId ให้เราเรียบร้อยแล้ว
     if (!currentUserId) {
-      setLoading(true); // ถ้า user log out ก็ควรเคลียร์ posts
+      // ถ้า user log out หรือยังไม่ถูกตั้งค่า
+      setLoading(true); 
       setPosts([]);
       setFilteredPosts([]);
-      setLoading(false); // หรือตั้งเป็น true ถ้าจะรอ user
+      // ถ้าไม่มี user id ก็ไม่จำเป็นต้อง fetch posts
+      // แต่เราจะตั้ง loading เป็น false เมื่อแน่ใจว่าไม่มี user
+      if (currentUserId === null) {
+         setLoading(false);
+      }
       return;
     }
 
@@ -307,52 +308,54 @@ const PostPage = () => {
 
   // --- Filter & Sort Logic (รวมไว้ที่เดียว) ---
   useEffect(() => {
-    if (!loading) {
-      let filtered = posts.filter((p) => {
-        const matchName = p.title
-          .toLowerCase()
-          .includes(searchName.toLowerCase());
-        const matchType =
-          !selectedType ||
-          selectedType === t("all") ||
-          p.place_type === selectedType;
-        return matchName && matchType;
-      });
+    // ไม่ควร filter ถ้ายัง loading
+    if (loading) return; 
 
-      let sorted = filtered.slice();
+    let filtered = posts.filter((p) => {
+      const matchName = p.title
+        .toLowerCase()
+        .includes(searchName.toLowerCase());
+      const matchType =
+        !selectedType ||
+        selectedType === t("all") ||
+        p.place_type === selectedType;
+      return matchName && matchType;
+    });
 
-      switch (sortBy) {
-        case "newest":
-          sorted.sort(
-            (a, b) =>
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
-          );
-          break;
-        case "oldest":
-          sorted.sort(
-            (a, b) =>
-              new Date(a.created_at).getTime() -
-              new Date(b.created_at).getTime()
-          );
-          break;
-        case "az":
-          sorted.sort((a, b) => a.title.localeCompare(b.title, "th"));
-          break;
-        case "za":
-          sorted.sort((a, b) => b.title.localeCompare(a.title, "th"));
-          break;
-        case "province_az":
-          sorted.sort((a, b) => a.province.localeCompare(b.province, "th"));
-          break;
-        case "most_liked":
-          sorted.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
-          break;
-        default:
-          break;
-      }
-      setFilteredPosts(sorted);
+    let sorted = filtered.slice();
+
+    switch (sortBy) {
+      case "newest":
+        sorted.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() -
+            new Date(a.created_at).getTime()
+        );
+        break;
+      case "oldest":
+        sorted.sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() -
+            new Date(b.created_at).getTime()
+        );
+        break;
+      case "az":
+        sorted.sort((a, b) => a.title.localeCompare(b.title, "th"));
+        break;
+      case "za":
+        sorted.sort((a, b) => b.title.localeCompare(a.title, "th"));
+        break;
+      case "province_az":
+        sorted.sort((a, b) => a.province.localeCompare(b.province, "th"));
+        break;
+      case "most_liked":
+        sorted.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
+        break;
+      default:
+        break;
     }
+    setFilteredPosts(sorted);
+    
   }, [searchName, selectedType, posts, sortBy, loading, t]);
 
   // --- Effect for managing Sticky Bar ---
