@@ -29,7 +29,7 @@ const translations = {
     title: "ลงทะเบียน",
     email: "อีเมล",
     password: "รหัสผ่าน",
-    username: "ชื่อผู้ใช้",
+    // username: "ชื่อผู้ใช้", // ลบออก
     name: "ชื่อ-นามสกุล",
     conpassword: "ยืนยันรหัสผ่าน",
     login: "ลงทะเบียน",
@@ -39,7 +39,7 @@ const translations = {
     success: "✅ ลงทะเบียนสำเร็จ!",
     fillAll: "กรุณากรอกข้อมูลให้ครบทุกช่อง",
     passMismatch: "รหัสผ่านไม่ตรงกัน",
-    enUserN: "กรอกชื่อผู้ใช้",
+    // enUserN: "กรอกชื่อผู้ใช้", // ลบออก
     enPass: "กรอกรหัสผ่าน",
     enMail: "กรอกอีเมล",
     enConPass: "ยืนยันรหัสผ่านของคุณ",
@@ -56,7 +56,7 @@ const translations = {
     title: "Register",
     email: "Email",
     password: "Password",
-    username: "Username",
+    // username: "Username", // ลบออก
     name: "Full Name",
     conpassword: "Confirm Password",
     login: "Register",
@@ -66,7 +66,7 @@ const translations = {
     success: "✅ Registration successful!",
     fillAll: "Please fill in all fields.",
     passMismatch: "Passwords do not match",
-    enUserN: "Enter your username",
+    // enUserN: "Enter your username", // ลบออก
     enPass: "Enter your password",
     enMail: "Enter your email",
     enConPass: "Confirm your password",
@@ -80,33 +80,26 @@ const translations = {
     cropCancel: "Cancel",
   },
 };
+
 function generateUsernameFromEmail(email: string): string {
-  // ถ้าอีเมลไม่มี (กรณีแปลกๆ) ให้สร้างชื่อสุ่ม
   if (!email) return `user_${Math.floor(1000 + Math.random() * 9000)}`;
 
-  // 1. เอาส่วนหน้าของอีเมล: "somchai.j@gmail.com" -> "somchai.j"
-  let prefix = email.split('@')[0];
+  let prefix = email.split("@")[0];
+  prefix = prefix
+    .replace(/[^a-zA-Z0-9]/g, "_")
+    .replace(/__+/g, "_")
+    .replace(/_+$/g, "");
 
-  // 2. ทำความสะอาด:
-  // - เปลี่ยนตัวอักษรพิเศษ (เช่น . -) ให้เป็น _
-  // - ลบ _ ที่ซ้ำซ้อนกัน หรือ _ ที่อยู่ท้ายสุด
-  prefix = prefix.replace(/[^a-zA-Z0-9]/g, '_')
-                 .replace(/__+/g, '_')
-                 .replace(/_+$/g, '');
-
-  // 3. ถ้าชื่อสั้นไป หรือว่างเปล่า ให้เติม 'user'
   if (prefix.length < 3) {
     prefix = `user_${prefix}`;
   }
   if (prefix.length === 0) {
-    prefix = 'user';
+    prefix = "user";
   }
-
-  // 4. ต่อท้ายด้วยเลขสุ่ม 4 หลัก
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-  
   return `${prefix}_${randomSuffix}`;
 }
+
 function getCroppedImg(
   image: HTMLImageElement,
   crop: PixelCrop
@@ -230,7 +223,7 @@ const Register: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [username, setUsername] = useState("");
+  // const [username, setUsername] = useState(""); // ลบออก
   const [name, setName] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
@@ -242,13 +235,15 @@ const Register: React.FC = () => {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null); // เพิ่ม ref สำหรับ input file
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    if (!email || !password || !username || !name || !confirmPassword) {
+    // ลบ !username ออกจากการตรวจสอบ
+    if (!email || !password || !name || !confirmPassword) {
       setError(t.fillAll);
       setLoading(false);
       return;
@@ -259,13 +254,16 @@ const Register: React.FC = () => {
       return;
     }
 
+    // สร้าง username อัตโนมัติจากอีเมล
+    const newUsername = generateUsernameFromEmail(email);
+
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           name: name.trim(),
-          username: username.trim(),
+          username: newUsername, // ใช้ username ที่สร้างอัตโนมัติ
           profile_image: avatarPreview,
         },
       },
@@ -301,6 +299,10 @@ const Register: React.FC = () => {
 
   const handleCropCancel = () => {
     setOriginalImageSrc(null);
+    // เคลียร์ค่าใน input file เพื่อให้เลือกไฟล์เดิมได้อีก
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
   };
 
   const handleCropConfirm = async () => {
@@ -330,18 +332,22 @@ const Register: React.FC = () => {
       setError(e.message || "เกิดข้อผิดพลาด");
     } finally {
       setLoading(false); // หยุดหมุน
+      // เคลียร์ค่าใน input file
+      if (imageInputRef.current) {
+        imageInputRef.current.value = "";
+      }
     }
   };
+
+  // ⭐️⭐️⭐️ แก้ไขส่วนนี้ ⭐️⭐️⭐️
   const handleGoogleLogin = async () => {
-    const redirectUrl =
-      process.env.NODE_ENV === "development"
-        ? "http://localhost:3000/post_pages"
-        : "https://dare2thainextjs.vercel.app/post_pages";
+    // ใช้วิธีนี้แทนเพื่อความยืดหยุ่น (ทำงานได้ทั้ง localhost, production, Vercel previews)
+    const redirectTo = `${window.location.origin}/post_pages`;
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: redirectUrl,
+        redirectTo: redirectTo, // ใช้ URL ที่สร้างแบบ dynamic
       },
     });
 
@@ -350,6 +356,8 @@ const Register: React.FC = () => {
       setError("ไม่สามารถเข้าสู่ระบบด้วย Google ได้");
     }
   };
+  // ⭐️⭐️⭐️ สิ้นสุดส่วนแก้ไข ⭐️⭐️⭐️
+
   return (
     <div
       className={`relative min-h-screen transition duration-500 overflow-x-hidden font-sriracha ${
@@ -417,6 +425,7 @@ const Register: React.FC = () => {
               id="avatar-upload"
               className="hidden"
               onChange={handleImageSelect}
+              ref={imageInputRef} // เพิ่ม ref ที่นี่
             />
             <p className="text-xs text-pink-400">{t.Optional}</p>
             <p className="mt-6 text-sm text-center text-gray-300">
@@ -458,15 +467,9 @@ const Register: React.FC = () => {
                 onChange={(e) => setName(e.target.value)}
                 icon={<FiUser />}
               />
-              <InputField
-                id="username"
-                label={t.username}
-                placeholder={t.enUserN}
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                icon={<FiUser />}
-              />
+              
+              {/* ⭐️⭐️⭐️ ลบ InputField ของ Username ออก ⭐️⭐️⭐️ */}
+              
               <InputField
                 id="email"
                 label={t.email}
@@ -506,8 +509,12 @@ const Register: React.FC = () => {
                 disabled={loading}
               >
                 {loading
-                  ? (lang === "th" ? "กำลังดำเนินการ..." : "Loading...")
-                  : (lang === "th" ? "สมัครสมาชิก" : "Sign up")}
+                  ? lang === "th"
+                    ? "กำลังดำเนินการ..."
+                    : "Loading..."
+                  : lang === "th"
+                  ? "สมัครสมาชิก"
+                  : "Sign up"}
               </motion.button>
             </motion.div>
 
@@ -521,18 +528,27 @@ const Register: React.FC = () => {
             {/* 🔹 ปุ่ม Google Login */}
             <div className="flex flex-col items-center justify-center w-full">
               <button
+                type="button" // ⭐️ เพิ่ม type="button" กันฟอร์ม submit
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="flex items-center justify-center w-full bg-white text-gray-700 font-semibold py-3 px-5 rounded-lg shadow hover:shadow-lg"
+                className="flex items-center justify-center w-full bg-white text-gray-700 font-semibold py-3 px-5 rounded-lg shadow hover:shadow-lg transition-all"
               >
                 <FcGoogle className="mr-3 text-2xl" />
 
                 {loading
-                  ? (lang === "th" ? "กำลังดำเนินการ..." : "Loading...")
-                  : (lang === "th" ? "สมัครสมาชิกด้วย Google" : "Sign up with Google")}
+                  ? lang === "th"
+                    ? "กำลังดำเนินการ..."
+                    : "Loading..."
+                  : lang === "th"
+                  ? "สมัครสมาชิกด้วย Google"
+                  : "Sign up with Google"}
               </button>
 
-              {error && <p className="text-red-500 mt-4">{error}</p>}
+              {/* ⭐️ ย้าย error มาไว้ด้านล่างปุ่ม Google
+                  (แต่ error state นี้จะถูกแชร์กัน,
+                  ซึ่ง handleGoogleLogin จะ set error ถ้ามีปัญหา)
+              */}
+              
             </div>
           </form>
         </motion.div>
