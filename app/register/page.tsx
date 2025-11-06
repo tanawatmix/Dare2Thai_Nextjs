@@ -307,17 +307,20 @@ const Register: React.FC = () => {
     }
   };
   const handleGoogleLogin = async () => {
-    const redirectUrl =
-      process.env.NODE_ENV === "development"
-        ? "http://localhost:3000/post_pages"
-        : "https://dare2thainextjs.vercel.app/post_pages";
+   const redirectTo = `${window.location.origin}/post_pages`;
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: redirectUrl,
+        redirectTo: redirectTo,
       },
     });
+
+    if (error) {
+      console.error("Google login error:", error);
+      setError("ไม่สามารถเข้าสู่ระบบด้วย Google ได้");
+    }
+  };
 
     if (error) {
       console.error("Google login error:", error);
