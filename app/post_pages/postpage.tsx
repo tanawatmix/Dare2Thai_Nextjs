@@ -67,6 +67,9 @@ const PostPage = () => {
   const [filterBarHeight, setFilterBarHeight] = useState(0);
   const [stickyOffsetTop, setStickyOffsetTop] = useState(0);
 
+  // --- เพิ่ม State สำหรับ "ล็อก" การอัปเดต ---
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
+
   const NAVBAR_HEIGHT = 64;
   const postsPerPage = 12;
 
@@ -124,85 +127,72 @@ const PostPage = () => {
     return `${prefix}_${randomSuffix}`;
   }
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setCurrentUserId(data.user?.id || null);
-    };
-    getUser();
-  }, []);
+  // --- (ลบ useEffect ที่เรียก getUser() ออกไป) ---
 
-  // --- useEffect ที่เพิ่มเข้ามาสำหรับจัดการ Session และสร้าง Username ---
+  // --- useEffect ที่รวมการจัดการ User ทั้งหมด (แก้ลูป) ---
   useEffect(() => {
     // ฟังก์ชันสำหรับจัดการ Session ผู้ใช้
     const handleUserSession = async (session: any) => {
-      if (!session?.user) {
-        console.log("handleUserSession: No user in session.");
+      // ถ้าไม่มี user หรือ "กำลังอัปเดตอยู่" ให้ข้ามไปเลย (ป้องกันลูป)
+      if (!session?.user || isUpdatingUser) {
+        if (isUpdatingUser) console.log("User update in progress, skipping...");
         return;
       }
 
+      // 1. ตั้งค่า currentUserId (แทนที่ useEffect ตัวเก่า)
+      setCurrentUserId(session.user.id);
+
       const user = session.user;
       const metadata = user.user_metadata || {};
-      console.log("handleUserSession: Checking metadata...", metadata);
+      let needsDBUpdate = false;
+      let updatedData = { ...metadata };
 
-      let needsDBUpdate = false; // ตัวแปรติดตามว่าต้องอัปเดต DB หรือไม่
-      let updatedData = { ...metadata }; // เตรียมข้อมูลที่จะอัปเดต
-
-      // --- ส่วนที่ 1: ซิงค์ Name & Avatar (สำหรับ Google) ---
+      // 2. ซิงค์ Name & Avatar (สำหรับ Google)
       const needsNameSync = !metadata.name && metadata.full_name;
-      const needsAvatarSync =
-        !metadata.profile_image && metadata.avatar_url;
+      const needsAvatarSync = !metadata.profile_image && metadata.avatar_url;
 
       if (needsNameSync) {
         updatedData.name = metadata.full_name;
         needsDBUpdate = true;
-        console.log("handleUserSession: Syncing 'name'.");
       }
       if (needsAvatarSync) {
         updatedData.profile_image = metadata.avatar_url;
         needsDBUpdate = true;
-        console.log("handleUserSession: Syncing 'profile_image'.");
       }
 
-      // --- ส่วนที่ 2: ตรวจสอบและสร้าง Username (อัตโนมัติ) ---
+      // 3. ตรวจสอบและสร้าง Username (อัตโนมัติ)
       if (!metadata.username) {
-        // ถ้าไม่มี username, ให้สร้างใหม่เดี๋ยวนี้
         const newUsername = generateUsernameFromEmail(user.email || "");
         updatedData.username = newUsername;
         needsDBUpdate = true;
-        console.log(
-          `handleUserSession: 'username' is missing. Generated new one: ${newUsername}`
-        );
-      } else {
-        console.log(
-          "handleUserSession: 'username' already exists:",
-          metadata.username
-        );
+        console.log(`Generated new username: ${newUsername}`);
       }
 
-      // --- ส่วนที่ 3: อัปเดตข้อมูลลง Supabase (ถ้าจำเป็น) ---
+      // 4. อัปเดตข้อมูล (ถ้าจำเป็น)
       if (needsDBUpdate) {
-        console.log(
-          "handleUserSession: Attempting to update database...",
-          updatedData
-        );
+        setIsUpdatingUser(true); // --- ล็อกการอัปเดต ---
+        console.log("Attempting to update user metadata...");
+
         const { error } = await supabase.auth.updateUser({
           data: updatedData,
         });
 
         if (error) {
-          console.error(
-            "handleUserSession: ERROR updating user metadata:",
-            error.message
-          );
+          console.error("ERROR updating user metadata:", error.message);
         } else {
-          console.log(
-            "handleUserSession: Database update SUCCESSFUL. Refreshing page..."
-          );
+          console.log("Database update SUCCESSFUL. Refreshing page...");
           router.refresh();
         }
+
+        // ใช้ setTimeout เพื่อหน่วงเวลาปลดล็อกเล็กน้อย
+        // ให้ router.refresh() มีเวลาทำงาน
+        setTimeout(() => {
+          setIsUpdatingUser(false); // --- ปลดล็อก ---
+          console.log("Update lock released.");
+        }, 1000);
       } else {
-        console.log("handleUserSession: No database update needed.");
+        // ถ้าข้อมูลครบถ้วน (เช่น ล็อกอินครั้งถัดๆ ไป) ก็ไม่ต้องทำอะไร
+        console.log("User metadata is complete. No update needed.");
       }
     };
 
@@ -213,18 +203,31 @@ const PostPage = () => {
         if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
           await handleUserSession(session);
         }
+
+        // จัดการกรณี Logged OUT
+        if (event === "SIGNED_OUT") {
+          setCurrentUserId(null);
+        }
       }
     );
 
     return () => {
-      console.log("onAuthStateChange: Unsubscribing from auth listener.");
       authListener?.subscription.unsubscribe();
     };
-  }, [router]);
-  // --- สิ้นสุด useEffect ที่เพิ่มเข้ามา ---
+  }, [router, isUpdatingUser]); // เพิ่ม isUpdatingUser ใน dependency
 
-  // --- Fetch posts ---
+  // --- Fetch posts (ยังคงเหมือนเดิม) ---
   useEffect(() => {
+    // โค้ดนี้จะทำงาน "หลังจาก" ที่ useEffect ข้างบน
+    // ทำการ setCureentUserId ให้เราเรียบร้อยแล้ว
+    if (!currentUserId) {
+      setLoading(true); // ถ้า user log out ก็ควรเคลียร์ posts
+      setPosts([]);
+      setFilteredPosts([]);
+      setLoading(false); // หรือตั้งเป็น true ถ้าจะรอ user
+      return;
+    }
+
     const fetchPosts = async () => {
       setLoading(true);
       setPosts([]);
@@ -237,6 +240,7 @@ const PostPage = () => {
         if (postsError) throw postsError;
 
         let favIds: string[] = [];
+        // (เราเช็ก currentUserId อีกครั้งเพื่อ TypeScript)
         if (currentUserId) {
           const { data: favData, error: favError } = await supabase
             .from("favorites")
@@ -299,7 +303,7 @@ const PostPage = () => {
       }
     };
     fetchPosts();
-  }, [currentUserId]);
+  }, [currentUserId]); // useEffect นี้จะทำงานเมื่อ currentUserId "เปลี่ยน"
 
   // --- Filter & Sort Logic (รวมไว้ที่เดียว) ---
   useEffect(() => {
@@ -311,7 +315,7 @@ const PostPage = () => {
         const matchType =
           !selectedType ||
           selectedType === t("all") ||
-          p.place_type === selectedType; // แก้ไขให้รองรับ 'ทั้งหมด'
+          p.place_type === selectedType;
         return matchName && matchType;
       });
 
@@ -341,17 +345,15 @@ const PostPage = () => {
         case "province_az":
           sorted.sort((a, b) => a.province.localeCompare(b.province, "th"));
           break;
-        // --- ✅ เพิ่ม Case "most_liked" ที่นี่ ---
         case "most_liked":
           sorted.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
           break;
-        // --- --------------------------- ---
         default:
           break;
       }
       setFilteredPosts(sorted);
     }
-  }, [searchName, selectedType, posts, sortBy, loading, t]); // เพิ่ม t dependency
+  }, [searchName, selectedType, posts, sortBy, loading, t]);
 
   // --- Effect for managing Sticky Bar ---
   useEffect(() => {
@@ -402,7 +404,7 @@ const PostPage = () => {
 
   // --- Function to handle tag selection and scroll ---
   const handleSelectType = (tag: string) => {
-    const newType = tag === t("all") ? "" : tag; // ใช้ t('all') ในการเปรียบเทียบ
+    const newType = tag === t("all") ? "" : tag;
     setSelectedType(newType);
     setCurrentPage(1);
     setTimeout(() => {
@@ -536,7 +538,7 @@ const PostPage = () => {
       return newLikeCount;
     } catch (err: any) {
       toast.error("เกิดข้อผิดพลาด: " + err.message);
-      // Revert state on error (PostCard will handle its own state reversal)
+      // Revert state on error
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
@@ -597,7 +599,6 @@ const PostPage = () => {
         }
       );
 
-      // Check if the promise rejected (e.g., user cancelled)
       if (
         typeof result === "object" &&
         result !== null &&
@@ -610,7 +611,6 @@ const PostPage = () => {
         return;
       }
     } catch (err: any) {
-      // This catch block handles the rejection from Swal (User cancelled)
       if (err && err.message === "User cancelled") {
         console.log("Deletion cancelled by user");
         return;
@@ -619,7 +619,6 @@ const PostPage = () => {
       return;
     }
 
-    // Proceed with deletion only if toast.promise succeeded
     try {
       const { error } = await supabase.from("posts").delete().eq("id", postId);
       if (error) {
@@ -645,7 +644,6 @@ const PostPage = () => {
         <Hero />
       </div>
 
-      {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 min-h-screen">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
