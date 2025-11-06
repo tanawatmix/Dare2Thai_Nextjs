@@ -312,7 +312,7 @@ const Register: React.FC = () => {
   };
 
   const handleGoogleLogin = async () => {
-   const redirectTo = `${window.location.origin}/post_pages`;
+   const redirectTo = `$/post_pages`;
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
