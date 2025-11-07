@@ -257,7 +257,6 @@ const EditPost: React.FC = () => {
   ]);
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
-  // 7. ดึงข้อมูลโพสต์เมื่อ component โหลด
   useEffect(() => {
     if (!postId) {
       toast.error("ไม่พบ ID ของโพสต์");
@@ -276,7 +275,6 @@ const EditPost: React.FC = () => {
       }
       setUser(user);
 
-      // 8. ดึงข้อมูลโพสต์ (รวม lat/lng)
       const { data, error } = await supabase
         .from("posts")
         .select("*")
@@ -289,7 +287,7 @@ const EditPost: React.FC = () => {
         return;
       }
 
-      // 9. ตรวจสอบความเป็นเจ้าของ
+      // ตรวจสอบความเป็นเจ้าของ
       if (data.user_id !== user.id) {
         toast.error("คุณไม่มีสิทธิ์แก้ไขโพสต์นี้");
         router.push("/post_pages");
@@ -301,7 +299,6 @@ const EditPost: React.FC = () => {
           ? JSON.parse(data.image_url || "[]")
           : data.image_url || [];
 
-      // 10. ตั้งค่า State ทั้งหมด
       setPost(data);
       setTitle(data.title);
       setDescription(data.description || "");
@@ -309,7 +306,6 @@ const EditPost: React.FC = () => {
       setProvince(data.province || "");
       setExistingImages(imagesArray);
 
-      // 11. ตั้งค่าพิกัดจากข้อมูลที่ดึงมา
       const initialLat = data.latitude || 13.7563;
       const initialLng = data.longitude || 100.5018;
       setLatitude(initialLat);
@@ -322,7 +318,6 @@ const EditPost: React.FC = () => {
     fetchUserAndPost();
   }, [postId, router]);
 
-  // 12. ฟังก์ชันสำหรับอัปเดต Title เมื่อเลือก Type
   const handlePlaceTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value;
     setPlaceType(newType);
@@ -334,15 +329,12 @@ const EditPost: React.FC = () => {
     }
   };
 
-  // 13. ฟังก์ชันใหม่สำหรับ Handle จังหวัด
   const handleProvinceChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newProvince = e.target.value;
     setProvince(newProvince);
 
-    // 1. กำหนด Type ของค่าเริ่มต้นให้ชัดเจน
     const defaultCoord: LatLngTuple = [13.7563, 100.5018];
 
-    // 2. Cast newCenter ให้เป็น LatLngTuple (array)
     const newCenter = (PROVINCE_COORDS[newProvince] ||
       defaultCoord) as LatLngTuple;
 
@@ -351,7 +343,6 @@ const EditPost: React.FC = () => {
     setLongitude(newCenter[1]);
   };
 
-  // 14. ฟังก์ชันสำหรับอัปเดตพิกัด (จากการลากหมุด หรือ ค้นหา)
   const handleMapUpdate = (lat: number, lng: number) => {
     setLatitude(lat);
     setLongitude(lng);
@@ -531,7 +522,6 @@ const EditPost: React.FC = () => {
               required
             />
 
-            {/* 16. เพิ่ม MapPicker */}
             <div>
               <label className="block text-sm font-semibold text-white">
                 {t("place_marker")}

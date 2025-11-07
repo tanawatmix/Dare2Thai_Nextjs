@@ -319,7 +319,6 @@ const CreatePost: React.FC = () => {
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
 
-  // ตรวจสอบการล็อกอินและดึงตำแหน่งปัจจุบัน
   useEffect(() => {
     const initializePage = async () => {
       const {
@@ -433,7 +432,6 @@ const CreatePost: React.FC = () => {
     };
   }, [imagePreviews]);
 
-  // --- Submit Handler --- (คงเดิม)
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) {
@@ -459,7 +457,6 @@ const CreatePost: React.FC = () => {
     const uploadedUrls: string[] = [];
 
     try {
-      // 1. อัปโหลดรูปภาพ
       for (const file of images) {
         const fileName = `public/${user.id}/${Date.now()}_${file.name}`;
         const { data, error } = await supabase.storage
@@ -472,7 +469,6 @@ const CreatePost: React.FC = () => {
         uploadedUrls.push(urlData.publicUrl);
       }
 
-      // 2. บันทึกข้อมูลโพสต์ (เพิ่ม lat/lng)
       const { data: postData, error: postError } = await supabase
         .from("posts")
         .insert([
