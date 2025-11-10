@@ -23,19 +23,23 @@ import {
   FiArrowLeft,
   FiArrowDown,
   FiTrash2,
+  FiMoreHorizontal,
+  FiCornerUpLeft,
 } from "react-icons/fi";
 
-// --- Type Definitions ---
+// --- Type Definitions (อัปเดต) ---
 export interface ChatMessage {
-  id: number;
+  id: string; // ✅ FIX: id เป็น string (uuid)
   created_at: string;
   post_id: string;
   user_id: string;
-  username: string;
+  username: string; // (โค้ดคุณใช้ username ซึ่งเก็บ 'name'ไว้)
   message: string;
   image_url?: string;
+  reply_to_id?: string | null;
+  reply_to_message?: string | null;
+  reply_to_username?: string | null;
 }
-
 type Profile = {
   username: string;
   name: string;
@@ -73,6 +77,7 @@ const ChatUI = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { darkMode } = useContext(ThemeContext);
+  
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -85,10 +90,15 @@ const ChatUI = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
 
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [highlightedMsg, setHighlightedMsg] = useState<string | null>(null);
+
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const postId = searchParams.get("id") || "";
   const prevScrollHeightRef = useRef<number>(0);
+
   // --- Data Fetching & Auth ---
   useEffect(() => {
     const setupPage = async () => {
@@ -115,7 +125,7 @@ const ChatUI = () => {
         if (profileRes.data) setProfile(profileRes.data as Profile);
         if (postRes.data) setPostTitle(postRes.data.title);
         else setPostTitle("ไม่พบโพสต์");
-        if (messagesRes.data) setMessages(messagesRes.data as ChatMessage[]);
+        if (messagesRes.data) setMessages(messagesRes.data as any[] as ChatMessage[]);
       }
       setIsLoading(false);
     };
@@ -131,6 +141,7 @@ const ChatUI = () => {
     if (!isLoading && !user) router.push("/login");
   }, [isLoading, user, router]);
 
+  // Realtime
   useEffect(() => {
     if (!postId) return;
 
@@ -157,7 +168,6 @@ const ChatUI = () => {
           filter: `post_id=eq.${postId}`,
         },
         (payload) => {
-          // กรองข้อความที่ถูกลบ (payload.old) ออกจาก state
           setMessages((currentMessages) =>
             currentMessages.filter(
               (msg) => msg.id !== (payload.old as ChatMessage).id
@@ -172,6 +182,7 @@ const ChatUI = () => {
     };
   }, [postId]);
 
+  // Scroll to bottom Logic
   useEffect(() => {
     if (chatContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } =
@@ -191,6 +202,7 @@ const ChatUI = () => {
     }
   }, [messages]);
 
+  // --- Handlers ---
   const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -231,16 +243,22 @@ const ChatUI = () => {
       imageUrl = urlData.publicUrl;
     }
 
-    await supabase.from("chats").insert({
+    const messageToSend = {
       post_id: postId,
       user_id: user.id,
-      username: profile.name,
+      username: profile.name, // ใช้ "name"
       message: messageText,
       image_url: imageUrl,
-    });
+      reply_to_id: replyingTo ? replyingTo.id : null,
+      reply_to_message: replyingTo ? (replyingTo.message || (replyingTo.image_url ? "[รูปภาพ]" : null)) : null,
+      reply_to_username: replyingTo ? replyingTo.username : null,
+    };
+
+    await supabase.from("chats").insert(messageToSend);
 
     setInput("");
     clearImage();
+    setReplyingTo(null);
     setIsSending(false);
   };
 
@@ -261,11 +279,67 @@ const ChatUI = () => {
     }
   };
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const handleReplyClick = (message: ChatMessage) => {
+    setReplyingTo(message);
+    setActiveMenu(null);
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  const handleDeleteMessage = async (message: ChatMessage) => {
+    if (!user || user.id !== message.user_id) return;
+    
+    if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อความนี้?")) {
+        setActiveMenu(null);
+        setMessages((prev) => prev.filter((m) => m.id !== message.id));
+
+        if (message.image_url) {
+          try {
+            const filePath = message.image_url.split("/chat_images/")[1];
+            if (filePath) {
+              await supabase.storage.from("chat_images").remove([filePath]);
+            }
+          } catch (storageError) {
+             console.error("Error deleting image from storage:", storageError);
+          }
+        }
+        
+        const { error } = await supabase.from("chats").delete().eq("id", message.id);
+        if (error) {
+          console.error("Error deleting message:", error);
+        }
+    }
+  };
+  
+  const handleScrollToReply = (messageId: string | undefined | null) => {
+    if (!messageId) return;
+
+    const element = document.getElementById(`message-${messageId}`);
+    if (element && chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: element.offsetTop - chatContainerRef.current.offsetTop,
+        behavior: 'smooth'
+      });
+      
+      setHighlightedMsg(messageId);
+      setTimeout(() => {
+        setHighlightedMsg(null);
+      }, 2000);
+    }
+  };
+
   const handleScroll = () => {
     if (chatContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } =
-        chatContainerRef.current;
-      // ตรวจสอบว่าเลื่อนขึ้นไปจากด้านล่างมากกว่า 300px หรือไม่
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
       if (scrollHeight - scrollTop - clientHeight > 300) {
         setShowScrollToBottom(true);
       } else {
@@ -274,54 +348,12 @@ const ChatUI = () => {
     }
   };
 
-  const handleDeleteMessage = async (
-    messageId: number,
-    imageUrl: string | null | undefined 
-  ) => {
-    if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อความนี้?")) {
-      try {
-        if (imageUrl) {
-          const filePath = imageUrl.split("/chat_images/")[1];
-
-          if (filePath) {
-            const { error: storageError } = await supabase.storage
-              .from("chat_images")
-              .remove([filePath]); 
-
-            if (storageError) {
-              console.error("Error deleting image from storage:", storageError);
-            }
-          }
-        }
-
-        const { error: dbError } = await supabase
-          .from("chats")
-          .delete()
-          .eq("id", messageId);
-
-        if (dbError) {
-          throw dbError; 
-        }
-        
-      } catch (error: any) {
-        console.error("Error deleting message:", error);
-        alert("ไม่สามารถลบข้อความได้: " + error.message);
-      }
-    }
-  };
-
   const scrollToBottom = () => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTo({
         top: chatContainerRef.current.scrollHeight,
-        behavior: "smooth", // เลื่อนแบบนุ่มนวล
+        behavior: "smooth",
       });
-    }
-  };
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
     }
   };
 
@@ -330,31 +362,28 @@ const ChatUI = () => {
 
   return (
     <div
-      className={`min-h-screen flex flex-col transition-colors duration-500 ${
-        darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
+      className={`font-sriracha transition-colors duration-300 ${
+        darkMode ? "bg-gray-900" : "bg-gray-50"
       }`}
     >
       <Navbar />
-      <main className="flex-grow flex flex-col items-center w-full px-4 pt-24 pb-4">
+      <main className="flex-grow flex flex-col items-center w-full px-4 pt-24 pb-4 ">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="w-full max-w-2xl h-[calc(100vh-150px)] flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-black/10 dark:border-white/10 overflow-hidden"
-        >
-          {/* Chat Header (ที่คุณแก้ไขมา) */}
-          <div className="flex items-center gap-4 py-3 px-4 border-b border-black/10 dark:border-white/10 bg-gray-100 dark:bg-gray-900">
+          onClick={() => activeMenu && setActiveMenu(null)}
+          className={`w-full max-w-4xl h-[calc(112vh-180px)] mt-[-15px] flex flex-col shadow-2xl border border-black/10 dark:border-white/10 ${darkMode ? "bg-gray-800 " : "bg-gray-50 "}`}
+        >
+          {/* Chat Header */}
+          <div className={`flex items-center gap-4 py-3 px-4 border-b border-black/10 dark:border-white/10 ${darkMode ? "bg-gray-800 text-white" : "bg-gray-50"}`}>
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => router.back()}
-              className="p-2 bg-white/10 hover:bg-white/20 rounded-md flex items-center justify-center text-black dark:text-white shadow-sm"
+              className="p-2 bg-white/30 hover:bg-white/50 rounded-md flex items-center justify-center shadow-sm"
               aria-label="ย้อนกลับ"
             >
               <FiArrowLeft />
             </motion.button>
-
             <h1
-              className="text-lg md:text-xl font-extrabold truncate text-black dark:text-white"
+              className={`text-lg md:text-xl font-extrabold truncate ${darkMode ? "text-white" : "text-black"}`}
               title={postTitle}
             >
               {postTitle}
@@ -373,39 +402,68 @@ const ChatUI = () => {
                 {messages.map((msg) => (
                   <motion.div
                     key={msg.id}
+                    id={`message-${msg.id}`}
                     layout
                     initial={{ opacity: 0, scale: 0.8, y: 50 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.8, y: 20 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className={`flex items-end gap-2 w-full ${
-                      msg.user_id === user.id ? "justify-end" : "justify-start"
-                    }`}
+                    // ✅ FIX: เปลี่ยนเป็น flex-row และ items-end
+                    className={`relative flex items-end gap-2 group w-full rounded-lg transition-colors
+                      ${ msg.user_id === user.id ? "justify-end" : "justify-start" }
+                      ${ highlightedMsg === msg.id ? "bg-blue-100 dark:bg-blue-900/50" : "" }
+                    `}
                   >
-                    {/* ปุ่มลบ (แสดงเฉพาะข้อความของเรา) */}
-                    {msg.user_id === user.id && (
-                      <motion.button
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleDeleteMessage(msg.id, msg.image_url)}
-                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors rounded-full mb-1"
-                        aria-label="Delete message"
+                    {/* --- ปุ่ม 3 จุด (อยู่ข้างแชท) --- */}
+                   <div className="relative flex-shrink-0">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveMenu(activeMenu === msg.id ? null : msg.id)
+                        }}
+                        className="p-1 rounded-full text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <FiTrash2 size={16} />
-                      </motion.button>
-                    )}
+                        <FiMoreHorizontal />
+                      </button>
+                      <AnimatePresence>
+                        {activeMenu === msg.id && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className={`absolute bottom-full mb-1 w-40 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-black/10 dark:border-white/10 z-10 overflow-hidden
+                              ${ msg.user_id === user.id ? "right-0" : "left-0" }
+                            `}
+                          >
+                            <button 
+                              onClick={() => handleReplyClick(msg)}
+                              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                            >
+                              <FiCornerUpLeft size={16} /> <span>ตอบกลับ</span>
+                            </button>
+                            {msg.user_id === user.id && (
+                              <button 
+                                onClick={() => handleDeleteMessage(msg)}
+                                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/50"
+                              >
+                                <FiTrash2 size={16} /> <span>ลบข้อความ</span>
+                              </button>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
 
-                    {/* นี่คือ Div ที่หุ้มเนื้อหา (ที่ขาดไปในโค้ดก่อนหน้า) */}
+                    {/* --- กล่องข้อความ (Bubble) --- */}
                     <div
                       className={`flex flex-col ${
-                        msg.user_id === user.id ? "items-end" : "items-start"
+                        msg.user_id === user.id ? "items-right" : "items-start"
                       }`}
                     >
-                      {/* ชื่อและเวลา */}
                       <div
                         className={`flex items-baseline gap-2 ${
-                          msg.user_id === user.id ? "flex-row-reverse" : ""
+                          msg.user_id === user.id ? "flex-row-reverse" : "flex-row"
                         }`}
                       >
                         <strong
@@ -417,18 +475,8 @@ const ChatUI = () => {
                         >
                           {msg.username}
                         </strong>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(
-                            msg.created_at.replace(" ", "T") + "Z"
-                          ).toLocaleTimeString("th-TH", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            timeZone: "Asia/Bangkok",
-                          })}
-                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{new Date(msg.created_at.replace(' ', 'T') + 'Z').toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" })}</span>
                       </div>
-
-                      {/* กล่องข้อความ/รูปภาพ */}
                       <div
                         className={`mt-1 max-w-xs md:max-w-md w-fit rounded-lg shadow-md ${
                           msg.image_url && !msg.message
@@ -440,6 +488,21 @@ const ChatUI = () => {
                             : "bg-gray-200 dark:bg-gray-700 rounded-bl-none"
                         }`}
                       >
+                        {/* บล็อกตอบกลับที่คลิกได้ */}
+                        {msg.reply_to_id && (
+                          <div 
+                            className="p-2 mb-2 border-l-4 border-blue-300 dark:border-pink-400 bg-black/10 dark:bg-white/10 rounded-md cursor-pointer hover:bg-black/20 dark:hover:bg-white/20"
+                            onClick={() => handleScrollToReply(msg.reply_to_id)}
+                          >
+                            <p className="font-bold text-xs opacity-80 text-gray-800 dark:text-gray-100">
+                              ตอบกลับ {msg.reply_to_username}
+                            </p>
+                            <p className="text-sm opacity-90 text-gray-700 dark:text-gray-200 truncate">
+                              {msg.reply_to_message || "[รูปภาพ]"}
+                            </p>
+                          </div>
+                        )}
+                        
                         {msg.message && (
                           <p
                             className={`text-sm ${
@@ -490,10 +553,37 @@ const ChatUI = () => {
               )}
             </AnimatePresence>
           </div>
-          {/* ===== จบส่วนที่แก้ไข ===== */}
 
           {/* Input Area */}
-          <div className="p-4 border-t border-black/10 dark:border-white/10 bg-gray-50 dark:bg-gray-800/50">
+          <div className={`p-4 border-t border-black/10 dark:border-white/10 ${darkMode ? "bg-gray-800" : "bg-gray-50"}`}>
+            <AnimatePresence>
+              {replyingTo && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-2 p-2 bg-gray-200 dark:bg-gray-700 rounded-lg"
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-xs font-bold text-blue-500 dark:text-pink-400">
+                        กำลังตอบกลับ: {replyingTo.username}
+                      </p>
+                      <p className="text-sm text-gray-700 dark:text-gray-200 truncate">
+                        {replyingTo.message || "[รูปภาพ]"}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={cancelReply}
+                      className="p-1 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600"
+                    >
+                      <FiX />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
             <AnimatePresence>
               {imagePreview && (
                 <motion.div
@@ -549,6 +639,7 @@ const ChatUI = () => {
               </motion.button>
             </div>
           </div>
+
         </motion.div>
       </main>
 
