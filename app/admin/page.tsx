@@ -24,11 +24,12 @@ import {
   FiSliders,
   FiPlus,
   FiImage,
+  FiShield,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
 import Link from "next/link";
-import Image from "next/image"; 
+import Image from "next/image";
 
 // --- Type Definitions ---
 type SupabaseUser = {
@@ -121,6 +122,9 @@ const PaginationControls = ({
   totalPages: number;
   onPageChange: (page: number) => void;
 }) => {
+  const theme = useContext(ThemeContext);
+  const isDark = theme?.darkMode;
+
   if (totalPages <= 1) return null;
   const handlePrev = () => onPageChange(currentPage - 1);
   const handleNext = () => onPageChange(currentPage + 1);
@@ -134,7 +138,7 @@ const PaginationControls = ({
       >
         <FiChevronLeft />
       </motion.button>
-      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+      <span className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
         หน้า {currentPage} / {totalPages}
       </span>
       <motion.button
@@ -226,7 +230,6 @@ const DataTable = ({
                 }`}
                 layout
               >
-                
                 <td className="py-3 px-4 text-left whitespace-nowrap">
                   {editingUserId === user.id ? (
                     <input
@@ -241,7 +244,21 @@ const DataTable = ({
                       className="w-full p-1 rounded border bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-700 dark:text-gray-200"
                     />
                   ) : (
-                    user.name
+                    <div className="flex items-center gap-2">
+                      <span>{user.name}</span>
+                      {user.role === "admin" && (
+                        <span
+                          className={` text-white text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                            isDark
+                              ? "bg-pink-500 text-gray-200"
+                              : "bg-blue-500 text-gray-600"
+                          } `}
+                        >
+                          <FiShield size={12} />
+                          Admin
+                        </span>
+                      )}
+                    </div>
                   )}
                 </td>
                 <td className="py-3 px-4 text-left whitespace-nowrap">
@@ -600,13 +617,12 @@ const SlidesTable = ({
                       <Image
                         src={item.image_url}
                         alt={item.title || "Slide image"}
-                        width={96} 
-                        height={56} 
+                        width={96}
+                        height={56}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            "/dare2New.png";
-                        }} 
+                          (e.target as HTMLImageElement).src = "/dare2New.png";
+                        }}
                       />
                     ) : (
                       <FiImage className="w-6 h-6 text-gray-400 dark:text-gray-500" />
@@ -637,9 +653,7 @@ const SlidesTable = ({
                     </Link>
                     <motion.button
                       whileTap={{ scale: 0.95 }}
-                      onClick={() =>
-                        handleDeleteSlide(item.id, item.title)
-                      }
+                      onClick={() => handleDeleteSlide(item.id, item.title)}
                       className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-xs font-semibold shadow transition flex items-center gap-1"
                     >
                       <FiTrash2 size={12} /> ลบ
@@ -865,8 +879,8 @@ export default function AdminPage() {
       .single();
 
     toast.promise(promise as unknown as Promise<any>, {
-        loading: 'กำลังบันทึก...',
-        success: (response) => {
+      loading: "กำลังบันทึก...",
+      success: (response) => {
         const { data, error } = response;
         if (error || !data) {
           throw new Error(error?.message || "ไม่สามารถบันทึกข้อมูลได้");
@@ -1019,36 +1033,54 @@ export default function AdminPage() {
     }
   };
 
-  const handleDeleteSlide = async (slideId: string, slideTitle: string | null) => {
-    if (!isAdmin) { toast.error("ไม่มีสิทธิ์ลบ"); return; }
+  const handleDeleteSlide = async (
+    slideId: string,
+    slideTitle: string | null
+  ) => {
+    if (!isAdmin) {
+      toast.error("ไม่มีสิทธิ์ลบ");
+      return;
+    }
     const slideToDelete = allSlides.find((s) => s.id === slideId);
     const titleForConfirm = slideTitle || `สไลด์ ID ${slideId.substring(0, 8)}`;
-     try {
-        await toast.promise(
-            new Promise<void>((resolve, reject) => {
-                 import('sweetalert2').then(async (Swal) => {
-                    const confirmResult = await Swal.default.fire({
-                        title: `ต้องการลบสไลด์ "${titleForConfirm}"?`,
-                        icon: "warning", showCancelButton: true, confirmButtonColor: "#d33",
-                        cancelButtonColor: "#3085d6", confirmButtonText: "ใช่, ลบเลย!", cancelButtonText: "ยกเลิก"
-                    });
-                    if (confirmResult.isConfirmed) resolve(); else reject(new Error("User cancelled"));
-                 });
-            }), { loading: '...', success: 'ยืนยันการลบ', error: (err) => err.message }
-        );
-        if (slideToDelete?.image_url) {
-            const fileName = slideToDelete.image_url.split('/').pop();
-            if (fileName) { await supabase.storage.from("hero_images").remove([`public/${fileName}`]); }
+    try {
+      await toast.promise(
+        new Promise<void>((resolve, reject) => {
+          import("sweetalert2").then(async (Swal) => {
+            const confirmResult = await Swal.default.fire({
+              title: `ต้องการลบสไลด์ "${titleForConfirm}"?`,
+              icon: "warning",
+              showCancelButton: true,
+              confirmButtonColor: "#d33",
+              cancelButtonColor: "#3085d6",
+              confirmButtonText: "ใช่, ลบเลย!",
+              cancelButtonText: "ยกเลิก",
+            });
+            if (confirmResult.isConfirmed) resolve();
+            else reject(new Error("User cancelled"));
+          });
+        }),
+        { loading: "...", success: "ยืนยันการลบ", error: (err) => err.message }
+      );
+      if (slideToDelete?.image_url) {
+        const fileName = slideToDelete.image_url.split("/").pop();
+        if (fileName) {
+          await supabase.storage
+            .from("hero_images")
+            .remove([`public/${fileName}`]);
         }
-        const { error } = await supabase.from("hero_slides").delete().eq("id", slideId);
-        if (error) throw error;
-        setAllSlides((prev) => prev.filter((s) => s.id !== slideId));
-        toast.success(`ลบสไลด์ "${titleForConfirm}" สำเร็จ`);
-        
+      }
+      const { error } = await supabase
+        .from("hero_slides")
+        .delete()
+        .eq("id", slideId);
+      if (error) throw error;
+      setAllSlides((prev) => prev.filter((s) => s.id !== slideId));
+      toast.success(`ลบสไลด์ "${titleForConfirm}" สำเร็จ`);
     } catch (error: any) {
-         if (error.message !== "User cancelled") {
-             toast.error(`ลบไม่สำเร็จ: ${error.message}`);
-         }
+      if (error.message !== "User cancelled") {
+        toast.error(`ลบไม่สำเร็จ: ${error.message}`);
+      }
     }
   };
   const showNotification = (msg: string) => {
@@ -1060,7 +1092,10 @@ export default function AdminPage() {
     router.push("/");
   };
   // --- Render Logic ---
-  if (!isAdmin && (loadingUsers || loadingPosts || loadingNews || loadingSlides)) {
+  if (
+    !isAdmin &&
+    (loadingUsers || loadingPosts || loadingNews || loadingSlides)
+  ) {
     return <LoadingComponent text="กำลังตรวจสอบสิทธิ์..." />;
   }
 
@@ -1147,53 +1182,91 @@ export default function AdminPage() {
 
       {/* --- Tabs --- */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-y-4">
-           <div className="flex space-x-1 border-b border-gray-300 dark:border-gray-700 overflow-x-auto">
-               <TabButton title="จัดการผู้ใช้" icon={<FiUser />} isActive={activeTab === 'users'} onClick={() => setActiveTab('users')} />
-               <TabButton title="จัดการโพสต์" icon={<FiFileText />} isActive={activeTab === 'posts'} onClick={() => setActiveTab('posts')} />
-               <TabButton title="จัดการข่าวสาร" icon={<FiRss />} isActive={activeTab === 'news'} onClick={() => setActiveTab('news')} />
-               <TabButton title="จัดการสไลด์" icon={<FiSliders />} isActive={activeTab === 'slides'} onClick={() => setActiveTab('slides')} />
-           </div>
-           <AnimatePresence>
-            {(activeTab === 'slides' || activeTab === 'news') && (
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-                    <Link 
-                      href={activeTab === 'slides' ? "/admin/manage-slides" : "/admin/manage-news"} 
-                      passHref 
-                      legacyBehavior={false}
-                    >
-                        <motion.div
-                            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                            className={`flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-lg shadow-md transition-all cursor-pointer
-                            ${darkMode ? "bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-600 hover:to-blue-600" : "bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600"}`}
-                        >
-                            <FiPlus /> {activeTab === 'slides' ? 'สร้างสไลด์ใหม่' : 'สร้างข่าวใหม่'}
-                        </motion.div>
-                    </Link>
-                </motion.div>
-            )}
-           </AnimatePresence>
-       </div>
-       {/* --- Search Input --- */}
-       <div className="mb-6 relative">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-            <input
-                type="text"
-                placeholder={
-                    activeTab === 'users' ? "ค้นหา ชื่อ, อีเมล..." :
-                    activeTab === 'posts' ? "ค้นหา หัวข้อโพสต์, ชื่อผู้ใช้..." :
-                    activeTab === 'news' ? "ค้นหา หัวข้อข่าว..." :
-                    "ค้นหา หัวข้อสไลด์..."
+        <div className="flex space-x-1 border-b border-gray-300 dark:border-gray-700 overflow-x-auto">
+          <TabButton
+            title="จัดการผู้ใช้"
+            icon={<FiUser />}
+            isActive={activeTab === "users"}
+            onClick={() => setActiveTab("users")}
+          />
+          <TabButton
+            title="จัดการโพสต์"
+            icon={<FiFileText />}
+            isActive={activeTab === "posts"}
+            onClick={() => setActiveTab("posts")}
+          />
+          <TabButton
+            title="จัดการข่าวสาร"
+            icon={<FiRss />}
+            isActive={activeTab === "news"}
+            onClick={() => setActiveTab("news")}
+          />
+          <TabButton
+            title="จัดการสไลด์"
+            icon={<FiSliders />}
+            isActive={activeTab === "slides"}
+            onClick={() => setActiveTab("slides")}
+          />
+        </div>
+        <AnimatePresence>
+          {(activeTab === "slides" || activeTab === "news") && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+            >
+              <Link
+                href={
+                  activeTab === "slides"
+                    ? "/admin/manage-slides"
+                    : "/admin/manage-news"
                 }
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 rounded-lg border focus:outline-none focus:ring-2 transition duration-200
-                    ${darkMode
-                        ? 'bg-gray-800 border-gray-600 focus:ring-pink-500 focus:border-pink-500 text-white'
-                        : 'bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-black'
+                passHref
+                legacyBehavior={false}
+              >
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-lg shadow-md transition-all cursor-pointer
+                            ${
+                              darkMode
+                                ? "bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-600 hover:to-blue-600"
+                                : "bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600"
+                            }`}
+                >
+                  <FiPlus />{" "}
+                  {activeTab === "slides" ? "สร้างสไลด์ใหม่" : "สร้างข่าวใหม่"}
+                </motion.div>
+              </Link>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      {/* --- Search Input --- */}
+      <div className="mb-6 relative">
+        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+        <input
+          type="text"
+          placeholder={
+            activeTab === "users"
+              ? "ค้นหา ชื่อ, อีเมล..."
+              : activeTab === "posts"
+              ? "ค้นหา หัวข้อโพสต์, ชื่อผู้ใช้..."
+              : activeTab === "news"
+              ? "ค้นหา หัวข้อข่าว..."
+              : "ค้นหา หัวข้อสไลด์..."
+          }
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className={`w-full pl-10 pr-4 py-2 rounded-lg border focus:outline-none focus:ring-2 transition duration-200
+                    ${
+                      darkMode
+                        ? "bg-gray-800 border-gray-600 focus:ring-pink-500 focus:border-pink-500 text-white"
+                        : "bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-black"
                     }
                 `}
-            />
-       </div>
+        />
+      </div>
 
       {/* --- Table Content based on Active Tab --- */}
       <AnimatePresence mode="wait">
@@ -1246,13 +1319,13 @@ export default function AdminPage() {
                 darkMode={darkMode}
               />
             )}
-            
+
             {activeTab === "slides" && (
-                <SlidesTable
-                    slides={paginatedData as HeroSlide[]}
-                    handleDeleteSlide={handleDeleteSlide}
-                    darkMode={darkMode}
-                />
+              <SlidesTable
+                slides={paginatedData as HeroSlide[]}
+                handleDeleteSlide={handleDeleteSlide}
+                darkMode={darkMode}
+              />
             )}
 
             <PaginationControls
@@ -1302,4 +1375,3 @@ const TabButton = ({
     </button>
   );
 };
-

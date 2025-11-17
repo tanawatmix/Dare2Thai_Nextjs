@@ -408,10 +408,9 @@ const ChatUI = () => {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.8, y: 20 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    // ✅ FIX: เปลี่ยนเป็น flex-row และ items-end
-                    className={`relative flex items-end gap-2 group w-full rounded-lg transition-colors
+                    className={`relative flex items-end gap-2 group w-full transition-colors
                       ${ msg.user_id === user.id ? "justify-end" : "justify-start" }
-                      ${ highlightedMsg === msg.id ? "bg-blue-100 dark:bg-blue-900/50" : "" }
+                      ${ highlightedMsg === msg.id ? `${darkMode ? "bg-blue-200 dark:bg-blue-900/50 h-56 " : "bg-pink-100 dark:bg-pink-900/50 h-56 "}` : "" }
                     `}
                   >
                     {/* --- ปุ่ม 3 จุด (อยู่ข้างแชท) --- */}
@@ -469,8 +468,8 @@ const ChatUI = () => {
                         <strong
                           className={`text-sm font-bold ${
                             msg.user_id === user.id
-                              ? "text-blue-500"
-                              : "text-pink-500"
+                              ? `${darkMode ? "text-blue-400" : "text-pink-400"}`
+                              : `${darkMode ? "text-white" : "text-black"}`
                           }`}
                         >
                           {msg.username}
@@ -484,14 +483,14 @@ const ChatUI = () => {
                             : "p-3"
                         } ${
                           msg.user_id === user.id
-                            ? "bg-blue-500 rounded-br-none"
+                            ? `${darkMode ? "bg-blue-500" : "bg-pink-500"} rounded-br-none `
                             : "bg-gray-200 dark:bg-gray-700 rounded-bl-none"
                         }`}
                       >
                         {/* บล็อกตอบกลับที่คลิกได้ */}
                         {msg.reply_to_id && (
                           <div 
-                            className="p-2 mb-2 border-l-4 border-blue-300 dark:border-pink-400 bg-black/10 dark:bg-white/10 rounded-md cursor-pointer hover:bg-black/20 dark:hover:bg-white/20"
+                            className={`${darkMode ? "border-blue-300" : "border-pink-400"} p-2 mb-2 border-l-4 bg-black/10 dark:bg-white/10 rounded-md cursor-pointer hover:bg-black/20 dark:hover:bg-white/20`}
                             onClick={() => handleScrollToReply(msg.reply_to_id)}
                           >
                             <p className="font-bold text-xs opacity-80 text-gray-800 dark:text-gray-100">
@@ -545,7 +544,7 @@ const ChatUI = () => {
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   onClick={scrollToBottom}
-                  className="absolute bottom-4 right-4 z-10 bg-blue-500 text-white rounded-full h-10 w-10 flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors"
+                  className={`${darkMode ? "bg-blue-500 hover:bg-blue-600" : "bg-pink-500 hover:bg-pink-600"} absolute bottom-4 right-4 z-10 text-white rounded-full h-10 w-10 flex items-center justify-center shadow-lg transition-colors`}
                   aria-label="Scroll to bottom"
                 >
                   <FiArrowDown size={20} />
@@ -566,7 +565,7 @@ const ChatUI = () => {
                 >
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-xs font-bold text-blue-500 dark:text-pink-400">
+                      <p className={`text-xs font-bold ${darkMode ? "text-blue-500" : "text-pink-400"}`}>
                         กำลังตอบกลับ: {replyingTo.username}
                       </p>
                       <p className="text-sm text-gray-700 dark:text-gray-200 truncate">
@@ -633,7 +632,7 @@ const ChatUI = () => {
                 whileTap={{ scale: 0.9 }}
                 onClick={handleSendMessage}
                 disabled={isSending || (!input.trim() && !imageFile)}
-                className="bg-blue-500 text-white p-3 rounded-full font-semibold hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`${darkMode ? "bg-blue-500 hover:bg-blue-600" : "bg-pink-500 hover:bg-pink-600"} text-white p-3 rounded-full font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <FiSend />
               </motion.button>
