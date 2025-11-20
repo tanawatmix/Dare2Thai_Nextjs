@@ -440,7 +440,7 @@ const ChatUI = () => {
                       ${
                         msg.user_id === user.id
                           ? "justify-end"
-                          : "justify-start flex-row-reverse"
+                          : "justify-start"
                       }
                       ${
                         highlightedMsg === msg.id
