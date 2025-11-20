@@ -608,7 +608,7 @@ const ChatUI = () => {
             <div className="flex gap-2 items-center">
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 ref={fileInputRef}
                 onChange={handleImageSelect}
                 className="hidden"
