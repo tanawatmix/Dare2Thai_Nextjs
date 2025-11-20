@@ -25,15 +25,16 @@ import {
   FiTrash2,
   FiMoreHorizontal,
   FiCornerUpLeft,
+  FiVideo
 } from "react-icons/fi";
 
 // --- Type Definitions (อัปเดต) ---
 export interface ChatMessage {
-  id: string; // ✅ FIX: id เป็น string (uuid)
+  id: string;
   created_at: string;
   post_id: string;
   user_id: string;
-  username: string; // (โค้ดคุณใช้ username ซึ่งเก็บ 'name'ไว้)
+  username: string; 
   message: string;
   image_url?: string;
   reply_to_id?: string | null;
@@ -43,6 +44,11 @@ export interface ChatMessage {
 type Profile = {
   username: string;
   name: string;
+};
+
+const isVideo = (url: string | undefined | null) => {
+  if (!url) return false;
+  return url.match(/\.(mp4|webm|ogg|mov)$/i);
 };
 
 // --- Loading Component ---
@@ -77,7 +83,7 @@ const ChatUI = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { darkMode } = useContext(ThemeContext);
-  
+
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -88,6 +94,7 @@ const ChatUI = () => {
   const [input, setInput] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [fileType, setFileType] = useState<"image" | "video"| "null">("null");
   const [viewingImage, setViewingImage] = useState<string | null>(null);
 
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -125,7 +132,8 @@ const ChatUI = () => {
         if (profileRes.data) setProfile(profileRes.data as Profile);
         if (postRes.data) setPostTitle(postRes.data.title);
         else setPostTitle("ไม่พบโพสต์");
-        if (messagesRes.data) setMessages(messagesRes.data as any[] as ChatMessage[]);
+        if (messagesRes.data)
+          setMessages(messagesRes.data as any[] as ChatMessage[]);
       }
       setIsLoading(false);
     };
@@ -206,8 +214,14 @@ const ChatUI = () => {
   const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 50 * 1024 * 1024) {
+        alert("ไฟล์ใหญ่เกินไป (สูงสุด 50MB)");
+        return;
+      }
+
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
+      setFileType(file.type.startsWith("video/") ? "video" : "image");
     }
   };
 
@@ -246,11 +260,13 @@ const ChatUI = () => {
     const messageToSend = {
       post_id: postId,
       user_id: user.id,
-      username: profile.name, // ใช้ "name"
+      username: profile.name,
       message: messageText,
       image_url: imageUrl,
       reply_to_id: replyingTo ? replyingTo.id : null,
-      reply_to_message: replyingTo ? (replyingTo.message || (replyingTo.image_url ? "[รูปภาพ]" : null)) : null,
+      reply_to_message: replyingTo
+        ? replyingTo.message || (replyingTo.image_url ? "[รูปภาพ]" : null)
+        : null,
       reply_to_username: replyingTo ? replyingTo.username : null,
     };
 
@@ -297,29 +313,32 @@ const ChatUI = () => {
 
   const handleDeleteMessage = async (message: ChatMessage) => {
     if (!user || user.id !== message.user_id) return;
-    
-    if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อความนี้?")) {
-        setActiveMenu(null);
-        setMessages((prev) => prev.filter((m) => m.id !== message.id));
 
-        if (message.image_url) {
-          try {
-            const filePath = message.image_url.split("/chat_images/")[1];
-            if (filePath) {
-              await supabase.storage.from("chat_images").remove([filePath]);
-            }
-          } catch (storageError) {
-             console.error("Error deleting image from storage:", storageError);
+    if (window.confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อความนี้?")) {
+      setActiveMenu(null);
+      setMessages((prev) => prev.filter((m) => m.id !== message.id));
+
+      if (message.image_url) {
+        try {
+          const filePath = message.image_url.split("/chat_images/")[1];
+          if (filePath) {
+            await supabase.storage.from("chat_images").remove([filePath]);
           }
+        } catch (storageError) {
+          console.error("Error deleting image from storage:", storageError);
         }
-        
-        const { error } = await supabase.from("chats").delete().eq("id", message.id);
-        if (error) {
-          console.error("Error deleting message:", error);
-        }
+      }
+
+      const { error } = await supabase
+        .from("chats")
+        .delete()
+        .eq("id", message.id);
+      if (error) {
+        console.error("Error deleting message:", error);
+      }
     }
   };
-  
+
   const handleScrollToReply = (messageId: string | undefined | null) => {
     if (!messageId) return;
 
@@ -327,9 +346,9 @@ const ChatUI = () => {
     if (element && chatContainerRef.current) {
       chatContainerRef.current.scrollTo({
         top: element.offsetTop - chatContainerRef.current.offsetTop,
-        behavior: 'smooth'
+        behavior: "smooth",
       });
-      
+
       setHighlightedMsg(messageId);
       setTimeout(() => {
         setHighlightedMsg(null);
@@ -339,7 +358,8 @@ const ChatUI = () => {
 
   const handleScroll = () => {
     if (chatContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const { scrollTop, scrollHeight, clientHeight } =
+        chatContainerRef.current;
       if (scrollHeight - scrollTop - clientHeight > 300) {
         setShowScrollToBottom(true);
       } else {
@@ -369,11 +389,17 @@ const ChatUI = () => {
       <Navbar />
       <main className="flex-grow flex flex-col items-center w-full px-4 pt-24 pb-4 ">
         <motion.div
-          onClick={() => activeMenu && setActiveMenu(null)}
-          className={`w-full max-w-4xl h-[calc(112vh-180px)] mt-[-15px] flex flex-col shadow-2xl border border-black/10 dark:border-white/10 ${darkMode ? "bg-gray-800 " : "bg-gray-50 "}`}
-        >
+          onClick={() => activeMenu && setActiveMenu(null)}
+          className={`w-full max-w-4xl h-[calc(112vh-180px)] mt-[-15px] flex flex-col shadow-2xl border border-black/10 dark:border-white/10 ${
+            darkMode ? "bg-gray-800 " : "bg-gray-50 "
+          }`}
+        >
           {/* Chat Header */}
-          <div className={`flex items-center gap-4 py-3 px-4 border-b border-black/10 dark:border-white/10 ${darkMode ? "bg-gray-800 text-white" : "bg-gray-50"}`}>
+          <div
+            className={`flex items-center gap-4 py-3 px-4 border-b border-black/10 dark:border-white/10 ${
+              darkMode ? "bg-gray-800 text-white" : "bg-gray-50"
+            }`}
+          >
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => router.back()}
@@ -383,7 +409,9 @@ const ChatUI = () => {
               <FiArrowLeft />
             </motion.button>
             <h1
-              className={`text-lg md:text-xl font-extrabold truncate ${darkMode ? "text-white" : "text-black"}`}
+              className={`text-lg md:text-xl font-extrabold truncate ${
+                darkMode ? "text-white" : "text-black"
+              }`}
               title={postTitle}
             >
               {postTitle}
@@ -409,16 +437,28 @@ const ChatUI = () => {
                     exit={{ opacity: 0, scale: 0.8, y: 20 }}
                     transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     className={`relative flex items-end gap-2 group w-full transition-colors
-                      ${ msg.user_id === user.id ? "justify-end" : "justify-start" }
-                      ${ highlightedMsg === msg.id ? `${darkMode ? "bg-blue-200 dark:bg-blue-900/50 h-56 " : "bg-pink-100 dark:bg-pink-900/50 h-56 "}` : "" }
+                      ${
+                        msg.user_id === user.id
+                          ? "justify-end"
+                          : "justify-start flex-row-reverse"
+                      }
+                      ${
+                        highlightedMsg === msg.id
+                          ? `${
+                              darkMode
+                                ? "bg-blue-200 dark:bg-blue-900/50 h-56 "
+                                : "bg-pink-100 dark:bg-pink-900/50 h-56 "
+                            }`
+                          : ""
+                      }
                     `}
                   >
                     {/* --- ปุ่ม 3 จุด (อยู่ข้างแชท) --- */}
-                   <div className="relative flex-shrink-0">
-                      <button 
+                    <div className="relative flex-shrink-0">
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveMenu(activeMenu === msg.id ? null : msg.id)
+                          setActiveMenu(activeMenu === msg.id ? null : msg.id);
                         }}
                         className="p-1 rounded-full text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
@@ -432,17 +472,17 @@ const ChatUI = () => {
                             exit={{ opacity: 0, y: -10 }}
                             onClick={(e) => e.stopPropagation()}
                             className={`absolute bottom-full mb-1 w-40 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-black/10 dark:border-white/10 z-10 overflow-hidden
-                              ${ msg.user_id === user.id ? "right-0" : "left-0" }
+                              ${msg.user_id === user.id ? "right-0" : "left-0"}
                             `}
                           >
-                            <button 
+                            <button
                               onClick={() => handleReplyClick(msg)}
                               className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                             >
                               <FiCornerUpLeft size={16} /> <span>ตอบกลับ</span>
                             </button>
                             {msg.user_id === user.id && (
-                              <button 
+                              <button
                                 onClick={() => handleDeleteMessage(msg)}
                                 className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/50"
                               >
@@ -462,19 +502,31 @@ const ChatUI = () => {
                     >
                       <div
                         className={`flex items-baseline gap-2 ${
-                          msg.user_id === user.id ? "flex-row-reverse" : "flex-row"
+                          msg.user_id === user.id
+                            ? "flex-row-reverse"
+                            : "flex-row"
                         }`}
                       >
                         <strong
                           className={`text-sm font-bold ${
                             msg.user_id === user.id
-                              ? `${darkMode ? "text-blue-400" : "text-pink-400"}`
+                              ? `${
+                                  darkMode ? "text-blue-400" : "text-pink-400"
+                                }`
                               : `${darkMode ? "text-white" : "text-black"}`
                           }`}
                         >
                           {msg.username}
                         </strong>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{new Date(msg.created_at.replace(' ', 'T') + 'Z').toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Bangkok" })}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(
+                            msg.created_at.replace(" ", "T") + "Z"
+                          ).toLocaleTimeString("th-TH", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            timeZone: "Asia/Bangkok",
+                          })}
+                        </span>
                       </div>
                       <div
                         className={`mt-1 max-w-xs md:max-w-md w-fit rounded-lg shadow-md ${
@@ -483,14 +535,18 @@ const ChatUI = () => {
                             : "p-3"
                         } ${
                           msg.user_id === user.id
-                            ? `${darkMode ? "bg-blue-500" : "bg-pink-500"} rounded-br-none `
+                            ? `${
+                                darkMode ? "bg-blue-500" : "bg-pink-500"
+                              } rounded-br-none `
                             : "bg-gray-200 dark:bg-gray-700 rounded-bl-none"
                         }`}
                       >
                         {/* บล็อกตอบกลับที่คลิกได้ */}
                         {msg.reply_to_id && (
-                          <div 
-                            className={`${darkMode ? "border-blue-300" : "border-pink-400"} p-2 mb-2 border-l-4 bg-black/10 dark:bg-white/10 rounded-md cursor-pointer hover:bg-black/20 dark:hover:bg-white/20`}
+                          <div
+                            className={`${
+                              darkMode ? "border-blue-300" : "border-pink-400"
+                            } p-2 mb-2 border-l-4 bg-black/10 dark:bg-white/10 rounded-md cursor-pointer hover:bg-black/20 dark:hover:bg-white/20`}
                             onClick={() => handleScrollToReply(msg.reply_to_id)}
                           >
                             <p className="font-bold text-xs opacity-80 text-gray-800 dark:text-gray-100">
@@ -501,7 +557,7 @@ const ChatUI = () => {
                             </p>
                           </div>
                         )}
-                        
+
                         {msg.message && (
                           <p
                             className={`text-sm ${
@@ -520,13 +576,21 @@ const ChatUI = () => {
                             }`}
                             onClick={() => setViewingImage(msg.image_url!)}
                           >
-                            <Image
-                              src={msg.image_url}
-                              alt="Chat image"
-                              width={300}
-                              height={300}
-                              className="object-cover w-full h-auto max-h-[300px] cursor-pointer transition-transform duration-300 hover:scale-105"
-                            />
+                            {isVideo(msg.image_url) ? (
+                              <video
+                                src={msg.image_url}
+                                controls
+                                className="w-full h-auto max-h-[300px] rounded-lg"
+                              />
+                            ) : (
+                              <Image
+                                src={msg.image_url}
+                                alt="Chat image"
+                                width={300}
+                                height={300}
+                                className="object-cover w-full h-auto max-h-[300px] cursor-pointer transition-transform duration-300 hover:scale-105"
+                              />
+                            )}
                           </div>
                         )}
                       </div>
@@ -544,7 +608,11 @@ const ChatUI = () => {
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   onClick={scrollToBottom}
-                  className={`${darkMode ? "bg-blue-500 hover:bg-blue-600" : "bg-pink-500 hover:bg-pink-600"} absolute bottom-4 right-4 z-10 text-white rounded-full h-10 w-10 flex items-center justify-center shadow-lg transition-colors`}
+                  className={`${
+                    darkMode
+                      ? "bg-blue-500 hover:bg-blue-600"
+                      : "bg-pink-500 hover:bg-pink-600"
+                  } absolute bottom-4 right-4 z-10 text-white rounded-full h-10 w-10 flex items-center justify-center shadow-lg transition-colors`}
                   aria-label="Scroll to bottom"
                 >
                   <FiArrowDown size={20} />
@@ -554,7 +622,11 @@ const ChatUI = () => {
           </div>
 
           {/* Input Area */}
-          <div className={`p-4 border-t border-black/10 dark:border-white/10 ${darkMode ? "bg-gray-800" : "bg-gray-50"}`}>
+          <div
+            className={`p-4 border-t border-black/10 dark:border-white/10 ${
+              darkMode ? "bg-gray-800" : "bg-gray-50"
+            }`}
+          >
             <AnimatePresence>
               {replyingTo && (
                 <motion.div
@@ -565,14 +637,18 @@ const ChatUI = () => {
                 >
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className={`text-xs font-bold ${darkMode ? "text-blue-500" : "text-pink-400"}`}>
+                      <p
+                        className={`text-xs font-bold ${
+                          darkMode ? "text-blue-500" : "text-pink-400"
+                        }`}
+                      >
                         กำลังตอบกลับ: {replyingTo.username}
                       </p>
                       <p className="text-sm text-gray-700 dark:text-gray-200 truncate">
                         {replyingTo.message || "[รูปภาพ]"}
                       </p>
                     </div>
-                    <button 
+                    <button
                       onClick={cancelReply}
                       className="p-1 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600"
                     >
@@ -582,7 +658,7 @@ const ChatUI = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-            
+
             <AnimatePresence>
               {imagePreview && (
                 <motion.div
@@ -591,11 +667,19 @@ const ChatUI = () => {
                   exit={{ opacity: 0, height: 0 }}
                   className="relative w-24 h-24 mb-4"
                 >
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-full rounded-md object-cover"
-                  />
+                  {fileType === "video" ? (
+                    <video
+                      src={imagePreview}
+                      controls
+                      className="w-full h-full rounded-md object-cover"
+                    />
+                  ) : (
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-full rounded-md object-cover"
+                    />
+                  )}
                   <button
                     onClick={clearImage}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs shadow-lg"
@@ -632,13 +716,16 @@ const ChatUI = () => {
                 whileTap={{ scale: 0.9 }}
                 onClick={handleSendMessage}
                 disabled={isSending || (!input.trim() && !imageFile)}
-                className={`${darkMode ? "bg-blue-500 hover:bg-blue-600" : "bg-pink-500 hover:bg-pink-600"} text-white p-3 rounded-full font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`${
+                  darkMode
+                    ? "bg-blue-500 hover:bg-blue-600"
+                    : "bg-pink-500 hover:bg-pink-600"
+                } text-white p-3 rounded-full font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <FiSend />
               </motion.button>
             </div>
           </div>
-
         </motion.div>
       </main>
 
