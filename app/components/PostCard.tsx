@@ -26,7 +26,7 @@ type PostCardProps = {
   onDelete: (postId: string) => void | Promise<void>;
   onFav: (postId: string) => void | Promise<void>;
   onLike: (postId: string, liked: boolean) => Promise<number>;
-  currentUserId?: string;   
+  currentUserId?: string | null;   
   ownerId: string;
   isFav?: boolean;
   isLiked?: boolean;
