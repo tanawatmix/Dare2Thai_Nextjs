@@ -16,7 +16,25 @@ import {
 } from "react-icons/fi";
 import { ThemeContext } from "../ThemeContext";
 
-const PostCard = ({
+/* ✅ TYPE DEFINITIONS */
+export type PostCardProps = {
+  postId: string;
+  title: string;
+  description: string;
+  type: string;
+  province: string;
+  images: string[];
+  onDelete: (postId: string) => Promise<void>;
+  onFav: (postId: string) => Promise<void>;
+  onLike: (postId: string, isLiked: boolean) => Promise<number>;
+  currentUserId?: string;
+  ownerId: string;
+  isFav?: boolean;
+  isLiked?: boolean;
+  likeCount?: number;
+};
+
+const PostCard: React.FC<PostCardProps> = ({
   postId,
   title,
   description,
@@ -39,10 +57,10 @@ const PostCard = ({
   const imageSrc = images?.[0] || "/default-placeholder.png";
   const isOwner = currentUserId === ownerId;
 
-  const [liked, setLiked] = useState(isLiked);
-  const [likes, setLikes] = useState(likeCount);
-  const [fav, setFav] = useState(isFav);
-  const [updatingLike, setUpdatingLike] = useState(false);
+  const [liked, setLiked] = useState<boolean>(isLiked);
+  const [likes, setLikes] = useState<number>(likeCount);
+  const [fav, setFav] = useState<boolean>(isFav);
+  const [updatingLike, setUpdatingLike] = useState<boolean>(false);
 
   useEffect(() => {
     setLiked(isLiked);
@@ -55,26 +73,16 @@ const PostCard = ({
       <motion.div
         layout
         onClick={() => router.push(`/post_detail?id=${postId}`)}
-        className={`
-          cursor-pointer rounded-2xl overflow-hidden border
-          transition-all duration-300
+        className={`cursor-pointer rounded-2xl overflow-hidden border transition-all duration-300 shadow-md hover:shadow-xl
           ${
             darkMode
               ? "bg-gray-800 text-gray-100 border-gray-700 hover:border-pink-500"
               : "bg-white text-gray-900 border-gray-200 hover:border-blue-500"
-          }
-          shadow-md hover:shadow-xl
-        `}
+          }`}
       >
         {/* IMAGE */}
         <div className="relative h-48">
-          <Image
-            src={imageSrc}
-            alt={title}
-            fill
-            className="object-cover"
-            priority
-          />
+          <Image src={imageSrc} alt={title} fill className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 
           <button
