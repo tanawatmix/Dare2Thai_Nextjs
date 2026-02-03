@@ -6,12 +6,13 @@ import Navbar from "./components/navbar";
 import Footer from "./components/Footer";
 import { useTranslation } from "react-i18next";
 import { ThemeContext } from "./ThemeContext";
+import { HTMLMotionProps } from "framer-motion";
 import D2T2 from "../public/dare2New.png";
 
-const fadeUp = {
-  initial: { opacity: 0, y: 24 },
+const fadeUp: HTMLMotionProps<"div"> = {
+  initial: { opacity: 0, y: 20 },
   whileInView: { opacity: 1, y: 0 },
-  transition: { duration: 0.6, ease: "easeOut" },
+  transition: { duration: 0.5, ease: "easeOut" },
   viewport: { once: true },
 };
 
