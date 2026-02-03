@@ -1,21 +1,27 @@
 "use client";
 
 import React, { useState, useEffect, useContext } from "react";
-import { FiMenu, FiX, FiUser, FiMoon, FiSun, FiLogOut } from "react-icons/fi";
+import {
+  FiMenu,
+  FiX,
+  FiMoon,
+  FiSun,
+  FiLogOut,
+} from "react-icons/fi";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import logo from "../../public/dare2New.png";
-import { ThemeContext } from "./../ThemeContext";
+import { ThemeContext } from "../ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import i18n from "../i18n";
 
 const Navbar = () => {
   const { darkMode, toggleDarkMode } = useContext(ThemeContext);
+  const { t } = useTranslation();
   const router = useRouter();
-  const { t } = useTranslation(); 
 
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -32,11 +38,14 @@ const Navbar = () => {
       if (data) setProfile(data);
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initializeAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       const currentUser = session?.user ?? null;
       setUser(currentUser);
-      if (currentUser) fetchProfile(currentUser.id);
-    });
+      if (currentUser) await fetchProfile(currentUser.id);
+    };
+
+    initializeAuth();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_, session) => {
@@ -56,8 +65,6 @@ const Navbar = () => {
     router.refresh();
   };
 
-  const toggleMenu = () => setIsOpen((prev) => !prev);
-
   const changeLanguage = (lang) => {
     i18n.changeLanguage(lang);
     localStorage.setItem("language", lang);
@@ -68,234 +75,157 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`fixed w-full z-50 px-6 py-3 shadow-md transition-colors duration-500 ${
-        darkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900"
-      }`}
+      className={`
+        fixed top-0 w-full z-50
+        border-b
+        ${darkMode ? "bg-gray-950 border-gray-800 text-gray-100" : "bg-white border-gray-200 text-gray-900"}
+        transition-colors
+      `}
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-between relative">
-        {/* Left: Logo */}
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <Image
-            src={logo}
-            alt="logo"
-            width={40}
-            height={40}
-            className="object-contain"
-          />
-          <span className="text-2xl font-extrabold select-none bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-purple-400 to-blue-500 animate-gradient-anim">
+          <Image src={logo} alt="logo" width={36} height={36} />
+          <span className="font-semibold text-lg tracking-tight">
             Dare2Thai
           </span>
         </Link>
-        {/* Center: Menu */}
-        <div className="hidden md:flex gap-8 font-semibold text-base absolute left-1/2 transform -translate-x-1/2">
-          <Link
-            href="/"
-            className="hover:text-blue-500 transition-colors duration-200"
-          >
+
+        {/* Desktop Menu */}
+        <div className="hidden md:flex items-center gap-8 text-sm font-medium">
+          <Link className="hover:opacity-60 transition" href="/">
             {t("home")}
           </Link>
-          <Link
-            href="/post_pages"
-            className="hover:text-blue-500 transition-colors duration-200"
-          >
+          <Link className="hover:opacity-60 transition" href="/post_pages">
             {t("place")}
           </Link>
-          <Link
-            href="/news"
-            className="hover:text-blue-500 transition-colors duration-200"
-          >
+          <Link className="hover:opacity-60 transition" href="/news">
             {t("news")}
           </Link>
           {user && isAdmin && (
-            <Link
-              href="/admin"
-              className="hover:text-red-500 transition-colors duration-200"
-            >
+            <Link className="hover:opacity-60 transition" href="/admin">
               {t("admin_panel")}
             </Link>
           )}
         </div>
 
-        <div className="flex items-center gap-3 md:gap-4">
-          <div className="hidden md:flex items-center gap-3">
-            {user ? (
-              <>
-                <Link href="/profile" className="flex items-center gap-2">
-                  <Image
-                    src={profile?.profile_image || "/dare2New.png"}
-                    alt="avatar"
-                    width={36}
-                    height={36}
-                    className="rounded-full object-cover"
-                    unoptimized
-                  />
-                  <span className="font-medium">
-                    {profile?.name || user.email}
-                  </span>
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  title={t("logout")}
-                  className="p-2 rounded-full bg-red-100 dark:bg-red-700 text-red-500 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-600 transition"
-                >
-                  <FiLogOut />
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-                >
-                  {t("login")}
-                </Link>
-                <Link
-                  href="/register"
-                  className="px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-                >
-                  {t("register")}
-                </Link>
-              </>
-            )}
+        {/* Right */}
+        <div className="hidden md:flex items-center gap-4">
+          <select
+            value={language}
+            onChange={(e) => changeLanguage(e.target.value)}
+            className={`
+              text-sm rounded px-2 py-1 border
+              ${darkMode ? "bg-gray-900 border-gray-700" : "bg-gray-100 border-gray-300"}
+            `}
+          >
+            <option value="th">TH</option>
+            <option value="en">EN</option>
+          </select>
 
-            <select
-              value={language}
-              onChange={(e) => changeLanguage(e.target.value)}
-              className={`border px-2 py-1 rounded text-sm ${
-                darkMode
-                  ? "bg-gray-700 border-gray-600"
-                  : "bg-gray-200 border-gray-300"
-              }`}
-            >
-              <option value="th">TH</option>
-              <option value="en">EN</option>
-            </select>
-
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 transition"
-            >
-              {darkMode ? <FiSun /> : <FiMoon />}
-            </button>
-          </div>
-
-          <button className="md:hidden p-2" onClick={toggleMenu}>
-            {isOpen ? <FiX size={28} /> : <FiMenu size={28} />}
+          <button
+            onClick={toggleDarkMode}
+            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          >
+            {darkMode ? <FiSun /> : <FiMoon />}
           </button>
+
+          {user ? (
+            <div className="flex items-center gap-3">
+              <Link href="/profile">
+                <Image
+                  src={profile?.profile_image || "/default-avatar.png"}
+                  alt="avatar"
+                  width={32}
+                  height={32}
+                  className="rounded-full object-cover"
+                  unoptimized
+                />
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                title={t("logout")}
+              >
+                <FiLogOut />
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="text-sm hover:opacity-60 transition"
+            >
+              {t("login")}
+            </Link>
+          )}
         </div>
+
+        {/* Mobile Toggle */}
+        <button
+          className="md:hidden p-2"
+          onClick={() => setIsOpen((prev) => !prev)}
+        >
+          {isOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+        </button>
       </div>
 
+      {/* Mobile Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className={`md:hidden mt-3 rounded-lg shadow-lg p-4 flex flex-col gap-3 ${
-              darkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900"
-            }`}
+            exit={{ opacity: 0, y: -8 }}
+            className={`
+              md:hidden px-6 py-4 space-y-3 border-t
+              ${darkMode ? "bg-gray-950 border-gray-800" : "bg-white border-gray-200"}
+            `}
           >
-            <Link
-              href="/"
-              className="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-            >
+            <Link href="/" className="block">
               {t("home")}
             </Link>
-            <Link
-              href="/post_pages"
-              className="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-            >
+            <Link href="/post_pages" className="block">
               {t("place")}
             </Link>
-            <Link
-              href="/news"
-              className="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-            >
-              
-            {t("news")}
+            <Link href="/news" className="block">
+              {t("news")}
             </Link>
-            
+
             {user && isAdmin && (
-              <Link
-                href="/admin"
-                className="px-2 py-1 rounded hover:bg-red-100 dark:hover:bg-red-700 transition"
-              >
+              <Link href="/admin" className="block">
                 {t("admin_panel")}
               </Link>
             )}
 
-            {user ? (
-              <>
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-                >
-                  <Image
-                    src={profile?.profile_image || "/default-avatar.png"}
-                    alt="avatar"
-                    width={36}
-                    height={36}
-                    className="rounded-full object-cover"
-                    unoptimized
-                  />
-                  <span>{profile?.name || user.email}</span>
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left text-red-500 hover:text-red-700 px-2 py-1 rounded transition"
-                >
-                  {t("logout")}
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-                >
-                  {t("login")}
-                </Link>
-                <Link
-                  href="/register"
-                  className="px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-                >
-                  {t("register")}
-                </Link>
-              </>
-            )}
-
-            <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
               <select
                 value={language}
                 onChange={(e) => changeLanguage(e.target.value)}
-                className={`border px-2 py-1 rounded text-sm w-24 ${
-                  darkMode
-                    ? "bg-gray-700 border-gray-600"
-                    : "bg-gray-200 border-gray-300"
-                }`}
+                className={`
+                  text-sm rounded px-2 py-1 border
+                  ${darkMode ? "bg-gray-900 border-gray-700" : "bg-gray-100 border-gray-300"}
+                `}
               >
                 <option value="th">TH</option>
                 <option value="en">EN</option>
               </select>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => !darkMode && toggleDarkMode()}
-                  className={`p-2 rounded-full ${
-                    !darkMode ? "bg-blue-500 text-white" : ""
-                  }`}
-                >
-                  <FiSun />
-                </button>
-                <button
-                  onClick={() => darkMode && toggleDarkMode()}
-                  className={`p-2 rounded-full ${
-                    darkMode ? "bg-purple-500 text-white" : ""
-                  }`}
-                >
-                  <FiMoon />
-                </button>
-              </div>
+
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+              >
+                {darkMode ? <FiSun /> : <FiMoon />}
+              </button>
             </div>
+
+            {user && (
+              <button
+                onClick={handleLogout}
+                className="w-full text-left text-sm opacity-70 hover:opacity-100 transition"
+              >
+                {t("logout")}
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
