@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useState, useEffect, ReactNode } from "react";
+
 interface ThemeContextProps {
   darkMode: boolean;
   toggleDarkMode: () => void;
@@ -11,29 +12,27 @@ export const ThemeContext = createContext<ThemeContextProps>({
   toggleDarkMode: () => {},
 });
 
-interface ThemeProviderProps {
-  children: ReactNode;
-}
-
-export const ThemeProvider = ({ children }: ThemeProviderProps) => {
+export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [darkMode, setDarkMode] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
+  // ✅ อ่านจาก localStorage อย่างเดียว
   useEffect(() => {
-    const storedTheme = localStorage.getItem("darkMode");
-    if (storedTheme !== null) {
-      setDarkMode(storedTheme === "true");
-    } else {
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      setDarkMode(prefersDark);
-    }
+    const stored = localStorage.getItem("darkMode");
+    setDarkMode(stored === "true");
+    setMounted(true);
   }, []);
 
   useEffect(() => {
+    if (!mounted) return;
     document.documentElement.classList.toggle("dark", darkMode);
     localStorage.setItem("darkMode", darkMode.toString());
-  }, [darkMode]);
+  }, [darkMode, mounted]);
 
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
+
+  // ✅ กัน hydration mismatch
+  if (!mounted) return null;
 
   return (
     <ThemeContext.Provider value={{ darkMode, toggleDarkMode }}>

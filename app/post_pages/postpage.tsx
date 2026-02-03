@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useContext, useRef } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ThemeContext } from "../ThemeContext";
 import Navbar from "../components/navbar";
@@ -22,11 +22,10 @@ import {
   FiArrowUp,
   FiFilter,
   FiMapPin,
-  FiThumbsUp
+  FiThumbsUp,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { User } from "@supabase/supabase-js";
 import Hero from "../components/HeroCarousel";
 
 type Post = {
@@ -38,12 +37,14 @@ type Post = {
   description: string;
   user_id: string;
   created_at: string;
-  isFav?: boolean;
+  isFav?: boolean; // สำหรับ Favorites
   like_count: number;
-  isLiked?: boolean;
+  isLiked?: boolean; // สำหรับ Likes
 };
 
-const PostPage = () => {
+const postsPerPage = 12;
+
+export default function PostPage() {
   const { t } = useTranslation();
   const { darkMode } = useContext(ThemeContext);
   const router = useRouter();
@@ -51,9 +52,7 @@ const PostPage = () => {
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
-  const [currentPage, setCurrentPage] = useState(
-    parseInt(searchParams.get("page") || "1")
-  );
+  const [currentPage, setCurrentPage] = useState(1);
   const [searchName, setSearchName] = useState("");
   const [selectedType, setSelectedType] = useState("");
   const [sortBy, setSortBy] = useState("newest");
@@ -61,14 +60,11 @@ const PostPage = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showSortMenu, setShowSortMenu] = useState(false);
 
-  const [isSticky, setIsSticky] = useState(false);
-  const stickyContainerRef = useRef<HTMLDivElement>(null);
-  const filterBarRef = useRef<HTMLDivElement>(null);
-  const [filterBarHeight, setFilterBarHeight] = useState(0);
-  const [stickyOffsetTop, setStickyOffsetTop] = useState(0);
-
-  const NAVBAR_HEIGHT = 64;
-  const postsPerPage = 12;
+  // Sync page from URL
+  useEffect(() => {
+    const pageParam = searchParams.get("page");
+    if (pageParam) setCurrentPage(parseInt(pageParam));
+  }, [searchParams]);
 
   const placeTypes = [
     t("restaurant"),
@@ -80,794 +76,352 @@ const PostPage = () => {
     t("club"),
     t("market"),
   ];
-
   const filterTags = [t("all"), ...placeTypes];
 
   const sortOptions = [
-    {
-      id: "newest",
-      name: t("sort_newest"),
-      icon: <FiClock className="transform scale-x-[-1]" />,
-    },
+    { id: "newest", name: t("sort_newest"), icon: <FiClock /> },
     { id: "oldest", name: t("sort_oldest"), icon: <FiClock /> },
-    { id: "az", name: t("sort_az"), icon: <FiArrowDown size={16} /> },
-    { id: "za", name: t("sort_za"), icon: <FiArrowUp size={16} /> },
-    {
-      id: "province_az",
-      name: t("sort_province"),
-      icon: <FiMapPin size={16} />,
-    },
-    {
-      id: "most_liked",
-      name: t("sort_most_liked"),
-      icon: <FiThumbsUp size={16} />, // ใช้ FiThumbsUp ตามที่คุยกัน
-    },
+    { id: "az", name: t("sort_az"), icon: <FiArrowDown /> },
+    { id: "za", name: t("sort_za"), icon: <FiArrowUp /> },
+    { id: "province_az", name: t("sort_province"), icon: <FiMapPin /> },
+    { id: "most_liked", name: t("sort_most_liked"), icon: <FiThumbsUp /> },
   ];
 
-  // --- Get current user ---
+  /* -------------------- USER -------------------- */
   useEffect(() => {
-    const getUser = async () => {
-      const { data } = await supabase.auth.getUser();
+    supabase.auth.getUser().then(({ data }) => {
       setCurrentUserId(data.user?.id || null);
-    };
-    getUser();
+    });
   }, []);
 
-  // --- Fetch posts ---
-  useEffect(() => {
-    const fetchPosts = async () => {
-      setLoading(true);
-      setPosts([]);
-      setFilteredPosts([]);
-      try {
-        const { data: postsData, error: postsError } = await supabase
-          .from("posts")
-          .select("*")
-          .order("created_at", { ascending: false });
-        if (postsError) throw postsError;
+  /* -------------------- FETCH POSTS -------------------- */
+  const fetchPosts = async () => {
+    setLoading(true);
+    try {
+      // 1. Get User
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
 
-        let favIds: string[] = [];
-        if (currentUserId) {
-          const { data: favData, error: favError } = await supabase
-            .from("favorites")
-            .select("post_id")
-            .eq("user_id", currentUserId);
-          if (favError) throw favError;
-          favIds = favData?.map((f: any) => f.post_id) || [];
+      // 2. Get Posts
+      const { data: postsData, error: postError } = await supabase
+        .from("posts")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (postError) throw postError;
+
+      // 3. Get Likes (Counts & User Status)
+      const { data: likesData } = await supabase.from("post_likes").select("post_id, user_id");
+      
+      // Calculate Likes
+      const likeCounts = new Map<string, number>();
+      const userLikedSet = new Set<string>();
+
+      likesData?.forEach((like) => {
+        // Count
+        likeCounts.set(like.post_id, (likeCounts.get(like.post_id) || 0) + 1);
+        // Check if current user liked
+        if (userId && like.user_id === userId) {
+          userLikedSet.add(like.post_id);
         }
-
-        let likedPostIds: string[] = [];
-        if (currentUserId) {
-          const { data: likeData } = await supabase
-            .from("post_likes")
-            .select("post_id")
-            .eq("user_id", currentUserId);
-          likedPostIds = likeData?.map((l: any) => l.post_id) || [];
-        }
-
-        const { data: allLikesData, error: allLikesError } = await supabase
-          .from("post_likes")
-          .select("post_id");
-
-        if (allLikesError) throw allLikesError;
-
-        const likeCountsMap = allLikesData.reduce((acc, like) => {
-          acc.set(like.post_id, (acc.get(like.post_id) || 0) + 1);
-          return acc;
-        }, new Map<string, number>());
-
-        const safeParseImages = (imgField: any): string[] => {
-          if (!imgField) return [];
-          if (Array.isArray(imgField)) return imgField;
-          try {
-            const parsed = JSON.parse(imgField);
-            return Array.isArray(parsed) ? parsed : [];
-          } catch {
-            return [String(imgField)];
-          }
-        };
-
-        const postsWithFav: Post[] = postsData.map((p: any) => ({
-          id: p.id,
-          image_url: safeParseImages(p.image_url),
-          title: p.title,
-          place_type: p.place_type,
-          province: p.province || "",
-          description: p.description,
-          user_id: p.user_id,
-          created_at: p.created_at,
-          isFav: favIds.includes(p.id),
-          like_count: likeCountsMap.get(p.id) || 0,
-          isLiked: likedPostIds.includes(p.id),
-        }));
-
-        setPosts(postsWithFav);
-      } catch (err: any) {
-        toast.error("โหลดโพสต์ล้มเหลว: " + err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPosts();
-  }, [currentUserId]);
-
-  // --- Filter & Sort Logic (รวมไว้ที่เดียว) ---
-  useEffect(() => {
-    if (!loading) {
-      let filtered = posts.filter((p) => {
-        const matchName = p.title
-          .toLowerCase()
-          .includes(searchName.toLowerCase());
-        const matchType = !selectedType || selectedType === t('all') || p.place_type === selectedType; // แก้ไขให้รองรับ 'ทั้งหมด'
-        return matchName && matchType;
       });
 
-      let sorted = filtered.slice();
+      // 4. Merge Data
+      const formattedPosts: Post[] = (postsData || []).map((p: any) => ({
+        ...p,
+        image_url: Array.isArray(p.image_url) ? p.image_url : JSON.parse(p.image_url || "[]"),
+        like_count: likeCounts.get(p.id) || 0,
+        isLiked: userLikedSet.has(p.id),
+      }));
 
-      switch (sortBy) {
-        case "newest":
-          sorted.sort(
-            (a, b) =>
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
-          );
-          break;
-        case "oldest":
-          sorted.sort(
-            (a, b) =>
-              new Date(a.created_at).getTime() -
-              new Date(b.created_at).getTime()
-          );
-          break;
-        case "az":
-          sorted.sort((a, b) => a.title.localeCompare(b.title, "th"));
-          break;
-        case "za":
-          sorted.sort((a, b) => b.title.localeCompare(a.title, "th"));
-          break;
-        case "province_az":
-          sorted.sort((a, b) => a.province.localeCompare(b.province, "th"));
-          break;
-        // --- ✅ เพิ่ม Case "most_liked" ที่นี่ ---
-        case "most_liked":
-          sorted.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
-          break;
-        // --- --------------------------- ---
-        default:
-          break;
-      }
-      setFilteredPosts(sorted);
+      setPosts(formattedPosts);
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Error loading posts");
+    } finally {
+      setLoading(false);
     }
-  }, [searchName, selectedType, posts, sortBy, loading, t]); // เพิ่ม t dependency
+  };
 
-  // --- Effect for managing Sticky Bar ---
   useEffect(() => {
-    if (loading) return;
+    fetchPosts();
+  }, []);
 
-    const container = stickyContainerRef.current;
-    const filterBar = filterBarRef.current;
-
-    if (!container || !filterBar) return;
-
-    const calculateInitialPosition = () => {
-      let top = 0;
-      let element: HTMLElement | null = container;
-      while (element) {
-        top += element.offsetTop;
-        element = element.offsetParent as HTMLElement | null;
-      }
-      requestAnimationFrame(() => {
-        setStickyOffsetTop(top);
-        if (filterBarRef.current) {
-          setFilterBarHeight(filterBarRef.current.offsetHeight);
-        }
-        handleScroll();
-      });
-    };
-
-    const handleScroll = () => {
-      if (
-        stickyOffsetTop > 0 &&
-        window.scrollY >= stickyOffsetTop - NAVBAR_HEIGHT
-      ) {
-        setIsSticky(true);
-      } else {
-        setIsSticky(false);
-      }
-    };
-
-    calculateInitialPosition();
-    window.addEventListener("resize", calculateInitialPosition);
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", calculateInitialPosition);
-    };
-  }, [loading, stickyOffsetTop]);
-
-  // --- Function to handle tag selection and scroll ---
-  const handleSelectType = (tag: string) => {
-    const newType = tag === t("all") ? "" : tag; // ใช้ t('all') ในการเปรียบเทียบ
-    setSelectedType(newType);
-    setCurrentPage(1);
-    setTimeout(() => {
-      const targetElement = stickyContainerRef.current;
-      if (targetElement) {
-        const elementTop =
-          targetElement.getBoundingClientRect().top + window.scrollY;
-        const targetScrollY = Math.max(0, elementTop - NAVBAR_HEIGHT - 10);
-        window.scrollTo({ top: targetScrollY, behavior: "smooth" });
-      }
-    }, 0);
+  /* -------------------- HANDLERS -------------------- */
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+    try {
+        const { error } = await supabase.from("posts").delete().eq("id", postId);
+        if (error) throw error;
+        setPosts((prev) => prev.filter((p) => p.id !== postId));
+        toast.success("Post deleted successfully");
+    } catch (error) {
+        console.error(error);
+        toast.error("Failed to delete post");
+    }
   };
 
-  const handleSortChange = (sortId: string) => {
-    setSortBy(sortId);
-    setShowSortMenu(false);
-    setCurrentPage(1);
-    setTimeout(() => {
-      const targetElement = stickyContainerRef.current;
-      if (targetElement) {
-        const elementTop =
-          targetElement.getBoundingClientRect().top + window.scrollY;
-        const targetScrollY = Math.max(0, elementTop - NAVBAR_HEIGHT - 10);
-        window.scrollTo({ top: targetScrollY, behavior: "smooth" });
-      }
-    }, 0);
-  };
+  const handleLikePost = async (postId: string, currentLikeStatus: boolean) => {
+      if (!currentUserId) return toast.error("Please login to like");
 
-  // --- Pagination ---
+      // Optimistic Update (อัปเดตหน้าจอทันทีไม่ต้องรอเซิร์ฟเวอร์)
+      setPosts(prev => prev.map(p => {
+          if (p.id === postId) {
+              return {
+                  ...p,
+                  isLiked: !p.isLiked,
+                  like_count: p.isLiked ? p.like_count - 1 : p.like_count + 1
+              }
+          }
+          return p;
+      }));
+
+      try {
+          if (currentLikeStatus) {
+              // Unlike
+              await supabase.from("post_likes").delete().match({ post_id: postId, user_id: currentUserId });
+          } else {
+              // Like
+              await supabase.from("post_likes").insert({ post_id: postId, user_id: currentUserId });
+          }
+      } catch (error) {
+          // Revert if error
+          fetchPosts(); 
+          toast.error("Something went wrong");
+      }
+  }
+
+  /* -------------------- FILTER & SORT -------------------- */
+  useEffect(() => {
+    let list = posts.filter((p) => {
+      const nameMatch = p.title.toLowerCase().includes(searchName.toLowerCase());
+      const typeMatch = !selectedType || selectedType === t("all") ? true : p.place_type === selectedType;
+      return nameMatch && typeMatch;
+    });
+
+    switch (sortBy) {
+      case "most_liked":
+        list.sort((a, b) => b.like_count - a.like_count);
+        break;
+      case "az":
+        list.sort((a, b) => a.title.localeCompare(b.title, "th"));
+        break;
+      case "za":
+        list.sort((a, b) => b.title.localeCompare(a.title, "th"));
+        break;
+      case "oldest":
+        list.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        break;
+      case "newest":
+      default:
+        list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+    }
+
+    setFilteredPosts(list);
+    // Reset to page 1 when filter changes
+    // setCurrentPage(1); 
+  }, [posts, searchName, selectedType, sortBy, t]);
+
+  // Pagination Logic
+  const currentPosts = filteredPosts.slice(
+    (currentPage - 1) * postsPerPage,
+    currentPage * postsPerPage
+  );
   const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
-  const indexOfLastPost = currentPage * postsPerPage;
-  const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
 
   const handlePageChange = (page: number) => {
-    if (page > 0 && page <= totalPages) {
-      setCurrentPage(page);
-      router.push(`/post_pages?page=${page}`, { scroll: false });
-      const targetElement = stickyContainerRef.current;
-      if (targetElement) {
-        const elementTop =
-          targetElement.getBoundingClientRect().top + window.scrollY;
-        const targetScrollY = Math.max(0, elementTop - NAVBAR_HEIGHT - 10);
-        window.scrollTo({ top: targetScrollY, behavior: "smooth" });
-      }
-    }
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
-
-  // --- Favorite ---
-  const handleFavPost = async (postId: string) => {
-    if (!currentUserId) {
-      toast.error(t("please_login_to_fav"));
-      router.push("/login");
-      return;
-    }
-    const postIndex = posts.findIndex((p) => p.id === postId);
-    if (postIndex === -1) return;
-    const post = posts[postIndex];
-    const isFav = post.isFav;
-    try {
-      if (isFav) {
-        const { error } = await supabase
-          .from("favorites")
-          .delete()
-          .eq("user_id", currentUserId)
-          .eq("post_id", postId);
-        if (error) throw error;
-        setPosts((prev) =>
-          prev.map((p) => (p.id === postId ? { ...p, isFav: false } : p))
-        );
-        toast.success(t("fav_removed"));
-      } else {
-        const { error } = await supabase
-          .from("favorites")
-          .insert({ user_id: currentUserId, post_id: postId });
-        if (error) throw error;
-        setPosts((prev) =>
-          prev.map((p) => (p.id === postId ? { ...p, isFav: true } : p))
-        );
-        toast.success(t("fav_added"));
-      }
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  };
-
-  // --- Like ---
-  const handleLikePost = async (
-    postId: string,
-    newLiked: boolean
-  ): Promise<number> => {
-    if (!currentUserId) {
-      toast.error(t("please_login_to_like"));
-      router.push("/login");
-      throw new Error("User not logged in");
-    }
-
-    let newLikeCount = 0;
-    const postIndex = posts.findIndex((p) => p.id === postId);
-    if (postIndex === -1) throw new Error("Post not found");
-    const post = posts[postIndex];
-
-    try {
-      if (newLiked) {
-        await supabase
-          .from("post_likes")
-          .insert({ post_id: postId, user_id: currentUserId });
-      } else {
-        await supabase
-          .from("post_likes")
-          .delete()
-          .eq("post_id", postId)
-          .eq("user_id", currentUserId);
-      }
-
-      const { count, error: countError } = await supabase
-        .from("post_likes")
-        .select("*", { count: "exact", head: true })
-        .eq("post_id", postId);
-
-      if (countError) throw countError;
-      newLikeCount = count || 0;
-
-      setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? { ...p, isLiked: newLiked, like_count: newLikeCount }
-            : p
-        )
-      );
-      return newLikeCount;
-    } catch (err: any) {
-      toast.error("เกิดข้อผิดพลาด: " + err.message);
-      // Revert state on error (PostCard will handle its own state reversal)
-       setPosts((prev) =>
-        prev.map((p) =>
-          p.id === postId
-            ? { ...p, isLiked: !newLiked, like_count: post.like_count }
-            : p
-        )
-      );
-      throw err;
-    }
-  };
-
-  // --- Delete ---
-  const handleDeletePost = async (postId: string): Promise<void> => {
-    if (!currentUserId) {
-      toast.error("ไม่พบผู้ใช้");
-      return;
-    }
-    const post = posts.find((p) => p.id === postId);
-    if (!post) {
-      toast.error("ไม่พบโพสต์");
-      return;
-    }
-    if (post.user_id !== currentUserId) {
-      toast.error("คุณไม่สามารถลบโพสต์นี้ได้");
-      return;
-    }
-
-    try {
-      const result: void | Error = await toast.promise(
-        new Promise<void>((resolve, reject) => {
-          import("sweetalert2")
-            .then(async (Swal) => {
-              const confirmResult = await Swal.default.fire({
-                title: t("delete_confirm_title"),
-                text: t("delete_confirm_text"),
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                cancelButtonColor: "#3085d6",
-                confirmButtonText: t("delete_confirm_yes"),
-                cancelButtonText: t("delete_confirm_cancel"),
-              });
-              if (confirmResult.isConfirmed) {
-                resolve();
-              } else {
-                reject(new Error("User cancelled"));
-              }
-            })
-            .catch(reject);
-        }),
-        {
-          loading: "กำลังลบ...",
-          success: "ลบโพสต์สำเร็จ!",
-          error: (err: any) =>
-            err && err.message === "User cancelled"
-              ? t("delete_cancelled")
-              : t("delete_failed"),
-        }
-      );
-
-      // Check if the promise rejected (e.g., user cancelled)
-      if (typeof result === 'object' && result !== null && 'message' in result) {
-         console.log("Deletion cancelled or pre-promise error:", (result as Error).message);
-         return;
-      }
-
-    } catch (err: any) {
-      // This catch block handles the rejection from Swal (User cancelled)
-      if (err && err.message === "User cancelled") {
-        console.log("Deletion cancelled by user");
-        return;
-      }
-      toast.error(err?.message || "เกิดข้อผิดพลาด");
-      return;
-    }
-
-    // Proceed with deletion only if toast.promise succeeded
-    try {
-      const { error } = await supabase.from("posts").delete().eq("id", postId);
-      if (error) {
-        throw error;
-      }
-      setPosts(posts.filter((p) => p.id !== postId));
-    } catch (error: any) {
-      toast.error(`ลบโพสต์ไม่สำเร็จ: ${error.message}`);
-    }
-  };
-
-  const isFiltering = searchName !== "" || selectedType !== "";
 
   return (
-    <div
-      className={`font-sriracha transition-colors duration-300 ${
-        darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
-      }`}
-    >
-      <Toaster position="top-right" />
+    <div className={`min-h-screen transition-colors ${darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
+      <Toaster />
       <Navbar />
-      <div className="max-w-8xl mx-auto px-0 sm:px-0 lg:px-0 pt-[64px] h-64 sm:h-80 md:h-96 lg:h-[500px] overflow-hidden">
-        <Hero />
+
+      {/* ---------- HERO ---------- */}
+      <div className="relative pt-16"> {/* Add padding-top to account for fixed navbar */}
+        <div className="h-[420px] md:h-[520px] overflow-hidden">
+          <Hero />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/10 to-transparent pointer-events-none" />
       </div>
 
-      {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 min-h-screen">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8"
-        >
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+      {/* ---------- CONTENT ---------- */}
+      <div className="max-w-7xl mx-auto px-4 py-10">
+        
+        {/* ACTION BAR */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10">
+          <button
             onClick={() => router.push("/create_post")}
-            className={`flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-lg shadow-md transition-all w-full md:w-auto
-             ${
-               darkMode
-                 ? "bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-600 hover:to-blue-600"
-                 : "bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600"
-             }`}
+            className={`flex items-center gap-2 px-6 py-3 rounded-full font-semibold shadow-sm transition transform hover:scale-105
+              ${darkMode ? "bg-pink-500 hover:bg-pink-600 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}`}
           >
             <FaPlus /> {t("share_your_journey")}
-          </motion.button>
+          </button>
+
           <Link
             href="/Favorites"
-            className={`flex items-center gap-2 font-semibold transition-colors
-             ${
-               darkMode
-                 ? "text-pink-400 hover:text-pink-300"
-                 : "text-blue-600 hover:text-blue-800"
-             }`}
+            className={`flex items-center gap-2 text-sm font-medium transition
+              ${darkMode ? "text-gray-300 hover:text-pink-400" : "text-gray-600 hover:text-blue-600"}`}
           >
             <FiHeart /> {t("fav")}
           </Link>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-6"
-        >
-          <div className="relative">
-            <FiSearch
-              className={`absolute left-4 top-1/2 -translate-y-1/2 ${
-                darkMode ? "text-gray-400" : "text-gray-500"
-              }`}
-            />
-            <input
-              type="text"
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
-              placeholder= "ค้นหาโพสต์"
-              className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 transition duration-200
-                ${
-                  darkMode
-                    ? "bg-gray-800 border-gray-600 focus:ring-pink-500 focus:border-pink-500 text-white"
-                    : "bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500 text-black"
-                }
-              `}
-            />
-          </div>
-        </motion.div>
-
-        <div
-          ref={stickyContainerRef}
-          style={{ height: isSticky ? `${filterBarHeight}px` : "auto" }}
-          className="mb-10"
-        >
-          <motion.div
-            ref={filterBarRef}
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className={`transition-all duration-300 w-full z-40 ${
-              isSticky
-                ? `fixed top-16 left-0 right-0 shadow-lg ${
-                    darkMode
-                      ? "bg-gray-900 border-b border-gray-700"
-                      : "bg-gray-50 border-b border-gray-200"
-                  }`
-                : "relative"
-            }`}
-          >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div className="flex flex-wrap gap-3">
-                {filterTags.map((tag) => {
-                  const isActive =
-                    (tag === t("all") && !selectedType) ||
-                    tag === selectedType;
-                  return (
-                    <motion.button
-                      key={tag}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleSelectType(tag)}
-                      className={`px-4 py-2 rounded-full font-semibold transition-all duration-300 text-sm sm:text-base
-                        ${
-                          isActive
-                            ? `${
-                                darkMode
-                                  ? "bg-pink-500 text-white"
-                                  : "bg-blue-500 text-white"
-                              } shadow-md`
-                            : `${
-                                darkMode
-                                  ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                                  : "bg-white text-gray-700 hover:bg-gray-100"
-                              } border border-gray-300 dark:border-gray-600 hover:scale-105`
-                        }
-                      `}
-                    >
-                      {tag}
-                    </motion.button>
-                  );
-                })}
-              </div>
-
-              <div className="relative">
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowSortMenu(!showSortMenu)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-300 text-sm sm:text-base border hover:scale-105
-                    ${
-                      darkMode
-                        ? "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600"
-                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
-                    }
-                  `}
-                >
-                  <FiFilter size={16} />
-                  <span>
-                    {sortOptions.find((opt) => opt.id === sortBy)?.name ||
-                      "จัดเรียง"}
-                  </span>
-                </motion.button>
-                <AnimatePresence>
-                  {showSortMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className={`absolute right-0 top-full mt-2 w-48 rounded-lg shadow-xl border overflow-hidden z-50 ${
-                        darkMode
-                          ? "bg-gray-800 border-gray-700"
-                          : "bg-white border-gray-200"
-                      }`}
-                    >
-                      {sortOptions.map((opt) => (
-                        <button
-                          key={opt.id}
-                          onClick={() => handleSortChange(opt.id)}
-                          className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-colors duration-200
-                            ${
-                              sortBy === opt.id
-                                ? `${
-                                    darkMode
-                                      ? "text-pink-400 bg-gray-700"
-                                      : "text-blue-500 bg-gray-100"
-                                  } font-bold`
-                                : `${
-                                    darkMode
-                                      ? "text-gray-300 hover:bg-gray-700"
-                                      : "text-gray-700 hover:bg-gray-100"
-                                  }`
-                            }
-                          `}
-                        >
-                          {opt.icon}
-                          <span>{opt.name}</span>
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </motion.div>
         </div>
 
-        <AnimatePresence mode="wait">
-          {loading ? (
-            <motion.div
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex justify-center items-center py-20"
-            >
-              <svg
-                className={`animate-spin h-10 w-10 ${
-                  darkMode ? "text-pink-400" : "text-blue-500"
-                }`}
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              <span className="ml-3 text-lg text-gray-500 dark:text-gray-400">
-                กำลังโหลดโพสต์...
-              </span>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="posts"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {currentPosts.length > 0 ? (
-                <motion.div
-                  layout
-                  className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                >
-                  {currentPosts.map((post) => (
-                    <PostCard
-                      key={post.id}
-                      postId={post.id}
-                      title={post.title}
-                      description={post.description}
-                      type={post.place_type}
-                      province={post.province || "-"}
-                      images={post.image_url}
-                      onDelete={handleDeletePost}
-                      onFav={handleFavPost}
-                      onLike={handleLikePost}
-                      currentUserId={currentUserId || undefined}
-                      ownerId={post.user_id}
-                      isFav={post.isFav}
-                      isLiked={post.isLiked}
-                      likeCount={post.like_count || 0}
-                    />
-                  ))}
-                </motion.div>
-              ) : (
-                <p className="text-center text-gray-500 dark:text-gray-400 py-10">
-                  {t("no_posts_found")}
-                </p>
-              )}
+        {/* SEARCH */}
+        <div className="relative mb-8">
+          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <input
+            value={searchName}
+            onChange={(e) => setSearchName(e.target.value)}
+            placeholder={t("search") || "ค้นหาโพสต์..."}
+            className={`w-full pl-12 pr-4 py-3 rounded-2xl border backdrop-blur transition outline-none
+              ${darkMode ? "bg-gray-800/70 border-gray-700 focus:ring-2 focus:ring-pink-500" : "bg-white/80 border-gray-200 focus:ring-2 focus:ring-blue-500"}`}
+          />
+        </div>
 
-              {totalPages > 1 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="flex justify-center items-center gap-2 mt-12 flex-wrap"
-                >
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handlePageChange(1)}
-                    disabled={currentPage === 1}
-                    className={`p-2 rounded-md transition duration-200 border ${
-                      darkMode
-                        ? "border-gray-600 hover:bg-gray-700 disabled:text-gray-600"
-                        : "border-gray-300 hover:bg-gray-100 disabled:text-gray-400"
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+        {/* STICKY FILTER BAR (CSS Sticky) */}
+        <div className={`sticky top-16 z-40 py-2 mb-6 transition-colors ${darkMode ? "bg-gray-900/95" : "bg-gray-50/95"} backdrop-blur-sm`}>
+          <div className="flex flex-wrap gap-3 justify-between items-center">
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2">
+              {filterTags.map((tag) => {
+                const active = (tag === t("all") && !selectedType) || tag === selectedType;
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => setSelectedType(tag === t("all") ? "" : tag)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition
+                      ${active 
+                        ? (darkMode ? "bg-pink-500 text-white" : "bg-blue-500 text-white") 
+                        : (darkMode ? "bg-gray-800 text-gray-300 hover:bg-gray-700" : "bg-white text-gray-600 hover:bg-gray-200 shadow-sm")
+                      }`}
                   >
-                    <FiChevronsLeft />
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={`p-2 rounded-md transition duration-200 border ${
-                      darkMode
-                        ? "border-gray-600 hover:bg-gray-700 disabled:text-gray-600"
-                        : "border-gray-300 hover:bg-gray-100 disabled:text-gray-400"
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSortMenu((v) => !v)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm border font-medium shadow-sm transition
+                  ${darkMode ? "bg-gray-800 border-gray-700 hover:bg-gray-700" : "bg-white border-gray-200 hover:bg-gray-50"}`}
+              >
+                <FiFilter />
+                {sortOptions.find((o) => o.id === sortBy)?.name ?? t("sort_newest")}
+              </button>
+
+              <AnimatePresence>
+                {showSortMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className={`absolute right-0 mt-2 w-52 rounded-xl shadow-lg overflow-hidden border z-50
+                      ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}
                   >
-                    <FiChevronLeft />
-                  </motion.button>
-                  {Array.from({ length: totalPages }, (_, i) => {
-                    const pageNum = i + 1;
-                    return (
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        key={pageNum}
-                        onClick={() => handlePageChange(pageNum)}
-                        className={`w-10 h-10 rounded-md font-semibold transition-all duration-200 border
-                                  ${
-                                    currentPage === pageNum
-                                      ? `${
-                                          darkMode
-                                            ? "bg-pink-500 text-white border-pink-500"
-                                            : "bg-blue-500 text-white border-blue-500"
-                                        } shadow-lg`
-                                      : `${
-                                          darkMode
-                                            ? "border-gray-600 hover:bg-gray-700"
-                                            : "border-gray-300 hover:bg-gray-100"
-                                        } hover:scale-105`
-                                  }
-                              `}
+                    {sortOptions.map((o) => (
+                      <button
+                        key={o.id}
+                        onClick={() => {
+                          setSortBy(o.id);
+                          setShowSortMenu(false);
+                        }}
+                        className={`w-full px-4 py-3 text-left text-sm flex items-center gap-2
+                           ${darkMode ? "hover:bg-gray-700 text-gray-200" : "hover:bg-gray-50 text-gray-700"}`}
                       >
-                        {pageNum}
-                      </motion.button>
-                    );
-                  })}
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`p-2 rounded-md transition duration-200 border ${
-                      darkMode
-                        ? "border-gray-600 hover:bg-gray-700 disabled:text-gray-600"
-                        : "border-gray-300 hover:bg-gray-100 disabled:text-gray-400"
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    <FiChevronRight />
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handlePageChange(totalPages)}
-                    disabled={currentPage === totalPages}
-                    className={`p-2 rounded-md transition duration-200 border ${
-                      darkMode
-                        ? "border-gray-600 hover:bg-gray-700 disabled:text-gray-600"
-                        : "border-gray-300 hover:bg-gray-100 disabled:text-gray-400"
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    <FiChevronsRight />
-                  </motion.button>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
+                        {o.icon} {o.name}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+
+        {/* POSTS GRID */}
+        <AnimatePresence>
+            {loading ? (
+            <p className="text-center py-20 text-gray-400 animate-pulse">กำลังโหลดข้อมูล...</p>
+            ) : (
+            <>
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-h-[50vh]">
+                {currentPosts.map((post) => (
+                    <PostCard
+                        key={post.id}
+                        postId={post.id}
+                        title={post.title}
+                        description={post.description}
+                        images={post.image_url} // ส่ง image_url array
+                        type={post.place_type}
+                        province={post.province}
+                        likeCount={post.like_count}
+                        isLiked={post.isLiked}
+                        ownerId={post.user_id}
+                        currentUserId={currentUserId}
+                        onDelete={() => handleDeletePost(post.id)}
+                        onLike={() => handleLikePost(post.id, post.isLiked || false)}
+                    />
+                ))}
+                </div>
+                
+                {currentPosts.length === 0 && (
+                    <div className="text-center py-20 opacity-60">
+                        <p className="text-xl">ไม่พบโพสต์ที่คุณค้นหา</p>
+                    </div>
+                )}
+            </>
+            )}
         </AnimatePresence>
+
+        {/* PAGINATION */}
+        {!loading && totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-12">
+            <button 
+                onClick={() => handlePageChange(1)} 
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+                <FiChevronsLeft />
+            </button>
+            <button 
+                onClick={() => handlePageChange(currentPage - 1)} 
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+                <FiChevronLeft />
+            </button>
+            
+            <span className="px-4 py-2 font-medium">
+                {currentPage} / {totalPages}
+            </span>
+
+            <button 
+                onClick={() => handlePageChange(currentPage + 1)} 
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+                <FiChevronRight />
+            </button>
+            <button 
+                onClick={() => handlePageChange(totalPages)} 
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+                <FiChevronsRight />
+            </button>
+          </div>
+        )}
       </div>
+
       <Footer />
     </div>
   );
-};
-
-export default PostPage;
+}
