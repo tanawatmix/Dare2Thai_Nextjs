@@ -111,8 +111,10 @@ export default function PostPage() {
       if (postError) throw postError;
 
       // 3. Get Likes (Counts & User Status)
-      const { data: likesData } = await supabase.from("post_likes").select("post_id, user_id");
-      
+      const { data: likesData } = await supabase
+        .from("post_likes")
+        .select("post_id, user_id");
+
       // Calculate Likes
       const likeCounts = new Map<string, number>();
       const userLikedSet = new Set<string>();
@@ -129,7 +131,9 @@ export default function PostPage() {
       // 4. Merge Data
       const formattedPosts: Post[] = (postsData || []).map((p: any) => ({
         ...p,
-        image_url: Array.isArray(p.image_url) ? p.image_url : JSON.parse(p.image_url || "[]"),
+        image_url: Array.isArray(p.image_url)
+          ? p.image_url
+          : JSON.parse(p.image_url || "[]"),
         like_count: likeCounts.get(p.id) || 0,
         isLiked: userLikedSet.has(p.id),
       }));
@@ -151,51 +155,62 @@ export default function PostPage() {
   const handleDeletePost = async (postId: string) => {
     if (!confirm("Are you sure you want to delete this post?")) return;
     try {
-        const { error } = await supabase.from("posts").delete().eq("id", postId);
-        if (error) throw error;
-        setPosts((prev) => prev.filter((p) => p.id !== postId));
-        toast.success("Post deleted successfully");
+      const { error } = await supabase.from("posts").delete().eq("id", postId);
+      if (error) throw error;
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      toast.success("Post deleted successfully");
     } catch (error) {
-        console.error(error);
-        toast.error("Failed to delete post");
+      console.error(error);
+      toast.error("Failed to delete post");
     }
   };
 
-  const handleLikePost = async (postId: string, currentLikeStatus: boolean) => {
-      if (!currentUserId) return toast.error("Please login to like");
+  const handleLikePost = async (
+    postId: string,
+    newLiked: boolean,
+  ): Promise<number> => {
+    if (!currentUserId) {
+      toast.error(t("please_login_to_like"));
+      router.push("/login");
+      return 0;
+    }
 
-      // Optimistic Update (อัปเดตหน้าจอทันทีไม่ต้องรอเซิร์ฟเวอร์)
-      setPosts(prev => prev.map(p => {
-          if (p.id === postId) {
-              return {
-                  ...p,
-                  isLiked: !p.isLiked,
-                  like_count: p.isLiked ? p.like_count - 1 : p.like_count + 1
-              }
-          }
-          return p;
-      }));
-
-      try {
-          if (currentLikeStatus) {
-              // Unlike
-              await supabase.from("post_likes").delete().match({ post_id: postId, user_id: currentUserId });
-          } else {
-              // Like
-              await supabase.from("post_likes").insert({ post_id: postId, user_id: currentUserId });
-          }
-      } catch (error) {
-          // Revert if error
-          fetchPosts(); 
-          toast.error("Something went wrong");
+    try {
+      if (newLiked) {
+        await supabase.from("post_likes").insert({
+          post_id: postId,
+          user_id: currentUserId,
+        });
+      } else {
+        await supabase
+          .from("post_likes")
+          .delete()
+          .eq("post_id", postId)
+          .eq("user_id", currentUserId);
       }
-  }
+
+      const { count } = await supabase
+        .from("post_likes")
+        .select("*", { count: "exact", head: true })
+        .eq("post_id", postId);
+
+      return count ?? 0;
+    } catch (err) {
+      console.error(err);
+      return 0;
+    }
+  };
 
   /* -------------------- FILTER & SORT -------------------- */
   useEffect(() => {
     let list = posts.filter((p) => {
-      const nameMatch = p.title.toLowerCase().includes(searchName.toLowerCase());
-      const typeMatch = !selectedType || selectedType === t("all") ? true : p.place_type === selectedType;
+      const nameMatch = p.title
+        .toLowerCase()
+        .includes(searchName.toLowerCase());
+      const typeMatch =
+        !selectedType || selectedType === t("all")
+          ? true
+          : p.place_type === selectedType;
       return nameMatch && typeMatch;
     });
 
@@ -210,23 +225,29 @@ export default function PostPage() {
         list.sort((a, b) => b.title.localeCompare(a.title, "th"));
         break;
       case "oldest":
-        list.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        list.sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        );
         break;
       case "newest":
       default:
-        list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        list.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        );
         break;
     }
 
     setFilteredPosts(list);
     // Reset to page 1 when filter changes
-    // setCurrentPage(1); 
+    // setCurrentPage(1);
   }, [posts, searchName, selectedType, sortBy, t]);
 
   // Pagination Logic
   const currentPosts = filteredPosts.slice(
     (currentPage - 1) * postsPerPage,
-    currentPage * postsPerPage
+    currentPage * postsPerPage,
   );
   const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
 
@@ -237,12 +258,16 @@ export default function PostPage() {
   };
 
   return (
-    <div className={`min-h-screen transition-colors ${darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
+    <div
+      className={`min-h-screen transition-colors ${darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}
+    >
       <Toaster />
       <Navbar />
 
       {/* ---------- HERO ---------- */}
-      <div className="relative pt-16"> {/* Add padding-top to account for fixed navbar */}
+      <div className="relative pt-16">
+        {" "}
+        {/* Add padding-top to account for fixed navbar */}
         <div className="h-[420px] md:h-[520px] overflow-hidden">
           <Hero />
         </div>
@@ -251,7 +276,6 @@ export default function PostPage() {
 
       {/* ---------- CONTENT ---------- */}
       <div className="max-w-7xl mx-auto px-4 py-10">
-        
         {/* ACTION BAR */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10">
           <button
@@ -273,7 +297,10 @@ export default function PostPage() {
 
         {/* SEARCH */}
         <div className="relative mb-8">
-          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <FiSearch
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+            size={20}
+          />
           <input
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
@@ -284,20 +311,28 @@ export default function PostPage() {
         </div>
 
         {/* STICKY FILTER BAR (CSS Sticky) */}
-        <div className={`sticky top-16 z-40 py-2 mb-6 transition-colors ${darkMode ? "bg-gray-900/95" : "bg-gray-50/95"} backdrop-blur-sm`}>
+        <div
+          className={`sticky top-16 z-40 py-2 mb-6 transition-colors ${darkMode ? "bg-gray-900/95" : "bg-gray-50/95"} backdrop-blur-sm`}
+        >
           <div className="flex flex-wrap gap-3 justify-between items-center">
             {/* Tags */}
             <div className="flex flex-wrap gap-2">
               {filterTags.map((tag) => {
-                const active = (tag === t("all") && !selectedType) || tag === selectedType;
+                const active =
+                  (tag === t("all") && !selectedType) || tag === selectedType;
                 return (
                   <button
                     key={tag}
                     onClick={() => setSelectedType(tag === t("all") ? "" : tag)}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition
-                      ${active 
-                        ? (darkMode ? "bg-pink-500 text-white" : "bg-blue-500 text-white") 
-                        : (darkMode ? "bg-gray-800 text-gray-300 hover:bg-gray-700" : "bg-white text-gray-600 hover:bg-gray-200 shadow-sm")
+                      ${
+                        active
+                          ? darkMode
+                            ? "bg-pink-500 text-white"
+                            : "bg-blue-500 text-white"
+                          : darkMode
+                            ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                            : "bg-white text-gray-600 hover:bg-gray-200 shadow-sm"
                       }`}
                   >
                     {tag}
@@ -314,7 +349,8 @@ export default function PostPage() {
                   ${darkMode ? "bg-gray-800 border-gray-700 hover:bg-gray-700" : "bg-white border-gray-200 hover:bg-gray-50"}`}
               >
                 <FiFilter />
-                {sortOptions.find((o) => o.id === sortBy)?.name ?? t("sort_newest")}
+                {sortOptions.find((o) => o.id === sortBy)?.name ??
+                  t("sort_newest")}
               </button>
 
               <AnimatePresence>
@@ -348,74 +384,76 @@ export default function PostPage() {
 
         {/* POSTS GRID */}
         <AnimatePresence>
-            {loading ? (
-            <p className="text-center py-20 text-gray-400 animate-pulse">กำลังโหลดข้อมูล...</p>
-            ) : (
+          {loading ? (
+            <p className="text-center py-20 text-gray-400 animate-pulse">
+              กำลังโหลดข้อมูล...
+            </p>
+          ) : (
             <>
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-h-[50vh]">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-h-[50vh]">
                 {currentPosts.map((post) => (
-                    <PostCard
-                        key={post.id}
-                        postId={post.id}
-                        title={post.title}
-                        description={post.description}
-                        images={post.image_url} // ส่ง image_url array
-                        type={post.place_type}
-                        province={post.province}
-                        likeCount={post.like_count}
-                        isLiked={post.isLiked}
-                        ownerId={post.user_id}
-                        currentUserId={currentUserId}
-                        onDelete={() => handleDeletePost(post.id)}
-                        onLike={() => handleLikePost(post.id, post.isLiked || false)}
-                    />
+                  <PostCard
+                    key={post.id}
+                    postId={post.id}
+                    title={post.title}
+                    description={post.description}
+                    images={post.image_url} // ส่ง image_url array
+                    type={post.place_type}
+                    province={post.province}
+                    likeCount={post.like_count}
+                    isLiked={post.isLiked}
+                    ownerId={post.user_id}
+                    currentUserId={currentUserId}
+                    onDelete={() => handleDeletePost(post.id)}
+                    onLike={(id, liked) => handleLikePost(id, liked)}
+                  />
                 ))}
+              </div>
+
+              {currentPosts.length === 0 && (
+                <div className="text-center py-20 opacity-60">
+                  <p className="text-xl">ไม่พบโพสต์ที่คุณค้นหา</p>
                 </div>
-                
-                {currentPosts.length === 0 && (
-                    <div className="text-center py-20 opacity-60">
-                        <p className="text-xl">ไม่พบโพสต์ที่คุณค้นหา</p>
-                    </div>
-                )}
+              )}
             </>
-            )}
+          )}
         </AnimatePresence>
 
         {/* PAGINATION */}
         {!loading && totalPages > 1 && (
           <div className="flex justify-center items-center gap-2 mt-12">
-            <button 
-                onClick={() => handlePageChange(1)} 
-                disabled={currentPage === 1}
-                className="p-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
+            <button
+              onClick={() => handlePageChange(1)}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-                <FiChevronsLeft />
+              <FiChevronsLeft />
             </button>
-            <button 
-                onClick={() => handlePageChange(currentPage - 1)} 
-                disabled={currentPage === 1}
-                className="p-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-                <FiChevronLeft />
+              <FiChevronLeft />
             </button>
-            
+
             <span className="px-4 py-2 font-medium">
-                {currentPage} / {totalPages}
+              {currentPage} / {totalPages}
             </span>
 
-            <button 
-                onClick={() => handlePageChange(currentPage + 1)} 
-                disabled={currentPage === totalPages}
-                className="p-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-                <FiChevronRight />
+              <FiChevronRight />
             </button>
-            <button 
-                onClick={() => handlePageChange(totalPages)} 
-                disabled={currentPage === totalPages}
-                className="p-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
+            <button
+              onClick={() => handlePageChange(totalPages)}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-                <FiChevronsRight />
+              <FiChevronsRight />
             </button>
           </div>
         )}
