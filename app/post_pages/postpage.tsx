@@ -164,6 +164,17 @@ export default function PostPage() {
       toast.error("Failed to delete post");
     }
   };
+  const handleFavPost = async (postId: string): Promise<void> => {
+    if (!currentUserId) {
+      router.push("/login");
+      return;
+    }
+
+    await supabase.from("favorites").insert({
+      post_id: postId,
+      user_id: currentUserId,
+    });
+  };
 
   const handleLikePost = async (
     postId: string,
@@ -406,6 +417,7 @@ export default function PostPage() {
                     currentUserId={currentUserId}
                     onDelete={() => handleDeletePost(post.id)}
                     onLike={(id, liked) => handleLikePost(id, liked)}
+                    onFav={(id) => handleFavPost(id)}
                   />
                 ))}
               </div>
