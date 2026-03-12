@@ -98,11 +98,9 @@ export default function PostPage() {
   const fetchPosts = async () => {
     setLoading(true);
     try {
-      // 1. Get User
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
 
-      // 2. Get Posts
       const { data: postsData, error: postError } = await supabase
         .from("posts")
         .select("*")
@@ -110,25 +108,29 @@ export default function PostPage() {
 
       if (postError) throw postError;
 
-      // 3. Get Likes (Counts & User Status)
       const { data: likesData } = await supabase
         .from("post_likes")
         .select("post_id, user_id");
-
-      // Calculate Likes
       const likeCounts = new Map<string, number>();
       const userLikedSet = new Set<string>();
 
       likesData?.forEach((like) => {
-        // Count
         likeCounts.set(like.post_id, (likeCounts.get(like.post_id) || 0) + 1);
-        // Check if current user liked
-        if (userId && like.user_id === userId) {
-          userLikedSet.add(like.post_id);
-        }
+        if (userId && like.user_id === userId) userLikedSet.add(like.post_id);
       });
 
-      // 4. Merge Data
+      let userFavSet = new Set<string>();
+      if (userId) {
+        const { data: favData } = await supabase
+          .from("favorites")
+          .select("post_id")
+          .eq("user_id", userId);
+
+        if (favData) {
+          favData.forEach((fav) => userFavSet.add(fav.post_id));
+        }
+      }
+
       const formattedPosts: Post[] = (postsData || []).map((p: any) => ({
         ...p,
         image_url: Array.isArray(p.image_url)
@@ -136,6 +138,7 @@ export default function PostPage() {
           : JSON.parse(p.image_url || "[]"),
         like_count: likeCounts.get(p.id) || 0,
         isLiked: userLikedSet.has(p.id),
+        isFav: userFavSet.has(p.id),
       }));
 
       setPosts(formattedPosts);
@@ -164,16 +167,38 @@ export default function PostPage() {
       toast.error("Failed to delete post");
     }
   };
-  const handleFavPost = async (postId: string): Promise<void> => {
+  const handleFavPost = async (postId: string, currentFavStatus: boolean) => {
     if (!currentUserId) {
-      router.push("/login");
+      toast.error("กรุณาล็อกอินเพื่อบันทึกโพสต์");
       return;
     }
 
-    await supabase.from("favorites").insert({
-      post_id: postId,
-      user_id: currentUserId,
-    });
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id === postId) {
+          return { ...p, isFav: !currentFavStatus };
+        }
+        return p;
+      }),
+    );
+
+    try {
+      if (currentFavStatus) {
+        // ถ้าเคย Fav ไว้ ให้ลบออก
+        await supabase
+          .from("favorites")
+          .delete()
+          .match({ post_id: postId, user_id: currentUserId });
+      } else {
+        await supabase
+          .from("favorites")
+          .insert({ post_id: postId, user_id: currentUserId });
+      }
+    } catch (error) {
+      console.error(error);
+      fetchPosts();
+      toast.error("เกิดข้อผิดพลาดในการบันทึก");
+    }
   };
 
   const handleLikePost = async (
@@ -417,7 +442,8 @@ export default function PostPage() {
                     currentUserId={currentUserId}
                     onDelete={() => handleDeletePost(post.id)}
                     onLike={(id, liked) => handleLikePost(id, liked)}
-                    onFav={(id) => handleFavPost(id)}
+                    isFav={post.isFav}
+                    onFav={() => handleFavPost(post.id, post.isFav || false)}
                   />
                 ))}
               </div>
