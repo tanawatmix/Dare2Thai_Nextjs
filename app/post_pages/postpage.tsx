@@ -37,9 +37,9 @@ type Post = {
   description: string;
   user_id: string;
   created_at: string;
-  isFav?: boolean; // สำหรับ Favorites
+  isFav?: boolean; 
   like_count: number;
-  isLiked?: boolean; // สำหรับ Likes
+  isLiked?: boolean; 
 };
 
 const postsPerPage = 12;
@@ -60,7 +60,6 @@ export default function PostPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showSortMenu, setShowSortMenu] = useState(false);
 
-  // Sync page from URL
   useEffect(() => {
     const pageParam = searchParams.get("page");
     if (pageParam) setCurrentPage(parseInt(pageParam));
@@ -240,13 +239,15 @@ export default function PostPage() {
   /* -------------------- FILTER & SORT -------------------- */
   useEffect(() => {
     let list = posts.filter((p) => {
-      const nameMatch = p.title
+      const nameMatch = (p.title || "")
         .toLowerCase()
-        .includes(searchName.toLowerCase());
+        .includes((searchName || "").toLowerCase());
+        
       const typeMatch =
         !selectedType || selectedType === t("all")
           ? true
           : p.place_type === selectedType;
+          
       return nameMatch && typeMatch;
     });
 
@@ -255,10 +256,13 @@ export default function PostPage() {
         list.sort((a, b) => b.like_count - a.like_count);
         break;
       case "az":
-        list.sort((a, b) => a.title.localeCompare(b.title, "th"));
+        list.sort((a, b) => (a.title || "").localeCompare(b.title || "", "th"));
         break;
       case "za":
-        list.sort((a, b) => b.title.localeCompare(a.title, "th"));
+        list.sort((a, b) => (b.title || "").localeCompare(a.title || "", "th"));
+        break;
+      case "province_az":
+        list.sort((a, b) => (a.province || "").localeCompare(b.province || "", "th"));
         break;
       case "oldest":
         list.sort(
@@ -275,6 +279,10 @@ export default function PostPage() {
         break;
     }
 
+    // 3. เอาข้อมูลที่กรองและเรียงเสร็จแล้ว ไปแสดงผล
+    setFilteredPosts(list);
+    
+  }, [posts, searchName, selectedType, sortBy, t]);
     setFilteredPosts(list);
     // Reset to page 1 when filter changes
     // setCurrentPage(1);
