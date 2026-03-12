@@ -16,7 +16,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // ✅ อ่านจาก localStorage อย่างเดียว
   useEffect(() => {
     const stored = localStorage.getItem("darkMode");
     setDarkMode(stored === "true");
@@ -31,7 +30,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
-  // ✅ กัน hydration mismatch
   if (!mounted) return null;
 
   return (

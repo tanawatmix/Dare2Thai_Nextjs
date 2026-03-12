@@ -1,13 +1,14 @@
 "use client";
 
 import { JSX, useEffect, useRef, useContext } from "react";
-import { motion } from "framer-motion";
+import { motion, HTMLMotionProps } from "framer-motion";
 import Navbar from "./components/navbar";
 import Footer from "./components/Footer";
 import { useTranslation } from "react-i18next";
 import { ThemeContext } from "./ThemeContext";
-import { HTMLMotionProps } from "framer-motion";
 import D2T2 from "../public/dare2New.png";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 const fadeUp: HTMLMotionProps<"div"> = {
   initial: { opacity: 0, y: 20 },
@@ -16,10 +17,70 @@ const fadeUp: HTMLMotionProps<"div"> = {
   viewport: { once: true },
 };
 
+/**
+ * A reusable component for displaying a feature section with a title,
+ * description, and a grid of items.
+ */
+type FeatureSectionProps = {
+  title: string;
+  description: string;
+  items: string[];
+  darkMode: boolean;
+  className?: string;
+  itemHoverClasses: { dark: string; light: string };
+};
+
+const FeatureSection = ({
+  title,
+  description,
+  items,
+  darkMode,
+  className,
+  itemHoverClasses,
+}: FeatureSectionProps) => (
+  <section
+    className={`
+      py-28 px-6
+      ${className || ""}
+    `}
+  >
+    <motion.div
+      {...fadeUp}
+      className="max-w-5xl mx-auto grid md:grid-cols-2 gap-16"
+    >
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">{title}</h2>
+        <p className={darkMode ? "text-gray-400" : "text-gray-600"}>
+          {description}
+        </p>
+      </div>
+
+      <div className="grid gap-4">
+        {items.map((item, i) => (
+          <div
+            key={i}
+            className={`
+              p-4 rounded-xl border transition
+              ${
+                darkMode
+                  ? `border-gray-700 ${itemHoverClasses.dark}`
+                  : `border-gray-200 ${itemHoverClasses.light}`
+              }
+            `}
+          >
+            {item}
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  </section>
+);
+
 export default function HomeUI(): JSX.Element {
   const { t } = useTranslation();
   const { darkMode } = useContext(ThemeContext);
   const clickSound = useRef<HTMLAudioElement | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     clickSound.current = new Audio("/sounds/shoot.wav");
@@ -37,12 +98,14 @@ export default function HomeUI(): JSX.Element {
       {/* HERO */}
       <section className="min-h-screen flex items-center justify-center px-6">
         <motion.div {...fadeUp} className="max-w-2xl text-center">
-          <img
-            src={D2T2.src}
+          <Image
+            src={D2T2}
             alt="Logo"
+            width={80}
+            height={80}
             className={`
-              w-20 h-20 mx-auto mb-8 rounded-full
-              border
+              mx-auto mb-8 rounded-full
+              border 
               ${darkMode ? "border-gray-700" : "border-gray-200"}
             `}
           />
@@ -63,7 +126,7 @@ export default function HomeUI(): JSX.Element {
           <button
             onClick={() => {
               clickSound.current?.play();
-              window.location.href = "/post_pages";
+              router.push("/post_pages");
             }}
             className={`
               relative overflow-hidden
@@ -97,123 +160,64 @@ export default function HomeUI(): JSX.Element {
       <div
         className={`
           h-px w-full
-          ${darkMode
-            ? "bg-gradient-to-r from-transparent via-gray-700 to-transparent"
-            : "bg-gradient-to-r from-transparent via-gray-300 to-transparent"}
+          ${
+            darkMode
+              ? "bg-gradient-to-r from-transparent via-gray-700 to-transparent"
+              : "bg-gradient-to-r from-transparent via-gray-300 to-transparent"
+          }
         `}
       />
 
-      {/* CULTURE */}
-      <section className="py-28 px-6">
-        <motion.div
-          {...fadeUp}
-          className="max-w-5xl mx-auto grid md:grid-cols-2 gap-16"
-        >
-          <div>
-            <h2 className="text-2xl font-semibold mb-4">
-              {t("culture")}
-            </h2>
-            <p className={darkMode ? "text-gray-400" : "text-gray-600"}>
-              {t("travel1")} · {t("travel2")} · {t("travel3")}
-            </p>
-          </div>
-
-          <div className="grid gap-4">
-            {[t("travel4"), t("travel5"), t("travel6"), t("travel7")].map(
-              (item, i) => (
-                <div
-                  key={i}
-                  className={`
-                    p-4 rounded-xl border transition
-                    ${
-                      darkMode
-                        ? "border-gray-700 hover:border-gray-400"
-                        : "border-gray-200 hover:border-gray-900"
-                    }
-                  `}
-                >
-                  {item}
-                </div>
-              )
-            )}
-          </div>
-        </motion.div>
-      </section>
-
-      {/* NATURE */}
-      <section
+      <FeatureSection
+        title={t("culture")}
+        description={`${t("travel1")} · ${t("travel2")} · ${t("travel3")}`}
+        items={[t("travel4"), t("travel5"), t("travel6"), t("travel7")]}
+        darkMode={darkMode}
+        itemHoverClasses={{
+          dark: "hover:border-gray-400 transition-colors duration-300",
+          light: "hover:border-gray-900 transition-colors duration-300",
+        }}
+      />
+      <div
         className={`
-          py-28 px-6
-          ${darkMode ? "bg-gray-900" : "bg-gray-50"}
+          h-px w-full
+          ${
+            darkMode
+              ? "bg-gradient-to-r from-transparent via-gray-700 to-transparent"
+              : "bg-gradient-to-r from-transparent via-gray-300 to-transparent"
+          }
         `}
-      >
-        <motion.div
-          {...fadeUp}
-          className="max-w-5xl mx-auto grid md:grid-cols-2 gap-16"
-        >
-          <div>
-            <h2 className="text-2xl font-semibold mb-4">
-              {t("pa")}
-            </h2>
-            <p className={darkMode ? "text-gray-400" : "text-gray-600"}>
-              {t("pa1")} · {t("pa2")} · {t("pa3")}
-            </p>
-          </div>
-
-          <div className="grid gap-4">
-            {[t("pa4"), t("pa5"), t("pa6"), t("pa7")].map((item, i) => (
-              <div
-                key={i}
-                className={`
-                  p-4 rounded-xl border transition
-                  ${
-                    darkMode
-                      ? "border-gray-700 hover:bg-gray-800"
-                      : "border-gray-200 hover:bg-white"
-                  }
-                `}
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      </section>
-
-      {/* FOOD */}
-      <section className="py-28 px-6">
-        <motion.div
-          {...fadeUp}
-          className="max-w-5xl mx-auto grid md:grid-cols-2 gap-16"
-        >
-          <div>
-            <h2 className="text-2xl font-semibold mb-4">
-              {t("food")}
-            </h2>
-            <p className={darkMode ? "text-gray-400" : "text-gray-600"}>
-              {t("food1")} · {t("food2")} · {t("food3")}
-            </p>
-          </div>
-
-          <div className="grid gap-4">
-            {[t("food4"), t("food5"), t("food6"), t("food7")].map((item, i) => (
-              <div
-                key={i}
-                className={`
-                  p-4 rounded-xl border transition
-                  ${
-                    darkMode
-                      ? "border-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                      : "border-gray-200 hover:bg-gray-900 hover:text-white"
-                  }
-                `}
-              >
-                {item}
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      </section>
+      />
+      <FeatureSection
+        title={t("pa")}
+        description={`${t("pa1")} · ${t("pa2")} · ${t("pa3")}`}
+        items={[t("pa4"), t("pa5"), t("pa6"), t("pa7")]}
+        darkMode={darkMode}
+        itemHoverClasses={{
+          dark: "hover:bg-gray-800 hover:scale-105 transition-transform duration-300",
+          light: "hover:bg-gray-400 hover:scale-105 transition-transform duration-300",
+        }}
+      />
+      <div
+        className={`
+          h-px w-full
+          ${
+            darkMode
+              ? "bg-gradient-to-r from-transparent via-gray-700 to-transparent"
+              : "bg-gradient-to-r from-transparent via-gray-300 to-transparent"
+          }
+        `}
+      />
+      <FeatureSection
+        title={t("food")}
+        description={`${t("food1")} · ${t("food2")} · ${t("food3")}`}
+        items={[t("food4"), t("food5"), t("food6"), t("food7")]}
+        darkMode={darkMode}
+        itemHoverClasses={{
+          dark: "hover:bg-gray-100 hover:text-gray-900",
+          light: "hover:bg-gray-900 hover:text-white",
+        }}
+      />
 
       <Footer />
     </div>

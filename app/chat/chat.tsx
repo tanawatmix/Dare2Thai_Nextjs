@@ -48,7 +48,7 @@ type Profile = {
 
 const isVideo = (url: string | undefined | null) => {
   if (!url) return false;
-  return url.match(/\.(mp4|webm|ogg|mov)$/i);
+  return url.match(/\.(mp4|webm|ogg|mov|mkv|avi)$/i);
 };
 
 // --- Loading Component ---
