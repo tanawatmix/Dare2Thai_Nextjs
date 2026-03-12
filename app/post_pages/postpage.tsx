@@ -242,12 +242,10 @@ export default function PostPage() {
       const nameMatch = (p.title || "")
         .toLowerCase()
         .includes((searchName || "").toLowerCase());
-        
       const typeMatch =
         !selectedType || selectedType === t("all")
           ? true
           : p.place_type === selectedType;
-          
       return nameMatch && typeMatch;
     });
 
@@ -266,29 +264,21 @@ export default function PostPage() {
         break;
       case "oldest":
         list.sort(
-          (a, b) =>
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
         break;
       case "newest":
       default:
         list.sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
         break;
-    }
+    } 
 
-    // 3. เอาข้อมูลที่กรองและเรียงเสร็จแล้ว ไปแสดงผล
     setFilteredPosts(list);
     
   }, [posts, searchName, selectedType, sortBy, t]);
-    setFilteredPosts(list);
-    // Reset to page 1 when filter changes
-    // setCurrentPage(1);
-  }, [posts, searchName, selectedType, sortBy, t]);
 
-  // Pagination Logic
   const currentPosts = filteredPosts.slice(
     (currentPage - 1) * postsPerPage,
     currentPage * postsPerPage,
