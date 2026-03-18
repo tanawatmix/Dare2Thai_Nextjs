@@ -254,9 +254,8 @@ const PostTable = ({ posts, users, handleDeletePost }: any) => {
               posts.map((post: any, i: number) => (
                 <motion.tr key={post.id} custom={i} variants={fadeInUp} className="hover:bg-gray-50/80 dark:hover:bg-black transition-colors group">
                   <td className="px-6 py-4 font-mono text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap">{post.id.substring(0, 8)}...</td>
-                  {/* ✅ ครอบด้วย String() เพื่อรับประกันว่า React สามารถเรนเดอร์ได้โดยไม่ติด Error */}
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-200 whitespace-nowrap">{String(userMap.get(post.user_id) || "N/A")}</td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{post.title}</td>
+                  <td className="px-6 py-4 font-medium text-black dark:text-white whitespace-nowrap">{String(userMap.get(post.user_id) || "N/A")}</td>
+                  <td className="px-6 py-4 text-black dark:text-white">{post.title}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <Link href={`/post_detail?id=${post.id}`} target="_blank">
@@ -284,7 +283,7 @@ const NewsTable = ({ news, handleDeleteNews }: any) => {
     <motion.div variants={tableFade} initial="hidden" animate="visible" exit="exit" className="overflow-hidden rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700/60 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] text-sm text-left">
-          <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+          <thead className="text-xs text-gray-500 dark:text-white uppercase bg-gray-50/50 dark:bg-black border-b border-gray-200 dark:border-gray-700">
             <tr>
               <th className="px-6 py-4 font-medium tracking-wider w-24">รูปภาพ</th>
               <th className="px-6 py-4 font-medium tracking-wider">หัวข้อข่าว</th>
@@ -296,7 +295,7 @@ const NewsTable = ({ news, handleDeleteNews }: any) => {
               <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-500">ไม่พบข้อมูลข่าวสาร</td></tr>
             ) : (
               news.map((item: any, i: number) => (
-                <motion.tr key={item.id} custom={i} variants={fadeInUp} className="hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors group">
+                <motion.tr key={item.id} custom={i} variants={fadeInUp} className="hover:bg-gray-50/80 dark:hover:bg-black transition-colors group">
                   <td className="px-6 py-3">
                     <div className="w-16 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
                       {item.image_url ? (
@@ -306,7 +305,7 @@ const NewsTable = ({ news, handleDeleteNews }: any) => {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-200">{item.title}</td>
+                  <td className="px-6 py-4 font-medium text-black dark:text-white">{item.title}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <Link href={`/admin/manage-news?edit=${item.id}`}>
@@ -334,7 +333,7 @@ const SlidesTable = ({ slides, handleDeleteSlide }: any) => {
     <motion.div variants={tableFade} initial="hidden" animate="visible" exit="exit" className="overflow-hidden rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700/60 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] text-sm text-left">
-          <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+          <thead className="text-xs text-gray-500 dark:text-white uppercase bg-gray-50/50 dark:bg-black border-b border-gray-200 dark:border-gray-700">
             <tr>
               <th className="px-6 py-4 font-medium tracking-wider w-32">รูปภาพ</th>
               <th className="px-6 py-4 font-medium tracking-wider">หัวข้อ (Title)</th>
@@ -346,7 +345,7 @@ const SlidesTable = ({ slides, handleDeleteSlide }: any) => {
               <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-500">ไม่พบข้อมูลสไลด์</td></tr>
             ) : (
               slides.map((item: any, i: number) => (
-                <motion.tr key={item.id} custom={i} variants={fadeInUp} className="hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors group">
+                <motion.tr key={item.id} custom={i} variants={fadeInUp} className="hover:bg-gray-50/80 dark:hover:bg-black transition-colors group">
                   <td className="px-6 py-3">
                     <div className="w-24 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
                       {item.image_url ? (
@@ -356,7 +355,7 @@ const SlidesTable = ({ slides, handleDeleteSlide }: any) => {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-200">{item.title || <span className="text-gray-400 italic">(ไม่มีหัวข้อ)</span>}</td>
+                  <td className="px-6 py-4 font-medium text-black dark:text-white">{item.title || <span className="text-gray-400 italic">(ไม่มีหัวข้อ)</span>}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <Link href={`/admin/manage-slides?edit=${item.id}`}>
