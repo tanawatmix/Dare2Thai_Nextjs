@@ -236,7 +236,7 @@ const PostTable = ({ posts, users, handleDeletePost }: any) => {
   const userMap = useMemo(() => new Map<string, string>(users.map((u: any) => [u.id, u.username || ""])), [users]);
 
   return (
-    <motion.div variants={tableFade} initial="hidden" animate="visible" exit="exit" className="overflow-hidden rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700/60 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md">
+    <motion.div variants={tableFade} initial="hidden" animate="visible" exit="exit" className="overflow-hidden rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-900 bg-white/80 dark:bg-gray-800 backdrop-blur-md">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] text-sm text-left">
           <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
