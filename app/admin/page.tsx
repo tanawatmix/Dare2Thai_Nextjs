@@ -86,7 +86,7 @@ const tableFade = {
 // --- Components ---
 const LoadingSpinner = () => (
   <div className="flex justify-center items-center p-10">
-    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 dark:border-pink-500"></div>
+    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 dark:border-blue-400"></div>
   </div>
 );
 
@@ -118,7 +118,7 @@ const PaginationControls = ({
         <FiChevronLeft size={18} />
       </motion.button>
       <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-        หน้า <span className="text-blue-600 dark:text-pink-400 font-bold">{currentPage}</span> จาก {totalPages}
+        หน้า <span className="text-blue-600 dark:text-blue-400 font-bold">{currentPage}</span> จาก {totalPages}
       </span>
       <motion.button
         whileTap={{ scale: 0.95 }}
@@ -142,7 +142,6 @@ const DataTable = ({
   handleSaveEdit,
   handleDeleteUser,
   setEditUserData,
-  darkMode,
 }: any) => {
   return (
     <motion.div
@@ -150,18 +149,18 @@ const DataTable = ({
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="overflow-hidden rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700/60 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md"
+      className="overflow-hidden rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
     >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] text-sm text-left">
-          <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+          <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
             <tr>
               <th className="px-6 py-4 font-medium tracking-wider">ชื่อที่แสดง</th>
               <th className="px-6 py-4 font-medium tracking-wider">อีเมล</th>
               <th className="px-6 py-4 font-medium tracking-wider text-center">จัดการ</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {users.length === 0 ? (
               <tr>
                 <td colSpan={3} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
@@ -174,7 +173,7 @@ const DataTable = ({
                   key={user.id}
                   custom={i}
                   variants={fadeInUp}
-                  className="hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors group"
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group"
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     {editingUserId === user.id ? (
@@ -182,16 +181,16 @@ const DataTable = ({
                         type="text"
                         value={editUserData.name}
                         onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
-                        className="w-full p-2 rounded-lg border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none text-gray-800 dark:text-gray-200"
+                        className="w-full p-2 rounded-lg border bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-gray-100"
                       />
                     ) : (
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center text-blue-600 dark:text-gray-300 font-bold">
+                        <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
                           {user.name.charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-medium text-gray-900 dark:text-white">{user.name}</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{user.name}</span>
                         {user.role === "admin" && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-pink-500/20 dark:text-pink-400">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
                             <FiShield size={10} /> Admin
                           </span>
                         )}
@@ -203,19 +202,19 @@ const DataTable = ({
                     <div className="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       {editingUserId === user.id ? (
                         <>
-                          <button onClick={handleSaveEdit} className="p-2 text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 rounded-lg transition-colors" title="บันทึก">
+                          <button onClick={handleSaveEdit} className="p-2 text-green-600 bg-green-50 hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-400 rounded-lg transition-colors" title="บันทึก">
                             <FiSave size={16} />
                           </button>
-                          <button onClick={handleCancelEdit} className="p-2 text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 rounded-lg transition-colors" title="ยกเลิก">
+                          <button onClick={handleCancelEdit} className="p-2 text-gray-600 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300 rounded-lg transition-colors" title="ยกเลิก">
                             <FiXCircle size={16} />
                           </button>
                         </>
                       ) : (
                         <>
-                          <button onClick={() => handleEditClick(user)} className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-blue-400 rounded-lg transition-colors" title="แก้ไข">
+                          <button onClick={() => handleEditClick(user)} className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 rounded-lg transition-colors" title="แก้ไข">
                             <FiEdit size={16} />
                           </button>
-                          <button onClick={() => handleDeleteUser(user.id)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 rounded-lg transition-colors" title="ลบ">
+                          <button onClick={() => handleDeleteUser(user.id)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 rounded-lg transition-colors" title="ลบ">
                             <FiTrash2 size={16} />
                           </button>
                         </>
@@ -236,10 +235,10 @@ const PostTable = ({ posts, users, handleDeletePost }: any) => {
   const userMap = useMemo(() => new Map<string, string>(users.map((u: any) => [u.id, u.username || ""])), [users]);
 
   return (
-    <motion.div variants={tableFade} initial="hidden" animate="visible" exit="exit" className="overflow-hidden rounded-2xl shadow-sm border border-gray-200/60 dark:border-black bg-white/80 dark:bg-black backdrop-blur-md">
+    <motion.div variants={tableFade} initial="hidden" animate="visible" exit="exit" className="overflow-hidden rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] text-sm text-left">
-          <thead className="text-xs text-gray-500 dark:text-white uppercase bg-gray-50/50 dark:bg-black border-b border-gray-200 dark:border-gray-700">
+          <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
             <tr>
               <th className="px-6 py-4 font-medium tracking-wider w-32">ID โพสต์</th>
               <th className="px-6 py-4 font-medium tracking-wider">ผู้โพสต์</th>
@@ -247,23 +246,23 @@ const PostTable = ({ posts, users, handleDeletePost }: any) => {
               <th className="px-6 py-4 font-medium tracking-wider text-center">จัดการ</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {posts.length === 0 ? (
-              <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500">ไม่พบข้อมูลโพสต์</td></tr>
+              <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">ไม่พบข้อมูลโพสต์</td></tr>
             ) : (
               posts.map((post: any, i: number) => (
-                <motion.tr key={post.id} custom={i} variants={fadeInUp} className="hover:bg-gray-50/80 dark:hover:bg-black transition-colors group">
+                <motion.tr key={post.id} custom={i} variants={fadeInUp} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
                   <td className="px-6 py-4 font-mono text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap">{post.id.substring(0, 8)}...</td>
-                  <td className="px-6 py-4 font-medium text-black dark:text-white whitespace-nowrap">{String(userMap.get(post.user_id) || "N/A")}</td>
-                  <td className="px-6 py-4 text-black dark:text-white">{post.title}</td>
+                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">{String(userMap.get(post.user_id) || "N/A")}</td>
+                  <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{post.title}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <Link href={`/post_detail?id=${post.id}`} target="_blank">
-                        <button className="p-2 text-purple-600 bg-purple-50 hover:bg-purple-100 dark:bg-purple-500/10 dark:hover:bg-purple-500/20 dark:text-purple-400 rounded-lg transition-colors" title="ดูโพสต์">
+                        <button className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 dark:text-indigo-400 rounded-lg transition-colors" title="ดูโพสต์">
                           <FiEye size={16} />
                         </button>
                       </Link>
-                      <button onClick={() => handleDeletePost(post.id)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 rounded-lg transition-colors" title="ลบ">
+                      <button onClick={() => handleDeletePost(post.id)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 rounded-lg transition-colors" title="ลบ">
                         <FiTrash2 size={16} />
                       </button>
                     </div>
@@ -280,40 +279,40 @@ const PostTable = ({ posts, users, handleDeletePost }: any) => {
 
 const NewsTable = ({ news, handleDeleteNews }: any) => {
   return (
-    <motion.div variants={tableFade} initial="hidden" animate="visible" exit="exit" className="overflow-hidden rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700/60 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md">
+    <motion.div variants={tableFade} initial="hidden" animate="visible" exit="exit" className="overflow-hidden rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] text-sm text-left">
-          <thead className="text-xs text-gray-500 dark:text-white uppercase bg-gray-50/50 dark:bg-black border-b border-gray-200 dark:border-gray-700">
+          <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
             <tr>
               <th className="px-6 py-4 font-medium tracking-wider w-24">รูปภาพ</th>
               <th className="px-6 py-4 font-medium tracking-wider">หัวข้อข่าว</th>
               <th className="px-6 py-4 font-medium tracking-wider text-center">จัดการ</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {news.length === 0 ? (
-              <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-500">ไม่พบข้อมูลข่าวสาร</td></tr>
+              <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">ไม่พบข้อมูลข่าวสาร</td></tr>
             ) : (
               news.map((item: any, i: number) => (
-                <motion.tr key={item.id} custom={i} variants={fadeInUp} className="hover:bg-gray-50/80 dark:hover:bg-black transition-colors group">
+                <motion.tr key={item.id} custom={i} variants={fadeInUp} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
                   <td className="px-6 py-3">
-                    <div className="w-16 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                    <div className="w-16 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center border border-gray-200 dark:border-gray-600">
                       {item.image_url ? (
                         <Image src={item.image_url} alt={item.title} width={64} height={48} className="object-cover w-full h-full" onError={(e) => { (e.target as HTMLImageElement).src = "/dare2New.png"; }} />
                       ) : (
-                        <FiFileText className="text-gray-400" />
+                        <FiFileText className="text-gray-400 dark:text-gray-500" />
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-medium text-black dark:text-white">{item.title}</td>
+                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{item.title}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <Link href={`/admin/manage-news?edit=${item.id}`}>
-                        <button className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-blue-400 rounded-lg transition-colors" title="แก้ไข">
+                        <button className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 rounded-lg transition-colors" title="แก้ไข">
                           <FiEdit size={16} />
                         </button>
                       </Link>
-                      <button onClick={() => handleDeleteNews(item.id, item.title)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 rounded-lg transition-colors" title="ลบ">
+                      <button onClick={() => handleDeleteNews(item.id, item.title)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 rounded-lg transition-colors" title="ลบ">
                         <FiTrash2 size={16} />
                       </button>
                     </div>
@@ -330,40 +329,40 @@ const NewsTable = ({ news, handleDeleteNews }: any) => {
 
 const SlidesTable = ({ slides, handleDeleteSlide }: any) => {
   return (
-    <motion.div variants={tableFade} initial="hidden" animate="visible" exit="exit" className="overflow-hidden rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700/60 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md">
+    <motion.div variants={tableFade} initial="hidden" animate="visible" exit="exit" className="overflow-hidden rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] text-sm text-left">
-          <thead className="text-xs text-gray-500 dark:text-white uppercase bg-gray-50/50 dark:bg-black border-b border-gray-200 dark:border-gray-700">
+          <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
             <tr>
               <th className="px-6 py-4 font-medium tracking-wider w-32">รูปภาพ</th>
               <th className="px-6 py-4 font-medium tracking-wider">หัวข้อ (Title)</th>
               <th className="px-6 py-4 font-medium tracking-wider text-center">จัดการ</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {slides.length === 0 ? (
-              <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-500">ไม่พบข้อมูลสไลด์</td></tr>
+              <tr><td colSpan={3} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">ไม่พบข้อมูลสไลด์</td></tr>
             ) : (
               slides.map((item: any, i: number) => (
-                <motion.tr key={item.id} custom={i} variants={fadeInUp} className="hover:bg-gray-50/80 dark:hover:bg-black transition-colors group">
+                <motion.tr key={item.id} custom={i} variants={fadeInUp} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
                   <td className="px-6 py-3">
-                    <div className="w-24 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                    <div className="w-24 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center border border-gray-200 dark:border-gray-600">
                       {item.image_url ? (
                         <Image src={item.image_url} alt="Slide" width={96} height={56} className="object-cover w-full h-full" onError={(e) => { (e.target as HTMLImageElement).src = "/dare2New.png"; }} />
                       ) : (
-                        <FiImage className="text-gray-400" />
+                        <FiImage className="text-gray-400 dark:text-gray-500" />
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-medium text-black dark:text-white">{item.title || <span className="text-gray-400 italic">(ไม่มีหัวข้อ)</span>}</td>
+                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">{item.title || <span className="text-gray-500 dark:text-gray-500 italic">(ไม่มีหัวข้อ)</span>}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <Link href={`/admin/manage-slides?edit=${item.id}`}>
-                        <button className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-blue-400 rounded-lg transition-colors" title="แก้ไข">
+                        <button className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 rounded-lg transition-colors" title="แก้ไข">
                           <FiEdit size={16} />
                         </button>
                       </Link>
-                      <button onClick={() => handleDeleteSlide(item.id, item.title)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 rounded-lg transition-colors" title="ลบ">
+                      <button onClick={() => handleDeleteSlide(item.id, item.title)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 rounded-lg transition-colors" title="ลบ">
                         <FiTrash2 size={16} />
                       </button>
                     </div>
@@ -401,7 +400,6 @@ export default function AdminPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // --- Fetch Data Logic Remains Exactly the Same ---
   useEffect(() => {
     const checkAdminAndFetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -453,7 +451,6 @@ export default function AdminPage() {
     checkAdminAndFetchData();
   }, [router]);
 
-  // Filters
   const filteredUsers = useMemo(() => {
     if (!searchTerm) return allUsers;
     const lowerSearch = searchTerm.toLowerCase();
@@ -484,7 +481,6 @@ export default function AdminPage() {
 
   useEffect(() => setCurrentPage(1), [activeTab, searchTerm]);
 
-  // --- Handlers ---
   const handleEditClick = (user: Profile) => { setEditingUserId(user.id); setEditUserData({ username: user.username, name: user.name }); };
   const handleCancelEdit = () => { setEditingUserId(null); setEditUserData({ username: "", name: "" }); };
 
@@ -507,7 +503,7 @@ export default function AdminPage() {
     });
   };
 
-  const handleDeleteUser = async (userId: string) => { /* Same logic as original, shortened for brevity if desired, but kept identical functionally */
+  const handleDeleteUser = async (userId: string) => {
      if (!isAdmin) return toast.error("ไม่มีสิทธิ์ลบ");
      try {
        await toast.promise(new Promise<void>((resolve, reject) => {
@@ -584,7 +580,7 @@ export default function AdminPage() {
   const isLoading = activeTab === "users" ? loadingUsers : activeTab === "posts" ? loadingPosts : activeTab === "news" ? loadingNews : loadingSlides;
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? "bg-[#0B1120] text-gray-100" : "bg-gray-50 text-gray-900"}`}>
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
       <Toaster position="top-center" toastOptions={{ style: { borderRadius: '12px', background: darkMode ? '#1F2937' : '#FFFFFF', color: darkMode ? '#F9FAFB' : '#111827'} }} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
@@ -618,7 +614,7 @@ export default function AdminPage() {
         </motion.div>
 
         {/* --- Main Content Area --- */}
-        <div className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-xl rounded-3xl p-4 sm:p-6 lg:p-8 border border-gray-200/50 dark:border-gray-700/50 shadow-sm">
+        <div className="bg-white dark:bg-gray-800/50 rounded-3xl p-4 sm:p-6 lg:p-8 border border-gray-200 dark:border-gray-800 shadow-sm">
           
           {/* Controls Bar (Tabs + Search + Add Action) */}
           <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center mb-8">
@@ -634,13 +630,13 @@ export default function AdminPage() {
             <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-4 items-center">
               {/* Search */}
               <div className="relative w-full sm:w-64">
-                <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" size={18} />
                 <input
                   type="text"
                   placeholder="ค้นหา..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-pink-500/50 text-sm transition-all text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-500/50 text-sm transition-all text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                 />
               </div>
 
@@ -649,7 +645,7 @@ export default function AdminPage() {
                 {(activeTab === "slides" || activeTab === "news") && (
                   <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="w-full sm:w-auto">
                     <Link href={activeTab === "slides" ? "/admin/manage-slides" : "/admin/manage-news"}>
-                      <button className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 dark:bg-pink-600 dark:hover:bg-pink-700 text-white text-sm font-semibold rounded-xl shadow-md transition-colors">
+                      <button className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors">
                         <FiPlus size={18} /> {activeTab === "slides" ? "สร้างสไลด์" : "สร้างข่าว"}
                       </button>
                     </Link>
@@ -691,8 +687,8 @@ const TabButton = ({ title, icon, isActive, onClick }: any) => {
       onClick={onClick}
       className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 ${
         isActive
-          ? "bg-white dark:bg-gray-800 text-blue-600 dark:text-pink-400 shadow-sm border border-gray-200/50 dark:border-gray-700"
-          : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-800/50 border border-transparent"
+          ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-white shadow-sm border border-gray-200 dark:border-gray-600"
+          : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 border border-transparent"
       }`}
     >
       <span className={isActive ? "opacity-100" : "opacity-70"}>{icon}</span>
