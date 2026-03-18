@@ -233,7 +233,7 @@ const DataTable = ({
 };
 
 const PostTable = ({ posts, users, handleDeletePost }: any) => {
-  const userMap = useMemo(() => new Map(users.map((u: any) => [u.id, u.username])), [users]);
+  const userMap = useMemo(() => new Map<string, string>(users.map((u: any) => [u.id, u.username || ""])), [users]);
 
   return (
     <motion.div variants={tableFade} initial="hidden" animate="visible" exit="exit" className="overflow-hidden rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700/60 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md">
@@ -254,7 +254,8 @@ const PostTable = ({ posts, users, handleDeletePost }: any) => {
               posts.map((post: any, i: number) => (
                 <motion.tr key={post.id} custom={i} variants={fadeInUp} className="hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors group">
                   <td className="px-6 py-4 font-mono text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap">{post.id.substring(0, 8)}...</td>
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-200 whitespace-nowrap">{userMap.get(post.user_id) || "N/A"}</td>
+                  {/* ✅ ครอบด้วย String() เพื่อรับประกันว่า React สามารถเรนเดอร์ได้โดยไม่ติด Error */}
+                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-200 whitespace-nowrap">{String(userMap.get(post.user_id) || "N/A")}</td>
                   <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{post.title}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
