@@ -236,39 +236,35 @@ const PostTable = ({ posts, users, handleDeletePost }: any) => {
   const userMap = useMemo(() => new Map<string, string>(users.map((u: any) => [u.id, u.username || ""])), [users]);
 
   return (
-    <motion.div variants={tableFade} initial="hidden" animate="visible" exit="exit" className="overflow-hidden rounded-2xl shadow-sm border border-gray-200/60 dark:border-gray-700/60 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md">
+    <motion.div variants={tableFade} initial="hidden" animate="visible" exit="exit" className="overflow-hidden rounded-2xl shadow-sm border border-gray-200/60 dark:border-black bg-white/80 dark:bg-black backdrop-blur-md">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] text-sm text-left">
-          <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+          <thead className="text-xs text-gray-500 dark:text-white uppercase bg-gray-50/50 dark:bg-black border-b border-gray-200 dark:border-gray-700">
             <tr>
-              <th className="px-6 py-4 font-medium tracking-wider w-32 text-gray-700 dark:text-gray-300">ID โพสต์</th>
-              <th className="px-6 py-4 font-medium tracking-wider text-gray-700 dark:text-gray-300">ผู้โพสต์</th>
-              <th className="px-6 py-4 font-medium tracking-wider text-gray-700 dark:text-gray-300">หัวข้อโพสต์</th>
-              <th className="px-6 py-4 font-medium tracking-wider text-center text-gray-700 dark:text-gray-300">จัดการ</th>
+              <th className="px-6 py-4 font-medium tracking-wider w-32">ID โพสต์</th>
+              <th className="px-6 py-4 font-medium tracking-wider">ผู้โพสต์</th>
+              <th className="px-6 py-4 font-medium tracking-wider">หัวข้อโพสต์</th>
+              <th className="px-6 py-4 font-medium tracking-wider text-center">จัดการ</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
             {posts.length === 0 ? (
-              <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-400 dark:text-gray-500">ไม่พบข้อมูลโพสต์</td></tr>
+              <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500">ไม่พบข้อมูลโพสต์</td></tr>
             ) : (
               posts.map((post: any, i: number) => (
-                <motion.tr 
-                  key={post.id} 
-                  custom={i} 
-                  variants={fadeInUp} 
-                  className="hover:bg-blue-50/60 dark:hover:bg-gradient-to-r dark:hover:from-blue-900/20 dark:hover:to-pink-900/20 transition-colors group"
-                >
-                  <td className="px-6 py-4 font-mono text-[11px] text-blue-500 dark:text-blue-400 whitespace-nowrap bg-blue-50/40 dark:bg-blue-500/10 rounded-lg m-2 w-fit">{post.id.substring(0, 8)}...</td>
-                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap rounded-lg">{String(userMap.get(post.user_id) || "N/A")}</td>
+                <motion.tr key={post.id} custom={i} variants={fadeInUp} className="hover:bg-gray-50/80 dark:hover:bg-black transition-colors group">
+                  <td className="px-6 py-4 font-mono text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap">{post.id.substring(0, 8)}...</td>
+                  {/* ✅ ครอบด้วย String() เพื่อรับประกันว่า React สามารถเรนเดอร์ได้โดยไม่ติด Error */}
+                  <td className="px-6 py-4 font-medium text-gray-900 dark:text-gray-200 whitespace-nowrap">{String(userMap.get(post.user_id) || "N/A")}</td>
                   <td className="px-6 py-4 text-gray-600 dark:text-gray-300">{post.title}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <Link href={`/post_detail?id=${post.id}`} target="_blank">
-                        <button className="p-2.5 text-purple-600 bg-purple-100 hover:bg-purple-200 dark:bg-purple-500/20 dark:hover:bg-purple-500/30 dark:text-purple-300 rounded-lg transition-all hover:shadow-md" title="ดูโพสต์">
+                        <button className="p-2 text-purple-600 bg-purple-50 hover:bg-purple-100 dark:bg-purple-500/10 dark:hover:bg-purple-500/20 dark:text-purple-400 rounded-lg transition-colors" title="ดูโพสต์">
                           <FiEye size={16} />
                         </button>
                       </Link>
-                      <button onClick={() => handleDeletePost(post.id)} className="p-2.5 text-red-600 bg-red-100 hover:bg-red-200 dark:bg-red-500/20 dark:hover:bg-red-500/30 dark:text-red-300 rounded-lg transition-all hover:shadow-md" title="ลบ">
+                      <button onClick={() => handleDeletePost(post.id)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 rounded-lg transition-colors" title="ลบ">
                         <FiTrash2 size={16} />
                       </button>
                     </div>
