@@ -25,7 +25,7 @@ import {
   FiPlus,
   FiImage,
   FiShield,
-  FiGamepad,
+  FiMonitor,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -605,7 +605,7 @@ export default function AdminPage() {
             </Link>
             <Link href="/game">
               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <FiGamepad size={16} /> <span className="hidden sm:inline">เกม</span>
+                <FiMonitor size={16} /> <span className="hidden sm:inline">เกม</span>
               </motion.button>
             </Link>
             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={toggleDarkMode} className="p-2.5 rounded-xl font-medium border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-yellow-500 dark:text-blue-400">
