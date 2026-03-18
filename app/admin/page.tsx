@@ -607,7 +607,7 @@ export default function AdminPage() {
             <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={toggleDarkMode} className="p-2.5 rounded-xl font-medium border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-yellow-500 dark:text-blue-400">
               {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
             </motion.button>
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => supabase.auth.signOut().then(()=>router.push('/'))} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm text-black dark:text-white bg-white dark:bg-gray-800  border border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => supabase.auth.signOut().then(()=>router.push('/'))} className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors">
               <FiLogOut size={16} /> <span className="hidden sm:inline">ออกจากระบบ</span>
             </motion.button>
           </div>
