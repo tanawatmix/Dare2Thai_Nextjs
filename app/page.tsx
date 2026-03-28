@@ -17,10 +17,6 @@ const fadeUp: HTMLMotionProps<"div"> = {
   viewport: { once: true },
 };
 
-/**
- * A reusable component for displaying a feature section with a title,
- * description, and a grid of items.
- */
 type FeatureSectionProps = {
   title: string;
   description: string;
