@@ -17,6 +17,7 @@ const fadeUp: HTMLMotionProps<"div"> = {
   viewport: { once: true },
 };
 
+
 type FeatureSectionProps = {
   title: string;
   description: string;
