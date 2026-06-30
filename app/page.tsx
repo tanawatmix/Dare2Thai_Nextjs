@@ -1,7 +1,7 @@
 "use client";
 
 import { JSX, useContext } from "react";
-import { motion, HTMLMotionProps, useReducedMotion } from "framer-motion";
+import { motion, HTMLMotionProps, useReducedMotion, Variants } from "framer-motion";
 import Navbar from "./components/navbar";
 import Footer from "./components/Footer";
 import { useTranslation } from "react-i18next";
@@ -19,7 +19,7 @@ const fadeUp: HTMLMotionProps<"div"> = {
   viewport: { once: true, margin: "-40px" },
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -27,7 +27,7 @@ const staggerContainer = {
   },
 };
 
-const staggerItem = {
+const staggerItem: Variants = {
   hidden: { opacity: 0, y: 18 },
   visible: {
     opacity: 1,
@@ -164,11 +164,11 @@ const FeatureSection = ({
                 alt={imageAlt}
                 width={720}
                 height={480}
-                className="aspect-[4/3] w-full object-cover"
+                className="aspect-4/3 w-full object-cover"
               />
             </motion.div>
             <div
-              className={`absolute inset-0 bg-gradient-to-t ${
+              className={`absolute inset-0 bg-linear-to-t ${
                 darkMode ? "from-gray-950/80 via-transparent" : "from-black/30 via-transparent"
               } to-transparent`}
             />
@@ -200,8 +200,8 @@ export default function HomeUI(): JSX.Element {
         <div
           className={`pointer-events-none absolute inset-0 ${
             darkMode
-              ? "bg-[radial-gradient(ellipse_at_top,_rgba(59,130,246,0.12),_transparent_55%),radial-gradient(ellipse_at_bottom_right,_rgba(16,185,129,0.08),_transparent_50%)]"
-              : "bg-[radial-gradient(ellipse_at_top,_rgba(59,130,246,0.08),_transparent_55%),radial-gradient(ellipse_at_bottom_right,_rgba(245,158,11,0.06),_transparent_50%)]"
+              ? "bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.12),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(16,185,129,0.08),transparent_50%)]"
+              : "bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.08),transparent_55%),radial-gradient(ellipse_at_bottom_right,rgba(245,158,11,0.06),transparent_50%)]"
           }`}
         />
         {!prefersReducedMotion && (
@@ -219,7 +219,7 @@ export default function HomeUI(): JSX.Element {
           </>
         )}
         <div
-          className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent ${
+          className={`pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent ${
             darkMode ? "via-gray-700" : "via-gray-300"
           } to-transparent`}
         />
@@ -349,10 +349,10 @@ export default function HomeUI(): JSX.Element {
       </section>
 
       <div
-        className={`h-px max-w-6xl mx-auto ${
+          className={`h-px max-w-6xl mx-auto ${
           darkMode
-            ? "bg-gradient-to-r from-transparent via-gray-800 to-transparent"
-            : "bg-gradient-to-r from-transparent via-gray-200 to-transparent"
+            ? "bg-linear-to-r from-transparent via-gray-800 to-transparent"
+            : "bg-linear-to-r from-transparent via-gray-200 to-transparent"
         }`}
       />
 
@@ -369,10 +369,10 @@ export default function HomeUI(): JSX.Element {
       />
 
       <div
-        className={`h-px max-w-6xl mx-auto ${
+          className={`h-px max-w-6xl mx-auto ${
           darkMode
-            ? "bg-gradient-to-r from-transparent via-gray-800 to-transparent"
-            : "bg-gradient-to-r from-transparent via-gray-200 to-transparent"
+            ? "bg-linear-to-r from-transparent via-gray-800 to-transparent"
+            : "bg-linear-to-r from-transparent via-gray-200 to-transparent"
         }`}
       />
 
@@ -390,10 +390,10 @@ export default function HomeUI(): JSX.Element {
       />
 
       <div
-        className={`h-px max-w-6xl mx-auto ${
+          className={`h-px max-w-6xl mx-auto ${
           darkMode
-            ? "bg-gradient-to-r from-transparent via-gray-800 to-transparent"
-            : "bg-gradient-to-r from-transparent via-gray-200 to-transparent"
+            ? "bg-linear-to-r from-transparent via-gray-800 to-transparent"
+            : "bg-linear-to-r from-transparent via-gray-200 to-transparent"
         }`}
       />
 
@@ -415,8 +415,8 @@ export default function HomeUI(): JSX.Element {
           {...fadeUp}
           className={`max-w-6xl mx-auto rounded-3xl border px-8 py-12 sm:px-12 sm:py-14 text-center ${
             darkMode
-              ? "border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950"
-              : "border-gray-200 bg-gradient-to-br from-white to-gray-100 shadow-sm"
+                ? "border-gray-800 bg-linear-to-br from-gray-900 to-gray-950"
+                : "border-gray-200 bg-linear-to-br from-white to-gray-100 shadow-sm"
           }`}
         >
           <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight mb-4">
