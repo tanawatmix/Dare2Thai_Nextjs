@@ -93,7 +93,7 @@ const PostCard = ({
             className="object-cover"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
 
           <button
             onClick={(e) => {
@@ -112,7 +112,7 @@ const PostCard = ({
         </div>
 
         {/* CONTENT */}
-        <div className="p-4 flex flex-col justify-between min-h-[170px]">
+        <div className="p-4 flex flex-col justify-between min-h-42.5">
           <div>
             <div className="flex justify-between mb-2 text-xs">
               <span

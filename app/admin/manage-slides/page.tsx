@@ -26,7 +26,7 @@ import {
   FiLoader,
   FiX,
   FiType,
-  FiFileText
+  FiFileText,
 } from "react-icons/fi";
 import { User } from "@supabase/supabase-js";
 import Image from "next/image";
@@ -41,7 +41,7 @@ type Slide = {
 };
 
 const LoadingComponent = ({ text }: { text: string }) => (
-  <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--background)]">
+  <div className="flex flex-col items-center justify-center min-h-screen bg-(--background)">
     <svg
       className="animate-spin h-10 w-10 text-blue-500 dark:text-pink-400"
       xmlns="http://www.w3.org/2000/svg"
@@ -62,7 +62,7 @@ const LoadingComponent = ({ text }: { text: string }) => (
         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
       ></path>
     </svg>
-    <p className="text-lg text-[var(--foreground)] opacity-80 mt-2">{text}</p>
+    <p className="text-lg text-(--foreground) opacity-80 mt-2">{text}</p>
   </div>
 );
 
@@ -73,8 +73,7 @@ const ManageSlidesContent: React.FC = () => {
   const editId = searchParams.get("edit");
 
   const [slideList, setSlideList] = useState<Slide[]>([]);
-  const [editingSlide, setEditingSlide] =
-    useState<Partial<Slide> | null>(null);
+  const [editingSlide, setEditingSlide] = useState<Partial<Slide> | null>(null);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -93,7 +92,9 @@ const ManageSlidesContent: React.FC = () => {
 
     const checkAdminAndFetch = async () => {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const currentUser = session?.user ?? null;
 
       if (!isMounted) return;
@@ -136,7 +137,7 @@ const ManageSlidesContent: React.FC = () => {
           setExistingImageUrl(slideToEdit.image_url);
           setImagePreview(slideToEdit.image_url);
           setImageFile(null);
-          if(imageInputRef.current) imageInputRef.current.value = "";
+          if (imageInputRef.current) imageInputRef.current.value = "";
         }
       } else {
         localResetFormStates();
@@ -144,57 +145,61 @@ const ManageSlidesContent: React.FC = () => {
       setLoading(false);
     };
     checkAdminAndFetch();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [editId, router]);
 
-   const localResetFormStates = () => {
-        setEditingSlide(null);
-        setTitle("");
-        setSubtitle("");
-        setImageFile(null);
-        setImagePreview(null);
-        setExistingImageUrl(null);
-        if (imageInputRef.current) imageInputRef.current.value = "";
-   };
-
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-     const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => { setImagePreview(reader.result as string); };
-      reader.readAsDataURL(file);
-    }
-   };
-
-  const handleRemoveImage = () => {
-     setImageFile(null);
+  const localResetFormStates = () => {
+    setEditingSlide(null);
+    setTitle("");
+    setSubtitle("");
+    setImageFile(null);
     setImagePreview(null);
     setExistingImageUrl(null);
     if (imageInputRef.current) imageInputRef.current.value = "";
-   };
+  };
+
+  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setExistingImageUrl(null);
+    if (imageInputRef.current) imageInputRef.current.value = "";
+  };
 
   const resetFormAndGoBack = () => {
-     localResetFormStates();
-     router.push("/admin");
-   };
+    localResetFormStates();
+    router.push("/admin");
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user || !isAdmin) return;
-    
+
     if (!editingSlide?.id && !imageFile) {
-        toast.error("กรุณาเลือกรูปภาพสำหรับสไลด์ใหม่");
-        return;
+      toast.error("กรุณาเลือกรูปภาพสำหรับสไลด์ใหม่");
+      return;
     }
     if (!imagePreview) {
-        toast.error("กรุณาเลือกรูปภาพ");
-        return;
+      toast.error("กรุณาเลือกรูปภาพ");
+      return;
     }
 
     setIsSubmitting(true);
     const loadingToast = toast.loading(
-      editingSlide?.id ? "กำลังอัปเดตสไลด์..." : "กำลังสร้างสไลด์..."
+      editingSlide?.id ? "กำลังอัปเดตสไลด์..." : "กำลังสร้างสไลด์...",
     );
 
     let finalImageUrl: string | null = existingImageUrl;
@@ -202,9 +207,11 @@ const ManageSlidesContent: React.FC = () => {
     try {
       if (imageFile) {
         if (existingImageUrl) {
-          const oldFileName = existingImageUrl.split('/').pop();
+          const oldFileName = existingImageUrl.split("/").pop();
           if (oldFileName) {
-            await supabase.storage.from("hero_images").remove([`public/${oldFileName}`]);
+            await supabase.storage
+              .from("hero_images")
+              .remove([`public/${oldFileName}`]);
           }
         }
         const fileExt = imageFile.name.split(".").pop();
@@ -213,20 +220,23 @@ const ManageSlidesContent: React.FC = () => {
           .from("hero_images") // Use 'hero_images' bucket
           .upload(`public/${newFileName}`, imageFile);
 
-        if (uploadError) throw new Error(`Image upload error: ${uploadError.message}`);
+        if (uploadError)
+          throw new Error(`Image upload error: ${uploadError.message}`);
 
-        const { data: urlData } = supabase.storage.from("hero_images").getPublicUrl(uploadData.path);
+        const { data: urlData } = supabase.storage
+          .from("hero_images")
+          .getPublicUrl(uploadData.path);
         finalImageUrl = urlData.publicUrl;
       }
       if (!finalImageUrl) {
-         throw new Error("เกิดข้อผิดพลาด: ไม่พบ URL รูปภาพ");
+        throw new Error("เกิดข้อผิดพลาด: ไม่พบ URL รูปภาพ");
       }
 
       const slideData = {
         title: title.trim() || null,
         subtitle: subtitle.trim() || null,
         image_url: finalImageUrl,
-        author_id: user.id
+        author_id: user.id,
       };
 
       if (editingSlide?.id) {
@@ -246,7 +256,6 @@ const ManageSlidesContent: React.FC = () => {
 
       toast.dismiss(loadingToast);
       resetFormAndGoBack();
-
     } catch (error: any) {
       toast.dismiss(loadingToast);
       toast.error(error.message || "เกิดข้อผิดพลาด");
@@ -260,23 +269,25 @@ const ManageSlidesContent: React.FC = () => {
 
   return (
     <>
-      <main className="flex-grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 w-full">
+      <main className="grow max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 w-full">
         <Toaster position="top-center" />
 
         <motion.button
-            onClick={resetFormAndGoBack}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`flex items-center gap-1.5 mb-6 text-sm font-medium transition-colors ${ darkMode ? 'text-gray-400 hover:text-pink-400' : 'text-gray-600 hover:text-blue-600'}`}>
-             <FiArrowLeft /> กลับไปหน้า Admin หลัก
-         </motion.button>
+          onClick={resetFormAndGoBack}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className={`flex items-center gap-1.5 mb-6 text-sm font-medium transition-colors ${darkMode ? "text-gray-400 hover:text-pink-400" : "text-gray-600 hover:text-blue-600"}`}
+        >
+          <FiArrowLeft /> กลับไปหน้า Admin หลัก
+        </motion.button>
 
         <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className={`p-6 sm:p-8 rounded-2xl shadow-lg border mb-12 ${ darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200" }`}>
-          <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-pink-500">
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className={`p-6 sm:p-8 rounded-2xl shadow-lg border mb-12 ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}
+        >
+          <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-linear-to-r from-blue-500 to-pink-500">
             {editingSlide?.id ? "แก้ไขสไลด์" : "สร้างสไลด์ใหม่"}
           </h2>
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -290,38 +301,41 @@ const ManageSlidesContent: React.FC = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="เช่น ภูเก็ต สวรรค์แห่งทะเล"
-                className={`w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 transition ${ darkMode ? 'bg-gray-700 border-gray-600 focus:ring-pink-500 focus:border-pink-500' : 'bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500' }`}
+                className={`w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 transition ${darkMode ? "bg-gray-700 border-gray-600 focus:ring-pink-500 focus:border-pink-500" : "bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500"}`}
               />
             </div>
             <div>
-              <label htmlFor="subtitle" className="block text-sm font-medium mb-1">
+              <label
+                htmlFor="subtitle"
+                className="block text-sm font-medium mb-1"
+              >
                 คำบรรยาย (ไม่บังคับ)
               </label>
-                <textarea
-                    id="subtitle"
-                    value={subtitle}
-                    onChange={(e) => setSubtitle(e.target.value)}
-                    placeholder="เช่น เที่ยวทะเล ดำน้ำ ดูพระอาทิตย์ตก"
-                    rows={3}
-                    className={`w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 transition ${ darkMode ? 'bg-gray-700 border-gray-600 focus:ring-pink-500 focus:border-pink-500' : 'bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500' }`}
-                />
+              <textarea
+                id="subtitle"
+                value={subtitle}
+                onChange={(e) => setSubtitle(e.target.value)}
+                placeholder="เช่น เที่ยวทะเล ดำน้ำ ดูพระอาทิตย์ตก"
+                rows={3}
+                className={`w-full p-2.5 border rounded-lg focus:outline-none focus:ring-2 transition ${darkMode ? "bg-gray-700 border-gray-600 focus:ring-pink-500 focus:border-pink-500" : "bg-white border-gray-300 focus:ring-blue-500 focus:border-blue-500"}`}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">
                 รูปภาพ (จำเป็น)
               </label>
               <div className="flex flex-col sm:flex-row items-center gap-4">
-                 <button
-                    type="button"
-                    onClick={() => imageInputRef.current?.click()}
-                    className={`flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg transition hover:border-opacity-70 ${
-                      darkMode
-                        ? "border-gray-600 text-gray-400 hover:border-pink-400"
-                        : "border-gray-300 text-gray-500 hover:border-blue-400"
-                    }`}
-                  >
-                    <FiImage /> {imagePreview ? "เปลี่ยนรูปภาพ" : "เลือกรูปภาพ"}
-                  </button>
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  className={`flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed rounded-lg transition hover:border-opacity-70 ${
+                    darkMode
+                      ? "border-gray-600 text-gray-400 hover:border-pink-400"
+                      : "border-gray-300 text-gray-500 hover:border-blue-400"
+                  }`}
+                >
+                  <FiImage /> {imagePreview ? "เปลี่ยนรูปภาพ" : "เลือกรูปภาพ"}
+                </button>
                 <input
                   ref={imageInputRef}
                   type="file"
@@ -330,48 +344,62 @@ const ManageSlidesContent: React.FC = () => {
                   className="hidden"
                   required={!editingSlide?.id}
                 />
-                 {imagePreview && (
-                    <div className="relative w-48 h-27 aspect-video bg-gray-100 dark:bg-gray-700 rounded-lg shadow">
-                        <Image
-                            src={imagePreview}
-                            alt="Preview"
-                            fill
-                            style={{ objectFit: 'cover' }}
-                            className="rounded-lg"
-                        />
-                        <button
-                            type="button"
-                            onClick={handleRemoveImage}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 leading-none shadow-md transition hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"
-                            aria-label="Remove image"
-                        >
-                            <FiX size={14}/>
-                        </button>
-                    </div>
-                 )}
+                {imagePreview && (
+                  <div className="relative w-48 h-27 aspect-video bg-gray-100 dark:bg-gray-700 rounded-lg shadow">
+                    <Image
+                      src={imagePreview}
+                      alt="Preview"
+                      fill
+                      style={{ objectFit: "cover" }}
+                      className="rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 leading-none shadow-md transition hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400"
+                      aria-label="Remove image"
+                    >
+                      <FiX size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
-               {!imagePreview && <p className="text-xs text-red-500 dark:text-red-400 mt-2">กรุณาเลือกรูปภาพ</p>}
+              {!imagePreview && (
+                <p className="text-xs text-red-500 dark:text-red-400 mt-2">
+                  กรุณาเลือกรูปภาพ
+                </p>
+              )}
             </div>
             <div className="flex flex-col sm:flex-row gap-4 pt-3">
               <motion.button
                 type="submit"
-                disabled={isSubmitting || !imagePreview} 
+                disabled={isSubmitting || !imagePreview}
                 whileTap={{ scale: 0.98 }}
                 className={`flex-1 flex items-center justify-center gap-2 text-white py-2.5 px-4 rounded-lg font-semibold shadow transition duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
-                    darkMode
-                    ? "bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-600 hover:to-blue-600"
-                    : "bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600"
-                 }`}
+                  darkMode
+                    ? "bg-linear-to-r from-pink-500 to-blue-500 hover:from-pink-600 hover:to-blue-600"
+                    : "bg-linear-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600"
+                }`}
               >
-                {isSubmitting ? <FiLoader className="animate-spin" /> : <FiSave />}
-                {editingSlide?.id ? (isSubmitting ? "กำลังอัปเดต..." : "บันทึกการแก้ไข") : (isSubmitting ? "กำลังสร้าง..." : "สร้างสไลด์")}
+                {isSubmitting ? (
+                  <FiLoader className="animate-spin" />
+                ) : (
+                  <FiSave />
+                )}
+                {editingSlide?.id
+                  ? isSubmitting
+                    ? "กำลังอัปเดต..."
+                    : "บันทึกการแก้ไข"
+                  : isSubmitting
+                    ? "กำลังสร้าง..."
+                    : "สร้างสไลด์"}
               </motion.button>
-              
+
               <motion.button
                 type="button"
                 whileTap={{ scale: 0.98 }}
                 onClick={resetFormAndGoBack}
-                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-semibold shadow transition duration-200 ${darkMode ? 'bg-gray-600 hover:bg-gray-500 text-gray-100' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-semibold shadow transition duration-200 ${darkMode ? "bg-gray-600 hover:bg-gray-500 text-gray-100" : "bg-gray-200 hover:bg-gray-300 text-gray-800"}`}
               >
                 <FiXCircle /> {editingSlide?.id ? "ยกเลิกการแก้ไข" : "ยกเลิก"}
               </motion.button>
@@ -383,15 +411,17 @@ const ManageSlidesContent: React.FC = () => {
   );
 };
 export default function ManageSlidesPageWrapper() {
-     const { darkMode } = useContext(ThemeContext);
+  const { darkMode } = useContext(ThemeContext);
 
-    return (
-        <div className={`min-h-screen flex flex-col transition-colors duration-300 ${ darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900" }`}>
-             <Navbar />
-             <Suspense fallback={<LoadingComponent text="กำลังโหลด..." />}>
-                 <ManageSlidesContent />
-             </Suspense>
-             <Footer />
-        </div>
-    );
+  return (
+    <div
+      className={`min-h-screen flex flex-col transition-colors duration-300 ${darkMode ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}
+    >
+      <Navbar />
+      <Suspense fallback={<LoadingComponent text="กำลังโหลด..." />}>
+        <ManageSlidesContent />
+      </Suspense>
+      <Footer />
+    </div>
+  );
 }
